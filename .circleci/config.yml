@@ -25,7 +25,6 @@ commands:
 
 jobs:
   build-and-push:
-    executor: machine
     machine:
       image: ubuntu-2204:current
     parameters:
@@ -50,7 +49,6 @@ jobs:
           tag: latest,<< parameters.code_version >>
 
   run-test-docker:
-    executor: machine
     machine:
       image: ubuntu-2204:current
     steps:
