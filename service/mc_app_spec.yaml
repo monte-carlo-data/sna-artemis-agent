@@ -1,0 +1,17 @@
+spec:
+  container:
+  - name: mc-app
+    image: /mc_app_data/mc_app/mc_app_repository/mc_app:latest
+    env:
+      SERVER_PORT: 8000
+    readinessProbe:
+      port: 8000
+      path: /healthcheck
+    secrets:
+      - snowflakeSecret:
+          objectName: 'core.mc_app_token'
+        directoryPath: '/usr/local/creds'
+  endpoint:
+  - name: mc-app-endpoint
+    port: 8000
+    public: false

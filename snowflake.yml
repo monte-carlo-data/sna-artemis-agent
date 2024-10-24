@@ -1,0 +1,14 @@
+definition_version: 1
+native_app:
+   name: mc_app
+   artifacts:
+      - src: app/*
+        dest: ./
+      - service/mc_app_spec.yaml
+   package:
+      name: mc_app_pkg
+      role: mc_app_role
+   application:
+      name: mc_app
+      debug: false
+      role: mc_app_role

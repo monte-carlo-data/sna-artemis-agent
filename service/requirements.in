@@ -1,0 +1,6 @@
+-c requirements-build.txt
+flask==3.0.3
+flask-sse==1.0.0
+gunicorn==23.0.0
+gevent==24.2.1
+sseclient==0.0.27
