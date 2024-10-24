@@ -12,6 +12,9 @@ RUN pip install -r requirements-build.txt
 FROM python:3.12-alpine3.20 AS base
 ARG code_version="docker"
 
+# update openssl
+RUN apk update && apk add --no-cache openssl~3.3
+
 # upgrade global libraries to fix CVEs
 RUN pip install --no-cache-dir --upgrade pip==24.2 && \
     pip install --no-cache-dir --upgrade setuptools==75.1.0
