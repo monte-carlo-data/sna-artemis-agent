@@ -115,20 +115,20 @@ workflows:
             - snowflake-app-dev
           requires:
             - run-test-docker
-#          filters:
-#            branches:
-#              only:
-#                - dev
+          filters:
+            branches:
+              only:
+                - dev
       - publish-snowflake-app:
           name: publish-snowflake-app-dev
           context:
             - snowflake-app-dev
           requires:
             - run-test-docker
-#          filters:
-#            branches:
-#              only:
-#                - dev
+          filters:
+            branches:
+              only:
+                - dev
       - build-and-push-image:
           name: build-and-push-image-prod
           docker_hub_repository: sna-agent
