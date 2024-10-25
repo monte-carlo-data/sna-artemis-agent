@@ -1,5 +1,7 @@
 # import json
 #
+import json
+
 import pandas as pd
 import streamlit as st
 # import snowflake.permissions as permissions
@@ -28,22 +30,17 @@ def get_container_status():
     st.success(result[0][0])
 
 
-def run_query():
-    text = st.session_state.input
-    session: Session = get_active_session()
-    result = session.sql(
-        f"SELECT core.schedule_query(?);",
-        params=[text],
-    ).collect()
-    st.success(result[0][0])
-
-
 def setup_connection():
-    token = st.session_state.token_input
+    key_id = st.session_state.key_input_id
+    key_secret = st.session_state.key_input_secret
+    key_json = {
+        "mcd_id": key_id,
+        "mcd_token": key_secret
+    }
     session: Session = get_active_session()
     result = session.sql(
         f"ALTER SECRET MC_APP.CORE.MC_APP_TOKEN SET SECRET_STRING=?;",
-        params=[token],
+        params=[json.dumps(key_json)],
     ).collect()
     restart_container(True)
 
@@ -73,13 +70,10 @@ def main():
                  "following the steps documented [here](https://docs.getmontecarlo.com).")
         st.write("")
         with st.form("setup_form"):
-            st.text_input("Token", key="token_input")
+            st.text_input("Key Id", key="key_input_id")
+            st.text_input("Key Secret", key="key_input_secret", type="password")
             _ = st.form_submit_button("Configure", on_click=setup_connection)
     with adv_tab:
-        with st.form("query_form"):
-            st.text_input("Query", key="input")
-            _ = st.form_submit_button("Run Query", on_click=run_query)
-
         with st.form("adv_form"):
             _ = st.form_submit_button("Restart Container", on_click=restart_container)
             _ = st.form_submit_button("Container Status", on_click=get_container_status)

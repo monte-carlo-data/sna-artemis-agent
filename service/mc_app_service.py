@@ -352,7 +352,7 @@ def _push_results_to_backend(operation_id: str, result: Dict):
             data=result_str,
             headers={
                 "Content-Type": "application/json",
-                'x-mcd-token': get_mc_login_token(),
+                **get_mc_login_token(),
             },
         )
         logger.info(f'Sent query results to backend, response: {response.status_code}')
