@@ -22,6 +22,16 @@ commands:
           echo "VERSION_TAG=${TAG#v}" >> $BASH_ENV
           source $BASH_ENV
         name: Generate prod version number
+  setup-snowflake-cli:
+    steps:
+    - run:
+        command: |
+          wget https://sfc-repo.snowflakecomputing.com/snowflake-cli/linux_x86_64/3.1.0/snowflake-cli-3.1.0.x86_64.deb
+          sudo dpkg -i snowflake-cli-3.1.0.x86_64.deb
+          echo $SNOWFLAKE_PRIVATE_KEY_VALUE > $SNOWFLAKE_PRIVATE_KEY_PATH
+          sed -i -e 's/\\n/\n/g' SNOWFLAKE_PRIVATE_KEY_PATH
+          snow connection test --temporary-connection
+        name: Setup Snowflake CLI
 
 jobs:
   build-and-push:
@@ -78,6 +88,7 @@ workflows:
           pre-steps:
             - checkout
             - generate-version-number-dev
+            - setup-snowflake-cli
           context:
             - docker
           requires:
