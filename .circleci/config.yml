@@ -32,10 +32,11 @@ commands:
           echo $SNOWFLAKE_PRIVATE_KEY_VALUE > $SNOWFLAKE_PRIVATE_KEY_PATH
           sed -i -e 's/\\n/\n/g' $SNOWFLAKE_PRIVATE_KEY_PATH
           snow connection test --temporary-connection
+          snow spcs image-registry login --temporary-connection
         name: Setup Snowflake CLI
 
 jobs:
-  build-and-push:
+  build-and-push-image:
     machine:
       image: ubuntu-2204:current
     parameters:
@@ -47,6 +48,7 @@ jobs:
       - checkout
       - docker/check:
           use-docker-credentials-store: true
+      - setup-snowflake-cli
       - docker/build:
           step-name: Build service image
           path: service
@@ -57,6 +59,14 @@ jobs:
           tag: latest,<< parameters.code_version >>
       - docker/push:
           image: montecarlodata/<< parameters.docker_hub_repository >>
+          tag: latest,<< parameters.code_version >>
+      - run:
+          name: Tag image for Snowflake repo
+          command: |
+            docker tag montecarlodata/<< parameters.docker_hub_repository >>:latest $SNOWFLAKE_REPO_URL/mc_app:latest
+            docker tag montecarlodata/<< parameters.docker_hub_repository >>:latest $SNOWFLAKE_REPO_URL/mc_app:<< parameters.code_version >>
+      - docker/push:
+          image: $SNOWFLAKE_REPO_URL/mc_app
           tag: latest,<< parameters.code_version >>
 
   run-test-docker:
@@ -72,22 +82,30 @@ jobs:
           extra_build_args: --target tests
           step-name: Run tests in docker build
 
+  publish-snowflake-app:
+    machine:
+      image: ubuntu-2204:current
+    steps:
+      - checkout
+      - setup-snowflake-cli
+      - run:
+          name: Publish Snowflake app
+          command: |
+            snow app run --temporary-connection
+
 workflows:
   version: 2
 
   build-sna:
     jobs:
       - run-test-docker:
-          # run for all tags and branches, we need to add this so the job is available for build-and-push-prod
-          pre-steps:
-            - setup-snowflake-cli
-          context:
-            - snowflake-app-dev
+          # run for all tags and branches
+          # we need to add this so the job is available for build-and-push-image-prod
           filters:
             tags:
               only: /.*/
-      - build-and-push:
-          name: build-and-push-dev
+      - build-and-push-image:
+          name: build-and-push-image-dev
           docker_hub_repository: prerelease-sna-agent
           code_version: ${NEXT_VERSION}
           pre-steps:
@@ -97,12 +115,22 @@ workflows:
             - docker
           requires:
             - run-test-docker
-          filters:
-            branches:
-              only:
-                - dev
-      - build-and-push:
-          name: build-and-push-prod
+#          filters:
+#            branches:
+#              only:
+#                - dev
+      - publish-snowflake-app:
+          name: publish-snowflake-app-dev
+          context:
+            - snowflake-app-dev
+          requires:
+            - run-test-docker
+#          filters:
+#            branches:
+#              only:
+#                - dev
+      - build-and-push-image:
+          name: build-and-push-image-prod
           docker_hub_repository: sna-agent
           code_version: ${VERSION_TAG}
           pre-steps:
@@ -112,6 +140,17 @@ workflows:
             - docker
           requires:
             - run-test-docker
+          filters: # run only for tags starting with v, don't run for branches
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
+      - publish-snowflake-app:
+          name: publish-snowflake-app-prod
+          requires:
+            - run-test-docker
+          context:
+            - snowflake-app-prod
           filters: # run only for tags starting with v, don't run for branches
             tags:
               only: /^v.*/
