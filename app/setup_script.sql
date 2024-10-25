@@ -126,6 +126,6 @@ CREATE SECRET IF NOT EXISTS core.mc_app_token
 CREATE OR REPLACE NETWORK RULE core.mc_backend_egress_access
   MODE = EGRESS
   TYPE = HOST_PORT
-  VALUE_LIST = ('mcd-orchestrator-test-nlb-85de00564645f8e2.elb.us-east-1.amazonaws.com:80');
+  VALUE_LIST = ('mcd-orchestrator-test-nlb-9b478a23917fbdf9.elb.us-east-1.amazonaws.com:80');
 
 GRANT USAGE ON NETWORK RULE core.mc_backend_egress_access TO APPLICATION ROLE app_user;

@@ -2,10 +2,9 @@ import logging
 import os
 import sys
 
-# BACKEND_SERVICE_URL = os.getenv('BACKEND_SERVICE_URL', 'https://f011-34-195-153-240.ngrok-free.app')
 BACKEND_SERVICE_URL = os.getenv(
     "BACKEND_SERVICE_URL",
-    "http://mcd-orchestrator-test-nlb-85de00564645f8e2.elb.us-east-1.amazonaws.com"
+    "http://mcd-orchestrator-test-nlb-9b478a23917fbdf9.elb.us-east-1.amazonaws.com"
 )
 AGENT_ID = os.getenv("AGENT_ID", "snowflake")
 LOCAL = os.getenv("ENV", "snowflake") == "local"
