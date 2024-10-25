@@ -78,6 +78,8 @@ workflows:
     jobs:
       - run-test-docker:
           # run for all tags and branches, we need to add this so the job is available for build-and-push-prod
+          pre-steps:
+            - setup-snowflake-cli
           filters:
             tags:
               only: /.*/
@@ -88,7 +90,6 @@ workflows:
           pre-steps:
             - checkout
             - generate-version-number-dev
-            - setup-snowflake-cli
           context:
             - docker
           requires:
