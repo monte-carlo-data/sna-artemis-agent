@@ -1,5 +1,3 @@
---LET backend_host_name := 'f011-34-195-153-240.ngrok-free.app';
-LET backend_host_name := 'mrostan-test-nlb-3ee4a0d2ef8857ef.elb.ca-central-1.amazonaws.com:80';
 CREATE APPLICATION ROLE IF NOT EXISTS app_user;
 
 CREATE SCHEMA IF NOT EXISTS core;
@@ -128,6 +126,6 @@ CREATE SECRET IF NOT EXISTS core.mc_app_token
 CREATE OR REPLACE NETWORK RULE core.mc_backend_egress_access
   MODE = EGRESS
   TYPE = HOST_PORT
-  VALUE_LIST = ('mrostan-test-nlb-3ee4a0d2ef8857ef.elb.ca-central-1.amazonaws.com:80');
+  VALUE_LIST = ('mcd-orchestrator-test-nlb-85de00564645f8e2.elb.us-east-1.amazonaws.com:80');
 
 GRANT USAGE ON NETWORK RULE core.mc_backend_egress_access TO APPLICATION ROLE app_user;

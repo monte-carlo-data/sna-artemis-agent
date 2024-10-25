@@ -4,7 +4,7 @@ import socket
 import sys
 import uuid
 from threading import Thread, Condition
-from typing import List, Any, Tuple, Dict, Optional
+from typing import List, Tuple, Dict, Optional
 from urllib.parse import urljoin
 from events_client import EventsClient
 from serde import ATTRIBUTE_NAME_ERROR, ATTRIBUTE_NAME_ERROR_ATTRS, ATTRIBUTE_NAME_ERROR_TYPE, \
@@ -35,7 +35,7 @@ _results_condition = Condition()
 _pending_results: List[Tuple[str, str]] = []
 _publisher_running = True
 
-_events_client: Optional[EventsClient] = None
+_events_clients: List[EventsClient] = []
 
 ERROR_INSUFFICIENT_PRIVILEGES = 3001
 ERROR_SHARED_DATABASE_NO_LONGER_AVAILABLE = 3030
@@ -65,13 +65,14 @@ def handler(signum, frame):
         global _publisher_running
         _publisher_running = False
         _results_condition.notify()
-    if _events_client:
-        _events_client.stop()
+    if _events_clients:
+        _events_clients[0].stop()
     print("Signal handler completed")
     sys.exit(0)
 
 
 signal.signal(signal.SIGINT, handler)
+
 
 @app.get("/healthcheck")
 def readiness_probe():
@@ -274,12 +275,13 @@ def _connect():
         #     account="hda34492.us-east-1",
         #     warehouse="MONTE_CARLO",
         # )
+        rsa_key_file = os.getenv("RSA_KEY_FILE", os.getenv("HOME") + "/.ssh/snowflake_rsa_key.p8")
         return snowflake.connector.connect(
             account="RNB23277",
             warehouse=WAREHOUSE_NAME,
             paramstyle="qmark",
             user="MC_APP_LOCAL",
-            private_key_file="../rsa_key.p8",
+            private_key_file=rsa_key_file,
             role="MONTE_CARLO_APP_ROLE",
         )
 
@@ -501,7 +503,7 @@ events = EventsClient(
     handler=_event_handler,
 )
 events.start()
-_events_client = events
+_events_clients.append(events)
 
 if __name__ == '__main__':
     app.run(host=SERVICE_HOST, port=SERVICE_PORT)

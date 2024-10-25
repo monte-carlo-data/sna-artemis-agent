@@ -41,4 +41,4 @@ RUN python -m pytest $pytest_params
 
 FROM base AS final
 
-CMD ["gunicorn", "mc_app_service:app", "--bind", "0.0.0.0:8080"]
+CMD ["gunicorn", "mc_app_service:app", "--bind", "0.0.0.0:8000"]

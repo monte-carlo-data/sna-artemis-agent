@@ -2,8 +2,6 @@ spec:
   container:
   - name: mc-app
     image: /mc_app_data/mc_app/mc_app_repository/mc_app:latest
-    env:
-      SERVER_PORT: 8000
     readinessProbe:
       port: 8000
       path: /healthcheck
