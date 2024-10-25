@@ -113,6 +113,7 @@ workflows:
             - generate-version-number-dev
           context:
             - docker
+            - snowflake-app-dev
           requires:
             - run-test-docker
 #          filters:
@@ -138,6 +139,7 @@ workflows:
             - generate-version-number-prod
           context:
             - docker
+            - snowflake-app-prod
           requires:
             - run-test-docker
           filters: # run only for tags starting with v, don't run for branches
