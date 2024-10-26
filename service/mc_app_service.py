@@ -380,7 +380,7 @@ def _download_operation(operation_id: str) -> Dict:
     response = requests.get(
         url,
         headers={
-            'x-mcd-token': get_mc_login_token(),
+            **get_mc_login_token(),
         },
     )
     return response.json()

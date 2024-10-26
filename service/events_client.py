@@ -100,7 +100,7 @@ class SSEClientReceiver:
                 url = urljoin(self._base_url, f"/stream?channel=agents.input.{self._agent_id}")
                 headers = {
                     "Accept": "text/event-stream",
-                    "x-mcd-token": get_mc_login_token(),
+                    **get_mc_login_token(),
                 }
                 self._sse_client = sseclient.SSEClient(url, headers=headers)
                 for event in self._sse_client:
