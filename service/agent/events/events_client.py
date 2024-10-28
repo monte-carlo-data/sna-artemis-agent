@@ -1,12 +1,12 @@
 import datetime
+import logging
 from threading import Thread, Condition
 from typing import Dict, Callable, Optional
 
 from agent.events.heartbeat_checker import HeartbeatChecker
 from agent.events.receiver_factory import ReceiverFactory
-from agent.utils.utils import get_logger
 
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class EventsClient:

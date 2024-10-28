@@ -1,10 +1,10 @@
+import logging
 from threading import Condition, Thread
 from typing import List, Tuple, Callable
 
 from agent.utils.queue_async_processor import QueueAsyncProcessor
-from agent.utils.utils import get_logger
 
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class ResultsPublisher(QueueAsyncProcessor[Tuple[str, str]]):

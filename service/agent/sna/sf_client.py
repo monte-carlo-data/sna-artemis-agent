@@ -1,3 +1,4 @@
+import logging
 import os
 from typing import Dict, Any, Optional
 
@@ -11,9 +12,9 @@ from agent.utils.serde import (
     ATTRIBUTE_NAME_ERROR_ATTRS,
     ATTRIBUTE_NAME_ERROR_TYPE,
 )
-from agent.utils.utils import get_sf_login_token, LOCAL, get_logger
+from agent.utils.utils import get_sf_login_token, LOCAL
 
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 WAREHOUSE_NAME = "APP_DEV_WH" if LOCAL else "MC_APP_WH"
 

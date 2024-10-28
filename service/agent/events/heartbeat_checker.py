@@ -1,10 +1,9 @@
 import datetime
+import logging
 from threading import Thread, Condition
 from typing import Callable
 
-from agent.utils.utils import get_logger
-
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class HeartbeatChecker:

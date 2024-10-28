@@ -1,4 +1,5 @@
 import json
+import logging
 from typing import Dict, Tuple, Optional, Any
 from urllib.parse import urljoin
 
@@ -23,11 +24,10 @@ from agent.utils.serde import (
 from agent.utils.utils import (
     BACKEND_SERVICE_URL,
     AGENT_ID,
-    get_logger,
     get_mc_login_token,
 )
 
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class SnaService:

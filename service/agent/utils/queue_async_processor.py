@@ -1,9 +1,8 @@
+import logging
 from threading import Condition, Thread
 from typing import Callable, List, TypeVar, Generic
 
-from agent.utils.utils import get_logger
-
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
 

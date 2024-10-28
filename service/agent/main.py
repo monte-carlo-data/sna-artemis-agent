@@ -1,3 +1,4 @@
+import logging
 import os
 import signal
 import sys
@@ -8,12 +9,13 @@ from flask import make_response
 from flask import request
 
 from agent.sna.sna_service import SnaService
-from agent.utils.utils import get_logger, enable_tcp_keep_alive
+from agent.utils.utils import enable_tcp_keep_alive, init_logging
 
 SERVICE_HOST = os.getenv("SERVER_HOST", "0.0.0.0")
 SERVICE_PORT = os.getenv("SERVER_PORT") or "8081"
 
-logger = get_logger(__name__)
+init_logging()
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 service = SnaService()

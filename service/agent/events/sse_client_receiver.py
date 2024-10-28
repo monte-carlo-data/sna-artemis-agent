@@ -1,4 +1,5 @@
 import json
+import logging
 import time
 from threading import Thread
 from typing import Callable, Dict, Optional
@@ -7,9 +8,9 @@ from urllib.parse import urljoin
 import sseclient
 
 from agent.events.receiver_factory import ReceiverFactory
-from agent.utils.utils import get_logger, get_mc_login_token
+from agent.utils.utils import get_mc_login_token
 
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class SSEClientReceiverFactory(ReceiverFactory):

@@ -14,21 +14,15 @@ BACKEND_SERVICE_URL = os.getenv(
 )
 AGENT_ID = os.getenv("AGENT_ID", "snowflake")
 LOCAL = os.getenv("ENV", "snowflake") == "local"
+DEBUG = os.getenv("DEBUG", "false").lower() == "true"
+
+logger = logging.getLogger(__name__)
 
 
-def get_logger(logger_name: str) -> logging.Logger:
-    logger = logging.getLogger(logger_name)
-    logger.setLevel(logging.DEBUG)
-    handler = logging.StreamHandler(sys.stdout)
-    handler.setLevel(logging.DEBUG)
-    handler.setFormatter(
-        logging.Formatter("%(name)s [%(asctime)s] [%(levelname)s] %(message)s")
+def init_logging():
+    logging.basicConfig(
+        stream=sys.stdout, level=logging.DEBUG if DEBUG else logging.INFO
     )
-    logger.addHandler(handler)
-    return logger
-
-
-logger = get_logger(__name__)
 
 
 def get_mc_login_token() -> Dict[str, str]:
