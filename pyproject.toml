@@ -18,4 +18,4 @@ venvPath = "."
 testpaths = [
     "tests",
 ]
-pythonpath = "."
+pythonpath = "./service"

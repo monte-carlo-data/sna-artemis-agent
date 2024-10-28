@@ -47,6 +47,7 @@ jobs:
             python -m venv .venv
             . .venv/bin/activate
             pip install --no-cache-dir --upgrade pip
+            cd service
             pip install --no-cache-dir -r requirements.txt -r requirements-dev.txt
       - run:
           name: 'Run black / pyright'

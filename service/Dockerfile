@@ -26,7 +26,7 @@ ENV PATH="/opt/venv/bin:$PATH"
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY *.py ./
+COPY agent/ ./agent
 COPY tests/ ./tests
 RUN echo $code_version > "./version"
 
@@ -41,4 +41,4 @@ RUN python -m pytest $pytest_params
 
 FROM base AS final
 
-CMD ["gunicorn", "mc_app_service:app", "--bind", "0.0.0.0:8000"]
+CMD ["gunicorn", "agent.main:app", "--bind", "0.0.0.0:8000"]
