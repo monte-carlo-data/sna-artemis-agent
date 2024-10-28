@@ -97,7 +97,7 @@ def query_failed():
 
 
 enable_tcp_keep_alive()
-
+service.start()
 
 if __name__ == "__main__":
     app.run(host=SERVICE_HOST, port=int(SERVICE_PORT))
