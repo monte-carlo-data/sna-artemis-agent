@@ -49,12 +49,6 @@ BEGIN
    ALTER SERVICE IF EXISTS core.mc_app_service SET EXTERNAL_ACCESS_INTEGRATIONS=(mc_backend_egress_access_integration);
    ALTER SERVICE IF EXISTS core.mc_app_service FROM spec='service/mc_app_spec.yaml';
 
-   CREATE OR REPLACE FUNCTION core.schedule_query (TEXT VARCHAR)
-      RETURNS varchar
-      SERVICE=core.mc_app_service
-      ENDPOINT='mc-app-endpoint'
-      AS '/schedule_query';
-
    CREATE OR REPLACE FUNCTION core.push_metrics ()
       RETURNS varchar
       SERVICE=core.mc_app_service
@@ -72,6 +66,12 @@ BEGIN
       SERVICE=core.mc_app_service
       ENDPOINT='mc-app-endpoint'
       AS '/query_failed';
+
+   CREATE OR REPLACE FUNCTION core.health_check()
+      RETURNS varchar
+      SERVICE=core.mc_app_service
+      ENDPOINT='mc-app-endpoint'
+      AS '/api/v1/test/health';
 
    RETURN 'Service successfully created or updated';
 END;
