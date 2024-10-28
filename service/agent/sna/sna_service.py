@@ -21,6 +21,7 @@ from agent.utils.serde import (
     ATTRIBUTE_NAME_RESULT,
     ATTRIBUTE_NAME_TRACE_ID,
 )
+from agent.utils.settings import VERSION, BUILD_NUMBER
 from agent.utils.utils import (
     BACKEND_SERVICE_URL,
     AGENT_ID,
@@ -77,6 +78,13 @@ class SnaService:
         self._queries_runner.stop()
         self._results_publisher.stop()
         self._events_client.stop()
+
+    def health_check(self) -> Dict[str, Any]:
+        return {
+            "platform": "Snowflake",
+            "version": VERSION,
+            "build": BUILD_NUMBER,
+        }
 
     def fetch_metrics(self):
         response = requests.get(

@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import signal
@@ -33,14 +34,19 @@ signal.signal(signal.SIGINT, handler)
 
 @app.get("/healthcheck")
 def health_check():
+    """
+    Used for readiness probe from the Snowflake platform.
+    """
     return "OK"
 
 
 @app.get("/api/v1/test/health")
 def api_health():
-    return {
-        "platform": "Snowflake",
-    }
+    health_response = service.health_check()
+    output_rows = [[0, json.dumps(health_response)]]
+    response = make_response({"data": output_rows})
+    response.headers["Content-type"] = "application/json"
+    return response
 
 
 @app.post("/push_metrics")

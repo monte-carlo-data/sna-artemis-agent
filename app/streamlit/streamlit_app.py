@@ -51,6 +51,14 @@ def push_metrics():
     st.success(result[0][0])
 
 
+def health_check():
+    session: Session = get_active_session()
+    result = session.sql(
+        f"SELECT core.health_check();",
+    ).collect()
+    st.success(result[0][0])
+
+
 def fetch_logs():
     pass
 
@@ -76,6 +84,7 @@ def main():
             _ = st.form_submit_button("Restart Container", on_click=restart_container)
             _ = st.form_submit_button("Container Status", on_click=get_container_status)
             _ = st.form_submit_button("Push Metrics", on_click=push_metrics)
+            _ = st.form_submit_button("Health Check", on_click=health_check)
 
         with st.form("logs_form"):
             _ = st.form_submit_button("Fetch Logs", on_click=fetch_logs)
