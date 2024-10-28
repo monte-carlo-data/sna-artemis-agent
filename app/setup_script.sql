@@ -53,19 +53,19 @@ BEGIN
       RETURNS varchar
       SERVICE=core.mc_app_service
       ENDPOINT='mc-app-endpoint'
-      AS '/push_metrics';
+      AS '/api/v1/test/metrics';
 
    CREATE OR REPLACE FUNCTION core.query_completed(OP_ID VARCHAR, QUERY_ID VARCHAR)
       RETURNS varchar
       SERVICE=core.mc_app_service
       ENDPOINT='mc-app-endpoint'
-      AS '/query_completed';
+      AS '/api/v1/agent/execute/snowflake/query_completed';
 
    CREATE OR REPLACE FUNCTION core.query_failed(OP_ID VARCHAR, CODE INT, MSG VARCHAR, ST VARCHAR)
       RETURNS varchar
       SERVICE=core.mc_app_service
       ENDPOINT='mc-app-endpoint'
-      AS '/query_failed';
+      AS '/api/v1/agent/execute/snowflake/query_failed';
 
    CREATE OR REPLACE FUNCTION core.health_check()
       RETURNS varchar

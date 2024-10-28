@@ -32,7 +32,7 @@ def handler(signum: int, frame: Any):
 signal.signal(signal.SIGINT, handler)
 
 
-@app.get("/healthcheck")
+@app.get("/api/v1/test/healthcheck")
 def health_check():
     """
     Used for readiness probe from the Snowflake platform.
@@ -49,17 +49,7 @@ def api_health():
     return response
 
 
-@app.post("/push_metrics")
-def fetch_metrics():
-    service.fetch_metrics()
-
-    output_rows = [[0, "metrics pushed"]]
-    response = make_response({"data": output_rows})
-    response.headers["Content-type"] = "application/json"
-    return response
-
-
-@app.post("/query_completed")
+@app.post("/api/v1/agent/execute/snowflake/query_completed")
 def query_completed():
     message = request.json
     logger.debug(f"Received query completed: {message}")
@@ -81,7 +71,7 @@ def query_completed():
     return response
 
 
-@app.post("/query_failed")
+@app.post("/api/v1/agent/execute/snowflake/query_failed")
 def query_failed():
     message = request.json
     logger.debug(f"Received query failed: {message}")
@@ -99,6 +89,16 @@ def query_failed():
         service.query_failed(operation_id, code, msg, state)
 
     output_rows = [[0, "ok"]]
+    response = make_response({"data": output_rows})
+    response.headers["Content-type"] = "application/json"
+    return response
+
+
+@app.post("/api/v1/test/metrics")
+def fetch_metrics():
+    metrics = service.fetch_metrics()
+
+    output_rows = [[0, json.dumps(metrics)]]
     response = make_response({"data": output_rows})
     response.headers["Content-type"] = "application/json"
     return response
