@@ -11,8 +11,8 @@ This project consists of:
 
 # License
 
-See [LICENSE](https://github.com/monte-carlo-data/sna-artemis-agent/blob/main/LICENSE.md) for more information.
+See [LICENSE](./LICENSE.md) for more information.
 
 # Security
 
-See [SECURITY](https://github.com/monte-carlo-data/apollo-agent/blob/main/SECURITY.md) for more information.
+See [SECURITY](./SECURITY.md) for more information.
