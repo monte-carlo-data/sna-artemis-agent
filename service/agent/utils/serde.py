@@ -1,7 +1,8 @@
 import base64
 import dataclasses
 import json
-from datetime import datetime
+from datetime import datetime, date
+from decimal import Decimal
 from typing import Any
 
 ATTRIBUTE_NAME_TYPE = "__type__"

@@ -1,9 +1,12 @@
 import json
 import logging
 import os
+import socket
 import sys
 from json import JSONDecodeError
 from typing import Dict
+
+from urllib3.connection import HTTPConnection
 
 BACKEND_SERVICE_URL = os.getenv(
     "BACKEND_SERVICE_URL",
@@ -11,6 +14,7 @@ BACKEND_SERVICE_URL = os.getenv(
 )
 AGENT_ID = os.getenv("AGENT_ID", "snowflake")
 LOCAL = os.getenv("ENV", "snowflake") == "local"
+
 
 def get_logger(logger_name):
     logger = logging.getLogger(logger_name)
@@ -52,3 +56,18 @@ def get_mc_login_token() -> Dict[str, str]:
         "x-mcd-id": "no-token-id",
         "x-mcd-token": "no-token-secret",
     }
+
+
+def get_sf_login_token():
+    with open("/snowflake/session/token", "r") as f:
+        return f.read()
+
+
+def enable_tcp_keep_alive():
+    HTTPConnection.default_socket_options = (
+            HTTPConnection.default_socket_options
+            + [
+                (socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1),
+            ]
+    )
+    logger.info("TCP Keep-alive enabled")
