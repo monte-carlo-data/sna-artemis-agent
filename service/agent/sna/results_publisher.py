@@ -19,4 +19,3 @@ class ResultsPublisher(QueueAsyncProcessor[Tuple[str, str]]):
         operation_id, query_id = args
         logger.info(f"Running results push: {operation_id}, query_id: {query_id}")
         self._results_handler(operation_id, query_id)
-

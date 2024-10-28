@@ -10,20 +10,20 @@ from urllib3.connection import HTTPConnection
 
 BACKEND_SERVICE_URL = os.getenv(
     "BACKEND_SERVICE_URL",
-    "http://mcd-orchestrator-test-nlb-9b478a23917fbdf9.elb.us-east-1.amazonaws.com"
+    "http://mcd-orchestrator-test-nlb-9b478a23917fbdf9.elb.us-east-1.amazonaws.com",
 )
 AGENT_ID = os.getenv("AGENT_ID", "snowflake")
 LOCAL = os.getenv("ENV", "snowflake") == "local"
 
 
-def get_logger(logger_name):
+def get_logger(logger_name: str) -> logging.Logger:
     logger = logging.getLogger(logger_name)
     logger.setLevel(logging.DEBUG)
     handler = logging.StreamHandler(sys.stdout)
     handler.setLevel(logging.DEBUG)
     handler.setFormatter(
-        logging.Formatter(
-            '%(name)s [%(asctime)s] [%(levelname)s] %(message)s'))
+        logging.Formatter("%(name)s [%(asctime)s] [%(levelname)s] %(message)s")
+    )
     logger.addHandler(handler)
     return logger
 
@@ -51,7 +51,7 @@ def get_mc_login_token() -> Dict[str, str]:
             logger.error(f"Failed to parse Key JSON: {ex}")
     else:
         logger.warning("No token file found")
-        
+
     return {
         "x-mcd-id": "no-token-id",
         "x-mcd-token": "no-token-secret",
@@ -64,10 +64,7 @@ def get_sf_login_token():
 
 
 def enable_tcp_keep_alive():
-    HTTPConnection.default_socket_options = (
-            HTTPConnection.default_socket_options
-            + [
-                (socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1),
-            ]
-    )
+    HTTPConnection.default_socket_options = HTTPConnection.default_socket_options + [  # type: ignore
+        (socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1),
+    ]
     logger.info("TCP Keep-alive enabled")

@@ -1,12 +1,16 @@
 import os
 from typing import Dict, Any, Optional
 
-import snowflake
+from snowflake.connector import connect as snowflake_connect
 from snowflake.connector.cursor import SnowflakeCursor
 
 from agent.sna.sf_query import SnowflakeQuery
-from agent.utils.serde import ATTRIBUTE_NAME_RESULT, ATTRIBUTE_NAME_ERROR, \
-    ATTRIBUTE_NAME_ERROR_ATTRS, ATTRIBUTE_NAME_ERROR_TYPE
+from agent.utils.serde import (
+    ATTRIBUTE_NAME_RESULT,
+    ATTRIBUTE_NAME_ERROR,
+    ATTRIBUTE_NAME_ERROR_ATTRS,
+    ATTRIBUTE_NAME_ERROR_TYPE,
+)
 from agent.utils.utils import get_sf_login_token, LOCAL, get_logger
 
 logger = get_logger(__name__)
@@ -34,12 +38,6 @@ class SnowflakeClient:
     def __init__(self):
         pass
 
-    def run_async_query(self):
-        pass
-
-    def run_sync_query(self) -> Dict:
-        pass
-
     @classmethod
     def result_for_query(cls, query_id: str) -> Dict[str, Any]:
         with (conn := cls._connect()):
@@ -49,16 +47,19 @@ class SnowflakeClient:
                 return cls._result_for_cursor(cur)
 
     @classmethod
-    def result_for_query_failed(cls, operation_id: str, code: int, msg: str, state: str):
+    def result_for_query_failed(
+        cls, operation_id: str, code: int, msg: str, state: str
+    ):
         msg = cls._get_error_message(msg)
-        logger.info(f"QUERY FAILED: op_id={operation_id}, code={code}, msg={msg}, state={state}")
-        error_type = "ProgrammingError" if code in _PROGRAMMING_ERRORS else "DatabaseError"
+        logger.info(
+            f"QUERY FAILED: op_id={operation_id}, code={code}, msg={msg}, state={state}"
+        )
+        error_type = (
+            "ProgrammingError" if code in _PROGRAMMING_ERRORS else "DatabaseError"
+        )
         return {
             ATTRIBUTE_NAME_ERROR: msg,
-            ATTRIBUTE_NAME_ERROR_ATTRS: {
-                "errno": code,
-                "sqlstate": state
-            },
+            ATTRIBUTE_NAME_ERROR_ATTRS: {"errno": code, "sqlstate": state},
             ATTRIBUTE_NAME_ERROR_TYPE: error_type,
         }
 
@@ -75,18 +76,20 @@ class SnowflakeClient:
 
     @classmethod
     def _connect(cls):
-        if os.getenv('SNOWFLAKE_HOST'):
-            return snowflake.connector.connect(
-                host=os.getenv('SNOWFLAKE_HOST'),
-                account=os.getenv('SNOWFLAKE_ACCOUNT'),
+        if os.getenv("SNOWFLAKE_HOST"):
+            return snowflake_connect(
+                host=os.getenv("SNOWFLAKE_HOST"),
+                account=os.getenv("SNOWFLAKE_ACCOUNT"),
                 warehouse=WAREHOUSE_NAME,
                 token=get_sf_login_token(),
-                authenticator='oauth',
-                paramstyle='qmark',
+                authenticator="oauth",
+                paramstyle="qmark",
             )
         else:
-            rsa_key_file = os.getenv("RSA_KEY_FILE", os.getenv("HOME") + "/.ssh/snowflake_rsa_key.p8")
-            return snowflake.connector.connect(
+            rsa_key_file = os.getenv(
+                "RSA_KEY_FILE", os.getenv("HOME", "") + "/.ssh/snowflake_rsa_key.p8"
+            )
+            return snowflake_connect(
                 account="RNB23277",
                 warehouse=WAREHOUSE_NAME,
                 paramstyle="qmark",
@@ -104,11 +107,17 @@ class SnowflakeClient:
             with conn.cursor() as cur:
                 if _SYNC_QUERIES:
                     cur.execute(sql_query)
-                    logger.info(f"Sync query executed: {operation_id} {sql_query}, id: {cur.sfqid}")
+                    logger.info(
+                        f"Sync query executed: {operation_id} {sql_query}, id: {cur.sfqid}"
+                    )
                     return cls._result_for_cursor(cur)
                 elif _SNOWFLAKE_SYNC_QUERIES:
-                    cur.execute(f"ALTER SESSION SET STATEMENT_TIMEOUT_IN_SECONDS={timeout}")
-                    cur.execute("CALL MC_APP_HELPER.MC_APP.MC_APP_EXECUTE_QUERY(?)", [sql_query])
+                    cur.execute(
+                        f"ALTER SESSION SET STATEMENT_TIMEOUT_IN_SECONDS={timeout}"
+                    )
+                    cur.execute(
+                        "CALL MC_APP_HELPER.MC_APP.MC_APP_EXECUTE_QUERY(?)", [sql_query]
+                    )
                     logger.info(f"Sync query executed: {operation_id} {sql_query}")
                     return cls._result_for_cursor(cur)
                 else:
@@ -134,7 +143,9 @@ class SnowflakeClient:
                     CALL RUN_QUERY(?, ?);
                     """
                     cur.execute_async(execute_query, [operation_id, sql_query])
-                    logger.info(f"Async query executed: {operation_id} {sql_query}, id: {cur.sfqid}")
+                    logger.info(
+                        f"Async query executed: {operation_id} {sql_query}, id: {cur.sfqid}"
+                    )
                     return None
 
     @staticmethod
@@ -142,5 +153,5 @@ class SnowflakeClient:
         # remove the prefix:
         # "Uncaught exception of type 'STATEMENT_ERROR' on line 2 at position 25 : "
         if ":" in msg:
-            return msg[(msg.index(":") + 1):].strip()
+            return msg[(msg.index(":") + 1) :].strip()
         return msg

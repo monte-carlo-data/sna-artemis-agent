@@ -4,6 +4,7 @@ import json
 
 import pandas as pd
 import streamlit as st
+
 # import snowflake.permissions as permissions
 from snowflake.snowpark import Session
 from snowflake.snowpark.context import get_active_session
@@ -33,10 +34,7 @@ def get_container_status():
 def setup_connection():
     key_id = st.session_state.key_input_id
     key_secret = st.session_state.key_input_secret
-    key_json = {
-        "mcd_id": key_id,
-        "mcd_token": key_secret
-    }
+    key_json = {"mcd_id": key_id, "mcd_token": key_secret}
     session: Session = get_active_session()
     result = session.sql(
         f"ALTER SECRET MC_APP.CORE.MC_APP_TOKEN SET SECRET_STRING=?;",
@@ -61,13 +59,13 @@ def main():
     session: Session = get_active_session()
     st.header("Monte Carlo Agent")
 
-    setup_tab, adv_tab = st.tabs(
-        ["Initial Setup", "Advanced"]
-    )
+    setup_tab, adv_tab = st.tabs(["Initial Setup", "Advanced"])
     with setup_tab:
         st.write("Welcome to the Monte Carlo Agent!")
-        st.write("Make sure you allow access to the Monte Carlo Cloud by "
-                 "following the steps documented [here](https://docs.getmontecarlo.com).")
+        st.write(
+            "Make sure you allow access to the Monte Carlo Cloud by "
+            "following the steps documented [here](https://docs.getmontecarlo.com)."
+        )
         st.write("")
         with st.form("setup_form"):
             st.text_input("Key Id", key="key_input_id")
@@ -82,9 +80,7 @@ def main():
         with st.form("logs_form"):
             _ = st.form_submit_button("Fetch Logs", on_click=fetch_logs)
         try:
-            logs_table = session.sql(
-                "CALL app_public.service_logs(1000)"
-            ).collect()
+            logs_table = session.sql("CALL app_public.service_logs(1000)").collect()
         except Exception:
             logs_table = []
         st.dataframe(pd.DataFrame(reversed(logs_table)))

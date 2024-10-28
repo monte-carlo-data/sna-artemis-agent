@@ -1,6 +1,7 @@
 import os
 import signal
 import sys
+from typing import Any
 
 from flask import Flask
 from flask import make_response
@@ -9,8 +10,8 @@ from flask import request
 from agent.sna.sna_service import SnaService
 from agent.utils.utils import get_logger, enable_tcp_keep_alive
 
-SERVICE_HOST = os.getenv('SERVER_HOST', '0.0.0.0')
-SERVICE_PORT = os.getenv('SERVER_PORT', 8080)
+SERVICE_HOST = os.getenv("SERVER_HOST", "0.0.0.0")
+SERVICE_PORT = os.getenv("SERVER_PORT") or "8080"
 
 logger = get_logger(__name__)
 
@@ -18,7 +19,7 @@ app = Flask(__name__)
 service = SnaService()
 
 
-def handler(signum, frame):
+def handler(signum: int, frame: Any):
     print("Signal handler called with signal", signum)
     service.stop()
     print("Signal handler completed")
@@ -39,20 +40,20 @@ def fetch_metrics():
 
     output_rows = [[0, "metrics pushed"]]
     response = make_response({"data": output_rows})
-    response.headers['Content-type'] = 'application/json'
+    response.headers["Content-type"] = "application/json"
     return response
 
 
 @app.post("/query_completed")
 def query_completed():
     message = request.json
-    logger.debug(f'Received query completed: {message}')
+    logger.debug(f"Received query completed: {message}")
 
-    if message is None or not message['data']:
-        logger.info('Received empty message')
+    if message is None or not message["data"]:
+        logger.info("Received empty message")
         return {}
 
-    input_rows = message['data']
+    input_rows = message["data"]
     if input_rows:
         op_id = input_rows[0][1]
         query_id = input_rows[0][2]
@@ -61,20 +62,20 @@ def query_completed():
 
     output_rows = [[0, "ok"]]
     response = make_response({"data": output_rows})
-    response.headers['Content-type'] = 'application/json'
+    response.headers["Content-type"] = "application/json"
     return response
 
 
 @app.post("/query_failed")
 def query_failed():
     message = request.json
-    logger.debug(f'Received query failed: {message}')
+    logger.debug(f"Received query failed: {message}")
 
-    if message is None or not message['data']:
-        logger.info('Received empty message')
+    if message is None or not message["data"]:
+        logger.info("Received empty message")
         return {}
 
-    input_rows = message['data']
+    input_rows = message["data"]
     if input_rows:
         operation_id = input_rows[0][1]
         code = input_rows[0][2]
@@ -84,12 +85,12 @@ def query_failed():
 
     output_rows = [[0, "ok"]]
     response = make_response({"data": output_rows})
-    response.headers['Content-type'] = 'application/json'
+    response.headers["Content-type"] = "application/json"
     return response
 
 
 enable_tcp_keep_alive()
 
 
-if __name__ == '__main__':
-    app.run(host=SERVICE_HOST, port=SERVICE_PORT)
+if __name__ == "__main__":
+    app.run(host=SERVICE_HOST, port=int(SERVICE_PORT))

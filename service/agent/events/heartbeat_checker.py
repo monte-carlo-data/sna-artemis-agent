@@ -36,7 +36,7 @@ class HeartbeatChecker:
         logger.info("Heartbeat monitor started")
         while not self._stopped:
             with self._condition:
-                self._condition.wait(timeout=self._inactivity_timeout_seconds/2)
+                self._condition.wait(timeout=self._inactivity_timeout_seconds / 2)
                 elapsed_time = datetime.datetime.now() - self._last_heartbeat
             if self._stopped:
                 break

@@ -9,7 +9,7 @@ T = TypeVar("T")
 
 
 class QueueAsyncProcessor(Generic[T]):
-    def __init__(self, name: str,  handler: Callable[[T], None]):
+    def __init__(self, name: str, handler: Callable[[T], None]):
         self._name = name
         self._handler = handler
 

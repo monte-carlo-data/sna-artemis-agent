@@ -4,6 +4,7 @@ from typing import Callable, List
 from agent.sna.sf_query import SnowflakeQuery
 from agent.utils.utils import get_logger
 from agent.utils.queue_async_processor import QueueAsyncProcessor
+
 logger = get_logger(__name__)
 
 

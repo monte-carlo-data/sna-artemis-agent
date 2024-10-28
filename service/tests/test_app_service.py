@@ -13,13 +13,9 @@ _QUERY_OPERATION = {
     "operation_id": "1234",
     "operation": {
         "commands": [
-            {
-                "target": "_cursor",
-                "method": "execute",
-                "args": ["SELECT * FROM table"]
-            },
+            {"target": "_cursor", "method": "execute", "args": ["SELECT * FROM table"]},
         ]
-    }
+    },
 }
 
 
@@ -59,11 +55,15 @@ class AppServiceTests(TestCase):
             events_client=events_client,
         )
         events_client._event_received(_QUERY_OPERATION)
-        self._mock_queries_runner.schedule.assert_called_once_with(SnowflakeQuery(
-            operation_id=ANY,
-            query="SELECT * FROM table",
-            timeout=ANY,
-        ))
+        self._mock_queries_runner.schedule.assert_called_once_with(
+            SnowflakeQuery(
+                operation_id=ANY,
+                query="SELECT * FROM table",
+                timeout=ANY,
+            )
+        )
 
         service.query_completed("1234", "5678")
-        self._mock_results_publisher.schedule_push_results.assert_called_once_with("1234", "5678")
+        self._mock_results_publisher.schedule_push_results.assert_called_once_with(
+            "1234", "5678"
+        )

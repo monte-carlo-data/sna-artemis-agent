@@ -44,7 +44,9 @@ class SSEClientReceiver:
         while not self._stopped:
             try:
                 logger.info("Connecting SSE Client ...")
-                url = urljoin(self._base_url, f"/stream?channel=agents.input.{self._agent_id}")
+                url = urljoin(
+                    self._base_url, f"/stream?channel=agents.input.{self._agent_id}"
+                )
                 headers = {
                     "Accept": "text/event-stream",
                     **get_mc_login_token(),
@@ -58,7 +60,9 @@ class SSEClientReceiver:
                         if self._event_handler:
                             self._event_handler(event)
                     except Exception as parse_ex:
-                        logger.debug(f"Failed to parse event: {parse_ex}, text: {event.data}")
+                        logger.debug(
+                            f"Failed to parse event: {parse_ex}, text: {event.data}"
+                        )
             except Exception as ex:
                 logger.error(f"Connection failed: {ex}")
                 if not self._stopped:
