@@ -11,7 +11,7 @@ from agent.sna.sna_service import SnaService
 from agent.utils.utils import get_logger, enable_tcp_keep_alive
 
 SERVICE_HOST = os.getenv("SERVER_HOST", "0.0.0.0")
-SERVICE_PORT = os.getenv("SERVER_PORT") or "8080"
+SERVICE_PORT = os.getenv("SERVER_PORT") or "8081"
 
 logger = get_logger(__name__)
 
@@ -32,6 +32,13 @@ signal.signal(signal.SIGINT, handler)
 @app.get("/healthcheck")
 def health_check():
     return "OK"
+
+
+@app.get("/api/v1/test/health")
+def api_health():
+    return {
+        "platform": "Snowflake",
+    }
 
 
 @app.post("/push_metrics")
