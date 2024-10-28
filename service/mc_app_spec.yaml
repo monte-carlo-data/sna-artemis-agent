@@ -4,7 +4,7 @@ spec:
     image: /mc_app_data/mc_app/mc_app_repository/mc_app:latest
     readinessProbe:
       port: 8000
-      path: /healthcheck
+      path: /api/v1/test/healthcheck
     secrets:
       - snowflakeSecret:
           objectName: 'core.mc_app_token'

@@ -1,6 +1,8 @@
 import json
 import logging
-from typing import Dict, Tuple, Optional, Any
+import os
+import sys
+from typing import Dict, Tuple, Optional, Any, List
 from urllib.parse import urljoin
 
 import requests
@@ -28,6 +30,10 @@ from agent.utils.utils import (
     get_mc_login_token,
 )
 
+HEALTH_ENV_VARS = [
+    "PYTHON_VERSION",
+    "SERVER_SOFTWARE",
+]
 logger = logging.getLogger(__name__)
 
 
@@ -79,25 +85,14 @@ class SnaService:
         self._results_publisher.stop()
         self._events_client.stop()
 
-    @staticmethod
-    def health_information() -> Dict[str, Any]:
+    @classmethod
+    def health_information(cls) -> Dict[str, Any]:
         return {
             "platform": "Snowflake",
             "version": VERSION,
             "build": BUILD_NUMBER,
+            "env": cls._env_dictionary(),
         }
-
-    def fetch_metrics(self):
-        response = requests.get(
-            "http://discover.monitor.mc_app_compute_pool.snowflakecomputing.internal:9001/metrics"
-        )
-        lines = response.text.splitlines()
-        self._push_results_to_backend(
-            "metrics",
-            {
-                "metrics": lines,
-            },
-        )
 
     def query_completed(self, operation_id: str, query_id: str):
         """
@@ -111,6 +106,32 @@ class SnaService:
         """
         result = SnowflakeClient.result_for_query_failed(operation_id, code, msg, state)
         self._push_results_to_backend(operation_id, result)
+
+    @staticmethod
+    def fetch_metrics() -> List[str]:
+        """
+        Fetches metrics using Snowpark Monitoring Services:
+        https://docs.snowflake.com/en/developer-guide/snowpark-container-services/monitoring-services#accessing-compute-pool-metrics
+        """
+        response = requests.get(
+            "http://discover.monitor.mc_app_compute_pool.snowflakecomputing.internal:9001/metrics"
+        )
+        lines = response.text.splitlines()
+        return lines
+
+    def push_metrics(self):
+        """
+        Fetches metrics using Snowpark Monitoring Services:
+        https://docs.snowflake.com/en/developer-guide/snowpark-container-services/monitoring-services#accessing-compute-pool-metrics
+        and pushes them to the MC backend.
+        """
+        metrics = self.fetch_metrics()
+        self._push_results_to_backend(
+            "metrics",
+            {
+                "metrics": metrics,
+            },
+        )
 
     def _event_handler(self, event: Dict):
         """
@@ -172,7 +193,7 @@ class SnaService:
         try:
             result = SnowflakeClient.run_query(query)
             # if there's no result, the query was executed asynchronously
-            # we'll get the result through query_completed/query_failed
+            # we'll get the result through query_completed/query_failed callbacks
             if result:
                 self._push_results_to_backend(query.operation_id, result)
         except Exception as ex:
@@ -252,3 +273,18 @@ class SnaService:
             },
         )
         return response.json()
+
+    @staticmethod
+    def _env_dictionary() -> Dict:
+        env: Dict[str, Optional[str]] = {
+            "PYTHON_SYS_VERSION": sys.version,
+            "CPU_COUNT": str(os.cpu_count()),
+        }
+        env.update(
+            {
+                env_var: os.getenv(env_var)
+                for env_var in HEALTH_ENV_VARS
+                if os.getenv(env_var)
+            }
+        )
+        return env
