@@ -40,9 +40,9 @@ def health_check():
     return "OK"
 
 
-@app.get("/api/v1/test/health")
+@app.post("/api/v1/test/health")
 def api_health():
-    health_response = service.health_check()
+    health_response = service.health_information()
     output_rows = [[0, json.dumps(health_response)]]
     response = make_response({"data": output_rows})
     response.headers["Content-type"] = "application/json"

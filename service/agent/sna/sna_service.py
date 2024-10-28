@@ -79,7 +79,8 @@ class SnaService:
         self._results_publisher.stop()
         self._events_client.stop()
 
-    def health_check(self) -> Dict[str, Any]:
+    @staticmethod
+    def health_information() -> Dict[str, Any]:
         return {
             "platform": "Snowflake",
             "version": VERSION,
