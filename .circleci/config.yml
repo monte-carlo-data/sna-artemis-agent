@@ -36,6 +36,25 @@ commands:
         name: Setup Snowflake CLI
 
 jobs:
+  run-linter:
+    docker:
+      - image: cimg/python:3.11-node
+    steps:
+      - checkout
+      - run:
+          name: Install dependencies
+          command: |
+            python -m venv .venv
+            . .venv/bin/activate
+            pip install --no-cache-dir --upgrade pip
+            pip install --no-cache-dir -r requirements.txt -r requirements-dev.txt
+      - run:
+          name: 'Run black / pyright'
+          command: |
+            . .venv/bin/activate
+            black --check .
+            pyright
+
   build-and-push-image:
     machine:
       image: ubuntu-2204:current
@@ -97,6 +116,7 @@ workflows:
 
   build-sna:
     jobs:
+      - run-linter
       - run-test-docker:
           # run for all tags and branches
           # we need to add this so the job is available for build-and-push-image-prod
