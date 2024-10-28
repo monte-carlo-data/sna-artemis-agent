@@ -10,7 +10,6 @@ COPY requirements-build.txt .
 RUN pip install -r requirements-build.txt
 
 FROM python:3.12-alpine3.20 AS base
-ARG code_version="docker"
 
 # update openssl
 RUN apk update && apk add --no-cache openssl~3.3
@@ -28,7 +27,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY agent/ ./agent
 COPY tests/ ./tests
-RUN echo $code_version > "./version"
+
+ARG code_version="local"
+ARG build_number="0"
+RUN echo $code_version,$build_number > ./agent/utils/version
 
 FROM base AS tests
 

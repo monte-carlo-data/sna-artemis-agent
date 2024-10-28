@@ -4,6 +4,23 @@ orbs:
   docker: circleci/docker@2.8.0
 
 commands:
+  verify-version-in-docker-image:
+    parameters:
+      image:
+        description: Image name to validate
+        type: string
+      version:
+        description: Expected contents for /agent/version file
+        type: string
+    steps:
+    - run:
+        name: Verify version in Docker image
+        command: |
+          image_version=$(docker run --rm --entrypoint python << parameters.image >> agent/utils/settings.py)
+          if [ $image_version = "<< parameters.version >>" ]
+            then exit 0
+            else echo "Failed to find expected version, found: $image_version"; exit 1
+          fi
   generate-version-number-dev:
     steps:
     - run:
@@ -74,9 +91,12 @@ jobs:
           path: service
           docker-context: service
           use-buildkit: true  # to build only the required stages
-          extra_build_args: --build-arg code_version=<< parameters.code_version >>
+          extra_build_args: --build-arg code_version=<< parameters.code_version >> --build-arg build_number=<< pipeline.number >>
           image: montecarlodata/<< parameters.docker_hub_repository >>
           tag: latest,<< parameters.code_version >>
+      - verify-version-in-docker-image:
+          image: montecarlodata/<< parameters.docker_hub_repository >>:latest
+          version: << parameters.code_version >>,<< pipeline.number >>
       - docker/push:
           image: montecarlodata/<< parameters.docker_hub_repository >>
           tag: latest,<< parameters.code_version >>

@@ -36,6 +36,14 @@ _PROGRAMMING_ERRORS = [
 
 
 class SnowflakeClient:
+    """
+    Takes care of executing queries in Snowflake, the queries are wrapped in a procedure that
+    uses SF functions to notify the agent when the query is completed or failed.
+    The query is executed using the MC_APP_EXECUTE_QUERY procedure, which is configured to execute
+    as owner and allow us to take advantage of FUTURE grants (which is not
+    available to applications).
+    """
+
     def __init__(self):
         pass
 

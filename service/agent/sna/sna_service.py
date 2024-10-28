@@ -31,6 +31,20 @@ logger = logging.getLogger(__name__)
 
 
 class SnaService:
+    """
+    SNA Service, it opens a connection to the Monte Carlo backend (using the token provided
+    through the Streamlit application) and waits for events including queries to be run
+    in Snowflake.
+    By default, queries are received from the MC backend using a SSE (Server-sent events)
+    connection, but new implementations (polling, gRPC, websockets, etc.) can be implemented by
+    adding new "receivers" (see ReceiverFactory and BaseReceiver).
+    Queries are processed by a background thread (see QueriesRunner) and executed asynchronously,
+    we're taking advantage of stored procedures and Snowflake functions to be notified when
+    the execution of the query completes (see query_completed/query_failed).
+    When the result is ready we send it to the MC backend using another background thread (see
+    ResultsPublisher).
+    """
+
     def __init__(
         self,
         queries_runner: Optional[QueriesRunner] = None,

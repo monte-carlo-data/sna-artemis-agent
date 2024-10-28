@@ -1,6 +1,5 @@
 import logging
-from threading import Condition, Thread
-from typing import Callable, List
+from typing import Callable
 
 from agent.sna.sf_query import SnowflakeQuery
 from agent.utils.queue_async_processor import QueueAsyncProcessor
