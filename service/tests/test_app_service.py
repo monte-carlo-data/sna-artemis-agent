@@ -16,6 +16,7 @@ _QUERY_OPERATION = {
             {"target": "_cursor", "method": "execute", "args": ["SELECT * FROM table"]},
         ]
     },
+    "path": "/api/v1/agent/execute/snowflake/query",
 }
 
 
@@ -64,6 +65,6 @@ class AppServiceTests(TestCase):
         )
 
         service.query_completed("1234", "5678")
-        self._mock_results_publisher.schedule_push_results.assert_called_once_with(
+        self._mock_results_publisher.schedule_push_query_results.assert_called_once_with(
             "1234", "5678"
         )
