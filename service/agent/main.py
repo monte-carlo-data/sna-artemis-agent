@@ -49,6 +49,15 @@ def api_health():
     return response
 
 
+@app.post("/api/v1/test/reachability")
+def run_reachability_test():
+    reachability_response = service.run_reachability_test()
+    output_rows = [[0, json.dumps(reachability_response)]]
+    response = make_response({"data": output_rows})
+    response.headers["Content-type"] = "application/json"
+    return response
+
+
 @app.post("/api/v1/agent/execute/snowflake/query_completed")
 def query_completed():
     message = request.json

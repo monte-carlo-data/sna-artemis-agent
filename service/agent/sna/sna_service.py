@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import sys
+import uuid
 from typing import Dict, Tuple, Optional, Any, List
 from urllib.parse import urljoin
 
@@ -94,6 +95,11 @@ class SnaService:
             "build": BUILD_NUMBER,
             "env": cls._env_dictionary(),
         }
+
+    def run_reachability_test(self) -> Dict[str, Any]:
+        trace_id = str(uuid.uuid4())
+        logger.info(f"Running reachability test, trace_id: {trace_id}")
+        return self._execute_backend_operation(f"/api/v1/test/ping?trace_id={trace_id}")
 
     def query_completed(self, operation_id: str, query_id: str):
         """
@@ -294,6 +300,32 @@ class SnaService:
             )
         except Exception as ex:
             logger.error(f"Failed to push results to backend: {ex}")
+
+    @staticmethod
+    def _execute_backend_operation(
+        path: str, method: str = "GET", body: Optional[Dict] = None
+    ) -> Dict[str, Any]:
+        try:
+            url = urljoin(BACKEND_SERVICE_URL, path)
+            response = requests.request(
+                method=method,
+                url=url,
+                json=body,
+                headers={
+                    "Content-Type": "application/json",
+                    **get_mc_login_token(),
+                },
+            )
+            logger.info(
+                f"Sent backend request {path}, response: {response.status_code}"
+            )
+            response.raise_for_status()
+            return response.json() or {"error": "empty response"}
+        except Exception as ex:
+            logger.error(f"Error sending request to backend: {ex}")
+            return {
+                "error": str(ex),
+            }
 
     @classmethod
     def _download_operation(cls, operation_id: str) -> Dict:
