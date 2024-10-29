@@ -303,18 +303,18 @@ class SnaService:
 
     @staticmethod
     def _execute_backend_operation(
-        path: str, method: str = "GET", body: Optional[Dict] = None
+        path: str, method: str = "GET", body: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         try:
             url = urljoin(BACKEND_SERVICE_URL, path)
+            headers = get_mc_login_token()
+            if body:
+                headers["Content-Type"] = "application/json"
             response = requests.request(
                 method=method,
                 url=url,
                 json=body,
-                headers={
-                    "Content-Type": "application/json",
-                    **get_mc_login_token(),
-                },
+                headers=headers,
             )
             logger.info(
                 f"Sent backend request {path}, response: {response.status_code}"
@@ -329,16 +329,14 @@ class SnaService:
 
     @classmethod
     def _download_operation(cls, operation_id: str) -> Dict:
-        url = urljoin(
-            BACKEND_SERVICE_URL, f"/api/v1/agent/operations/{operation_id}/request"
+        operation = cls._execute_backend_operation(
+            f"/api/v1/agent/operations/{operation_id}/request"
         )
-        response = requests.get(
-            url,
-            headers={
-                **get_mc_login_token(),
-            },
-        )
-        return response.json()
+        if error_message := operation.get("error"):
+            raise Exception(
+                f"Failed to download operation {operation_id}: {error_message}"
+            )
+        return operation
 
     @staticmethod
     def _env_dictionary() -> Dict:

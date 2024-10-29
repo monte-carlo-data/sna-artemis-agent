@@ -1,13 +1,3 @@
-LET backend_service_url := 'mcd-orchestrator-test-nlb-9b478a23917fbdf9.elb.us-east-1.amazonaws.com:80';
-
-CREATE APPLICATION ROLE IF NOT EXISTS app_user;
-
-CREATE SCHEMA IF NOT EXISTS core;
-GRANT USAGE ON SCHEMA core TO APPLICATION ROLE app_user;
-
-CREATE OR ALTER VERSIONED SCHEMA app_public;
-GRANT USAGE ON SCHEMA app_public TO APPLICATION ROLE app_user;
-
 CREATE OR REPLACE PROCEDURE app_public.start_app(
        min_nodes INT DEFAULT 2,
        max_nodes INT DEFAULT 2,
@@ -117,23 +107,3 @@ AS $$
 $$;
 
 GRANT USAGE ON PROCEDURE app_public.service_logs(int) TO APPLICATION ROLE app_user;
-
-CREATE SCHEMA IF NOT EXISTS UI;
-CREATE OR REPLACE STREAMLIT UI.MONTE_CARLO_AGENT
-     FROM '/streamlit'
-     TITLE = 'Monte Carlo Agent'
-     MAIN_FILE = '/streamlit_app.py';
-
-GRANT USAGE ON SCHEMA UI TO APPLICATION ROLE app_user;
-GRANT USAGE ON STREAMLIT UI.MONTE_CARLO_AGENT TO APPLICATION ROLE app_user;
-
-CREATE SECRET IF NOT EXISTS core.mc_app_token
-    TYPE=generic_string
-    SECRET_STRING='{}';
-
-CREATE OR REPLACE NETWORK RULE core.mc_backend_egress_access
-  MODE = EGRESS
-  TYPE = HOST_PORT
-  VALUE_LIST = (:backend_service_url);
-
-GRANT USAGE ON NETWORK RULE core.mc_backend_egress_access TO APPLICATION ROLE app_user;

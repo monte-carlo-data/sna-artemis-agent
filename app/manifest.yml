@@ -1,7 +1,7 @@
 manifest_version: 1
 
 artifacts:
-   setup_script: setup_script.sql
+   setup_script: scripts/setup_script.sql
    readme: README.md
    container_services:
       images:
