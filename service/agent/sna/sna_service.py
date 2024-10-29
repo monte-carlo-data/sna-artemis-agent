@@ -11,6 +11,7 @@ from snowflake.connector import DatabaseError, ProgrammingError
 from agent.events.events_client import EventsClient
 from agent.events.receiver_factory import ReceiverFactory
 from agent.events.sse_client_receiver import SSEClientReceiverFactory
+from agent.sna.operation_result import AgentOperationResult
 from agent.sna.queries_runner import QueriesRunner
 from agent.sna.results_publisher import ResultsPublisher
 from agent.sna.sf_client import SnowflakeClient
@@ -61,7 +62,7 @@ class SnaService:
     ):
         self._queries_runner = queries_runner or QueriesRunner(handler=self._run_query)
         self._results_publisher = results_publisher or ResultsPublisher(
-            handler=self._push_results_for_query
+            handler=self._push_results
         )
 
         if events_client:
@@ -88,7 +89,7 @@ class SnaService:
     @classmethod
     def health_information(cls) -> Dict[str, Any]:
         return {
-            "platform": "Snowflake",
+            "platform": "SNA",
             "version": VERSION,
             "build": BUILD_NUMBER,
             "env": cls._env_dictionary(),
@@ -133,25 +134,45 @@ class SnaService:
             },
         )
 
-    def _event_handler(self, event: Dict):
+    def _event_handler(self, event: Dict[str, Any]):
         """
         Invoked by events client when an event is received with an agent operation to run
         """
         operation_id = event.get("operation_id")
         if operation_id:
-            query, timeout = self._get_query_from_event(operation_id, event)
-            if query:
-                self._schedule_query(operation_id, query, timeout)
-            else:  # connection test
-                self._push_results_to_backend(
-                    operation_id,
-                    {
-                        ATTRIBUTE_NAME_RESULT: {
-                            "ok": True,
-                        },
-                        ATTRIBUTE_NAME_TRACE_ID: operation_id,
-                    },
+            path: str = event.get("path", "")
+            if path:
+                logger.info(
+                    f"Received agent operation: {path}, operation_id: {operation_id}"
                 )
+                self._execute_operation(path, operation_id, event)
+
+    def _execute_operation(self, path: str, operation_id: str, event: Dict[str, Any]):
+        if path.startswith("/api/v1/agent/execute/"):
+            self._execute_agent_operation(operation_id, event)
+        elif path == "/api/v1/test/health":
+            self._execute_health(operation_id)
+        else:
+            logger.error(f"Invalid path received: {path}, operation_id: {operation_id}")
+
+    def _execute_agent_operation(self, operation_id: str, event: Dict[str, Any]):
+        query, timeout = self._get_query_from_event(operation_id, event)
+        if query:
+            self._schedule_query(operation_id, query, timeout)
+        else:  # connection test
+            self._push_results_to_backend(
+                operation_id,
+                {
+                    ATTRIBUTE_NAME_RESULT: {
+                        "ok": True,
+                    },
+                    ATTRIBUTE_NAME_TRACE_ID: operation_id,
+                },
+            )
+
+    def _execute_health(self, operation_id: str):
+        health_information = self.health_information()
+        self._schedule_push_results(operation_id, health_information)
 
     @classmethod
     def _get_query_from_event(
@@ -203,7 +224,19 @@ class SnaService:
             )
 
     def _schedule_push_results_for_query(self, operation_id: str, query_id: str):
-        self._results_publisher.schedule_push_results(operation_id, query_id)
+        self._results_publisher.schedule_push_query_results(operation_id, query_id)
+
+    def _schedule_push_results(self, operation_id: str, result: Dict[str, Any]):
+        self._results_publisher.schedule_push_results(operation_id, result)
+
+    @classmethod
+    def _push_results(cls, result: AgentOperationResult):
+        if result.query_id:
+            cls._push_results_for_query(result.operation_id, result.query_id)
+        elif result.result is not None:
+            cls._push_results_to_backend(result.operation_id, result.result)
+        else:
+            logger.error(f"Invalid result for operation: {result.operation_id}")
 
     @classmethod
     def _push_results_for_query(cls, operation_id: str, query_id: str):
@@ -237,10 +270,11 @@ class SnaService:
     def _push_results_to_backend(operation_id: str, result: Dict):
         logger.info(f"Sending query results to backend")
         try:
-            results_url = urljoin(BACKEND_SERVICE_URL, "/api/v1/agent_operation_result")
+            results_url = urljoin(
+                BACKEND_SERVICE_URL, f"/api/v1/agent/operations/{operation_id}/result"
+            )
             result_str = json.dumps(
                 {
-                    "operation_id": operation_id,
                     "agent_id": AGENT_ID,
                     "result": result,
                 },
