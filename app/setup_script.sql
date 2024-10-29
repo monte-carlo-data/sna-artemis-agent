@@ -1,3 +1,5 @@
+LET backend_service_url := 'mcd-orchestrator-test-nlb-9b478a23917fbdf9.elb.us-east-1.amazonaws.com:80';
+
 CREATE APPLICATION ROLE IF NOT EXISTS app_user;
 
 CREATE SCHEMA IF NOT EXISTS core;
@@ -73,6 +75,12 @@ BEGIN
       ENDPOINT='mc-app-endpoint'
       AS '/api/v1/test/health';
 
+  CREATE OR REPLACE FUNCTION core.reachability_test()
+      RETURNS varchar
+      SERVICE=core.mc_app_service
+      ENDPOINT='mc-app-endpoint'
+      AS '/api/v1/test/reachability';
+
    RETURN 'Service successfully created or updated';
 END;
 $$;
@@ -126,6 +134,6 @@ CREATE SECRET IF NOT EXISTS core.mc_app_token
 CREATE OR REPLACE NETWORK RULE core.mc_backend_egress_access
   MODE = EGRESS
   TYPE = HOST_PORT
-  VALUE_LIST = ('mcd-orchestrator-test-nlb-9b478a23917fbdf9.elb.us-east-1.amazonaws.com:80');
+  VALUE_LIST = (:backend_service_url);
 
 GRANT USAGE ON NETWORK RULE core.mc_backend_egress_access TO APPLICATION ROLE app_user;

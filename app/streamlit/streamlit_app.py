@@ -44,17 +44,21 @@ def setup_connection():
 
 
 def push_metrics():
-    session: Session = get_active_session()
-    result = session.sql(
-        f"SELECT core.push_metrics();",
-    ).collect()
-    st.success(result[0][0])
+    _execute_function("push_metrics")
 
 
 def health_check():
+    _execute_function("health_check")
+
+
+def reachability_test():
+    _execute_function("reachability_test")
+
+
+def _execute_function(name: str):
     session: Session = get_active_session()
     result = session.sql(
-        f"SELECT core.health_check();",
+        f"SELECT core.{name}();",
     ).collect()
     st.success(result[0][0])
 
@@ -85,6 +89,7 @@ def main():
             _ = st.form_submit_button("Container Status", on_click=get_container_status)
             _ = st.form_submit_button("Push Metrics", on_click=push_metrics)
             _ = st.form_submit_button("Health Check", on_click=health_check)
+            _ = st.form_submit_button("Reachability Test", on_click=reachability_test)
 
         with st.form("logs_form"):
             _ = st.form_submit_button("Fetch Logs", on_click=fetch_logs)
