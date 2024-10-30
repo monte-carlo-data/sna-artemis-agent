@@ -147,7 +147,6 @@ def fetch_metrics():
 enable_tcp_keep_alive()
 service.start()
 
-
 if __name__ == "__main__":
     # only used for local development, when gunicorn is not used
     app.run(host=SERVICE_HOST, port=int(SERVICE_PORT))
