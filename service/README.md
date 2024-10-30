@@ -8,17 +8,19 @@ See [here](https://docs.getmontecarlo.com/docs/platform-architecture) for archit
 - Python 3.12 or later
 
 ### Prepare your local environment
-- Create a virtual env in the parent directory (`sna-artemis-agent`), for example: `python -m venv .venv` and activate it: `. .venv/bin/activate`
-  - If you don't use the virtual env in `.venv` you must create a symbolic link: `ln -s VENV_DIR .venv` because pyright requires the virtual env to be in `.venv` directory in the repository root folder.
-- Install the required libraries: `pip install -r requirements-build.txt -r requirements.txt -r requirements-dev.txt`
-- Install the pre-commit hooks (fro the root folder): `pre-commit install`
+- From the **parent directory** (`sna-artemis-agent`):
+  - Create a virtual env, for example: `python -m venv .venv` and activate it: `. .venv/bin/activate`
+    - If you don't use the virtual env in `.venv` you must create a symbolic link: `ln -s VENV_DIR .venv` because pyright requires the virtual env to be in `.venv` directory in the repository root folder.
+  - Install the required libraries: `pip install -r requirements-build.txt -r requirements.txt -r requirements-dev.txt`
+  - Install the pre-commit hooks: `pre-commit install`
 
 ### Tests execution
-- To run tests, use `pytest` (the configuration for pytest in `pyproject.toml` configures `.` as the `pythonpath` and `./tests` as the test folder).
+- To run tests, from the `service` directory:
+  - Use `pytest` (the configuration for pytest in `pyproject.toml` configures `.` as the `pythonpath` and `./tests` as the test folder).
 
 ### Local application execution
 - Artemis SNA Agent uses a Flask application
-- To run it: `python -m agent.main`
+- To run it, from the `service` directory run: `python -m agent.main`
 - The server will listen in port `8081` and you can call the `health` endpoint by accessing: http://localhost:8081/api/v1/test/health:
   ```shell
   curl http://localhost:8081/api/v1/test/health | jq
