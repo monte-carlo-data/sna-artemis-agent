@@ -21,6 +21,11 @@ class SSEClientReceiverFactory(ReceiverFactory):
 
 
 class SSEClientReceiver:
+    """
+    Receiver that uses SSE (Server-sent events) to listen for events from the server and
+    call the handler function when an event is received.
+    """
+
     def __init__(
         self,
         base_url: str,

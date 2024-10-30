@@ -20,6 +20,12 @@ See [here](https://docs.getmontecarlo.com/docs/platform-architecture) for archit
 
 ### Local application execution
 - Artemis SNA Agent uses a Flask application
+- For local execution, the following environment variables must be set to configure the Snowflake connection that will be used to execute queries:
+  - `SNOWFLAKE_ACCOUNT`
+  - `SNOWFLAKE_WAREHOUSE`
+  - `SNOWFLAKE_USER`
+  - `SNOWFLAKE_PRIVATE_KEY_FILE`
+  - `SNOWFLAKE_ROLE`
 - To run it, from the `service` directory run: `python -m agent.main`
 - The server will listen in port `8081` and you can call the `health` endpoint by accessing: http://localhost:8081/api/v1/test/health:
   ```shell

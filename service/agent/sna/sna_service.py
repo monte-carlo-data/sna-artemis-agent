@@ -88,16 +88,19 @@ class SnaService:
         self._events_client.stop()
 
     @classmethod
-    def health_information(cls) -> Dict[str, Any]:
-        return {
+    def health_information(cls, trace_id: Optional[str] = None) -> Dict[str, Any]:
+        health_info = {
             "platform": "SNA",
             "version": VERSION,
             "build": BUILD_NUMBER,
             "env": cls._env_dictionary(),
         }
+        if trace_id:
+            health_info["trace_id"] = trace_id
+        return health_info
 
-    def run_reachability_test(self) -> Dict[str, Any]:
-        trace_id = str(uuid.uuid4())
+    def run_reachability_test(self, trace_id: Optional[str] = None) -> Dict[str, Any]:
+        trace_id = trace_id or str(uuid.uuid4())
         logger.info(f"Running reachability test, trace_id: {trace_id}")
         return self._execute_backend_operation(f"/api/v1/test/ping?trace_id={trace_id}")
 
@@ -112,7 +115,7 @@ class SnaService:
         Invoked by the Snowflake stored procedure when a query execution failed
         """
         result = SnowflakeClient.result_for_query_failed(operation_id, code, msg, state)
-        self._push_results_to_backend(operation_id, result)
+        self._schedule_push_results(operation_id, result)
 
     @staticmethod
     def fetch_metrics() -> List[str]:
@@ -157,7 +160,7 @@ class SnaService:
         if path.startswith("/api/v1/agent/execute/"):
             self._execute_agent_operation(operation_id, event)
         elif path == "/api/v1/test/health":
-            self._execute_health(operation_id)
+            self._execute_health(operation_id, event)
         else:
             logger.error(f"Invalid path received: {path}, operation_id: {operation_id}")
 
@@ -176,8 +179,9 @@ class SnaService:
                 },
             )
 
-    def _execute_health(self, operation_id: str):
-        health_information = self.health_information()
+    def _execute_health(self, operation_id: str, event: Dict[str, Any]):
+        trace_id = event.get("trace_id", operation_id)
+        health_information = self.health_information(trace_id=trace_id)
         self._schedule_push_results(operation_id, health_information)
 
     @classmethod
