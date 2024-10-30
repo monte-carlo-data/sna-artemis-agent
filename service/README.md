@@ -41,10 +41,7 @@ docker build -t test_agent --target tests --platform=linux/amd64 --build-arg CAC
 ```
 **Note**: `CACHEBUST` is used as a way to skip the cached layer for the tests execution and force them to run again.
 
-## License
-
-See [LICENSE](https://github.com/monte-carlo-data/sna-artemis-agent/blob/main/LICENSE.md) for more information.
-
-## Security
-
-See [SECURITY](https://github.com/monte-carlo-data/apollo-agent/blob/main/SECURITY.md) for more information.
+## Dev environment
+- CircleCI will run the tests for your branch automatically when you push changes
+- Merge to `dev` branch to get your changes built and uploaded as the latest image to the dev repository
+- Once the build is ready, you need to restart the container in the Snowflake application in dev, open the application, switch to "Advanced" and click "Restart Container".

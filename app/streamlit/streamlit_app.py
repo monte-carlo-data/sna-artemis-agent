@@ -75,8 +75,8 @@ def main():
     with setup_tab:
         st.write("Welcome to the Monte Carlo Agent!")
         st.write(
-            "Make sure you allow access to the Monte Carlo Cloud by "
-            "following the steps documented [here](https://docs.getmontecarlo.com)."
+            "Make sure you follow the steps documented [here](https://docs.getmontecarlo.com) "
+            "before proceeding."
         )
         st.write("")
         with st.form("setup_form"):

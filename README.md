@@ -9,6 +9,9 @@ This project consists of:
 - [service](./service/README.md): The Snowpark Container Service that runs the agent.
 - [app](./app/README.md): The Streamlit application with the UI for the Snowflake Native Application
 
+# App Configuration
+The [README.md](./app/README.md) file for the UI application includes the required steps to configure the application once installed.
+
 # License
 
 See [LICENSE](./LICENSE.md) for more information.
