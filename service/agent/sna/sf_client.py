@@ -16,7 +16,7 @@ from agent.utils.utils import get_sf_login_token, LOCAL
 
 logger = logging.getLogger(__name__)
 
-WAREHOUSE_NAME = "APP_DEV_WH" if LOCAL else "MC_APP_WH"
+WAREHOUSE_NAME = "MC_APP_WH"
 
 _SYNC_QUERIES = LOCAL
 _SNOWFLAKE_SYNC_QUERIES = False
@@ -85,7 +85,7 @@ class SnowflakeClient:
 
     @classmethod
     def _connect(cls):
-        if os.getenv("SNOWFLAKE_HOST"):
+        if os.getenv("SNOWFLAKE_HOST"):  # running in a Snowpark container
             return snowflake_connect(
                 host=os.getenv("SNOWFLAKE_HOST"),
                 account=os.getenv("SNOWFLAKE_ACCOUNT"),
@@ -94,17 +94,14 @@ class SnowflakeClient:
                 authenticator="oauth",
                 paramstyle="qmark",
             )
-        else:
-            rsa_key_file = os.getenv(
-                "RSA_KEY_FILE", os.getenv("HOME", "") + "/.ssh/snowflake_rsa_key.p8"
-            )
+        else:  # running locally
             return snowflake_connect(
-                account="RNB23277",
-                warehouse=WAREHOUSE_NAME,
+                account=os.getenv("SNOWFLAKE_ACCOUNT"),
+                warehouse=os.getenv("SNOWFLAKE_WAREHOUSE"),
                 paramstyle="qmark",
-                user="MC_APP_LOCAL",
-                private_key_file=rsa_key_file,
-                role="MONTE_CARLO_APP_ROLE",
+                user=os.getenv("SNOWFLAKE_USER"),
+                private_key_file=os.getenv("SNOWFLAKE_PRIVATE_KEY_FILE"),
+                role=os.getenv("SNOWFLAKE_ROLE"),
             )
 
     @classmethod

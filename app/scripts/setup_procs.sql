@@ -1,13 +1,3 @@
-LET backend_service_url := 'mcd-orchestrator-test-nlb-9b478a23917fbdf9.elb.us-east-1.amazonaws.com:80';
-
-CREATE APPLICATION ROLE IF NOT EXISTS app_user;
-
-CREATE SCHEMA IF NOT EXISTS core;
-GRANT USAGE ON SCHEMA core TO APPLICATION ROLE app_user;
-
-CREATE OR ALTER VERSIONED SCHEMA app_public;
-GRANT USAGE ON SCHEMA app_public TO APPLICATION ROLE app_user;
-
 CREATE OR REPLACE PROCEDURE app_public.start_app(
        min_nodes INT DEFAULT 2,
        max_nodes INT DEFAULT 2,
@@ -45,10 +35,10 @@ BEGIN
 
    CREATE SERVICE IF NOT EXISTS core.mc_app_service
       IN COMPUTE POOL identifier(:pool_name)
-      EXTERNAL_ACCESS_INTEGRATIONS=(mc_backend_egress_access_integration)
+      EXTERNAL_ACCESS_INTEGRATIONS=(reference('monte_carlo_external_access'))
       FROM spec='service/mc_app_spec.yaml';
 
-   ALTER SERVICE IF EXISTS core.mc_app_service SET EXTERNAL_ACCESS_INTEGRATIONS=(mc_backend_egress_access_integration);
+   ALTER SERVICE IF EXISTS core.mc_app_service SET EXTERNAL_ACCESS_INTEGRATIONS=(reference('monte_carlo_external_access'));
    ALTER SERVICE IF EXISTS core.mc_app_service FROM spec='service/mc_app_spec.yaml';
 
    CREATE OR REPLACE FUNCTION core.push_metrics ()
@@ -85,7 +75,7 @@ BEGIN
 END;
 $$;
 
-GRANT USAGE ON PROCEDURE app_public.start_app(INT, INT, VARCHAR, VARCHAR, INT) TO APPLICATION ROLE app_user;
+GRANT USAGE ON PROCEDURE app_public.start_app(INT, INT, VARCHAR, VARCHAR, INT) TO APPLICATION ROLE app_admin;
 
 CREATE OR REPLACE PROCEDURE app_public.service_status()
 RETURNS VARCHAR
@@ -118,22 +108,43 @@ $$;
 
 GRANT USAGE ON PROCEDURE app_public.service_logs(int) TO APPLICATION ROLE app_user;
 
-CREATE SCHEMA IF NOT EXISTS UI;
-CREATE OR REPLACE STREAMLIT UI.MONTE_CARLO_AGENT
-     FROM '/streamlit'
-     TITLE = 'Monte Carlo Agent'
-     MAIN_FILE = '/streamlit_app.py';
+CREATE OR REPLACE PROCEDURE app_admin.get_config_for_reference(ref_name STRING)
+RETURNS STRING
+LANGUAGE SQL
+AS $$
+    BEGIN
+        CASE (ref_name)
+            WHEN 'MONTE_CARLO_EXTERNAL_ACCESS' THEN
+                RETURN '{
+                    "type": "CONFIGURATION",
+                    "payload":{
+                      "host_ports": ["mcd-orchestrator-test-nlb-9b478a23917fbdf9.elb.us-east-1.amazonaws.com:80"]
+                    }
+                }';
+        END CASE;
+        RETURN '';
+    END;
+$$;
 
-GRANT USAGE ON SCHEMA UI TO APPLICATION ROLE app_user;
-GRANT USAGE ON STREAMLIT UI.MONTE_CARLO_AGENT TO APPLICATION ROLE app_user;
+GRANT USAGE ON PROCEDURE app_admin.get_config_for_reference(string) TO APPLICATION ROLE app_admin;
 
-CREATE SECRET IF NOT EXISTS core.mc_app_token
-    TYPE=generic_string
-    SECRET_STRING='{}';
+CREATE OR REPLACE PROCEDURE app_admin.register_single_reference(ref_name STRING, operation STRING, ref_or_alias STRING)
+  RETURNS STRING
+  LANGUAGE SQL
+  AS $$
+    BEGIN
+      CASE (operation)
+        WHEN 'ADD' THEN
+          SELECT SYSTEM$SET_REFERENCE(:ref_name, :ref_or_alias);
+        WHEN 'REMOVE' THEN
+          SELECT SYSTEM$REMOVE_REFERENCE(:ref_name, :ref_or_alias);
+        WHEN 'CLEAR' THEN
+          SELECT SYSTEM$REMOVE_ALL_REFERENCES(:ref_name);
+      ELSE
+        RETURN 'unknown operation: ' || operation;
+      END CASE;
+      RETURN NULL;
+    END;
+  $$;
 
-CREATE OR REPLACE NETWORK RULE core.mc_backend_egress_access
-  MODE = EGRESS
-  TYPE = HOST_PORT
-  VALUE_LIST = (:backend_service_url);
-
-GRANT USAGE ON NETWORK RULE core.mc_backend_egress_access TO APPLICATION ROLE app_user;
+GRANT USAGE ON PROCEDURE app_admin.register_single_reference(STRING, STRING, STRING) TO APPLICATION ROLE app_admin;

@@ -42,6 +42,10 @@ def health_check():
 
 @app.post("/api/v1/test/health")
 def api_health():
+    """
+    Intended to be used from the Streamlit application, this gets called through a
+    Snowflake function.
+    """
     health_response = service.health_information()
     output_rows = [[0, json.dumps(health_response)]]
     response = make_response({"data": output_rows})
@@ -49,8 +53,23 @@ def api_health():
     return response
 
 
+@app.get("/api/v1/test/health")
+def health():
+    """
+    Intended to be used for local troubleshooting, not from the Streamlit application.
+    """
+    health_response = service.health_information(trace_id=request.args.get("trace_id"))
+    response = make_response(health_response)
+    response.headers["Content-type"] = "application/json"
+    return response
+
+
 @app.post("/api/v1/test/reachability")
 def run_reachability_test():
+    """
+    Intended to be used from the Streamlit application, this gets called through a
+    Snowflake function.
+    """
     reachability_response = service.run_reachability_test()
     output_rows = [[0, json.dumps(reachability_response)]]
     response = make_response({"data": output_rows})
@@ -60,6 +79,10 @@ def run_reachability_test():
 
 @app.post("/api/v1/agent/execute/snowflake/query_completed")
 def query_completed():
+    """
+    Intended to be invoked from the stored procedure used when queries are executed asynchronously.
+    It gets called through a Snowflake function.
+    """
     message = request.json
     logger.debug(f"Received query completed: {message}")
 
@@ -82,6 +105,10 @@ def query_completed():
 
 @app.post("/api/v1/agent/execute/snowflake/query_failed")
 def query_failed():
+    """
+    Intended to be invoked from the stored procedure used when queries are executed asynchronously.
+    It gets called through a Snowflake function.
+    """
     message = request.json
     logger.debug(f"Received query failed: {message}")
 
@@ -105,6 +132,10 @@ def query_failed():
 
 @app.post("/api/v1/test/metrics")
 def fetch_metrics():
+    """
+    Intended to be used from the Streamlit application, this gets called through a
+    Snowflake function.
+    """
     metrics = service.fetch_metrics()
 
     output_rows = [[0, json.dumps(metrics)]]
@@ -117,4 +148,5 @@ enable_tcp_keep_alive()
 service.start()
 
 if __name__ == "__main__":
+    # only used for local development, when gunicorn is not used
     app.run(host=SERVICE_HOST, port=int(SERVICE_PORT))

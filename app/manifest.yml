@@ -1,7 +1,7 @@
 manifest_version: 1
 
 artifacts:
-   setup_script: setup_script.sql
+   setup_script: scripts/setup_script.sql
    readme: README.md
    container_services:
       images:
@@ -15,3 +15,14 @@ privileges:
     description: "Permission to create warehouses for running services"
 - IMPORTED PRIVILEGES ON SNOWFLAKE DB:
     description: "Permission to access query history"
+
+references:
+  - monte_carlo_external_access:
+      label: "Monte Carlo External Access Integration"
+      description: "This is required to access Monte Carlo"
+      privileges:
+        - USAGE
+      object_type: EXTERNAL ACCESS INTEGRATION
+      register_callback: app_admin.register_single_reference
+      configuration_callback: app_admin.get_config_for_reference
+      required_at_setup: true
