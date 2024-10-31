@@ -36,8 +36,8 @@ def setup_connection():
     key_secret = st.session_state.key_input_secret
     key_json = {"mcd_id": key_id, "mcd_token": key_secret}
     session: Session = get_active_session()
-    result = session.sql(
-        f"ALTER SECRET MCD_APP.CORE.MCD_APP_TOKEN SET SECRET_STRING=?;",
+    session.sql(
+        f"ALTER SECRET MCD_AGENT.CORE.MCD_AGENT_TOKEN SET SECRET_STRING=?;",
         params=[json.dumps(key_json)],
     ).collect()
     restart_container(True)

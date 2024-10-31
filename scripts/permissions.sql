@@ -5,7 +5,7 @@
 
 -- Configuration
 set database_to_monitor='<your_database>';
-set mc_role_name='MCD_APP_ROLE';
+set mc_role_name='MCD_AGENT_ROLE';
 
 -- Set role for grants
 USE ROLE ACCOUNTADMIN;

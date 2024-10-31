@@ -16,7 +16,7 @@ from agent.utils.utils import get_sf_login_token, LOCAL
 
 logger = logging.getLogger(__name__)
 
-WAREHOUSE_NAME = "MCD_APP_WH"
+WAREHOUSE_NAME = "MCD_AGENT_WH"
 
 _SYNC_QUERIES = LOCAL
 _SNOWFLAKE_SYNC_QUERIES = False
@@ -39,7 +39,7 @@ class SnowflakeClient:
     """
     Takes care of executing queries in Snowflake, the queries are wrapped in a procedure that
     uses SF functions to notify the agent when the query is completed or failed.
-    The query is executed using the MCD_APP_EXECUTE_QUERY procedure, which is configured to execute
+    The query is executed using the MCD_AGENT_EXECUTE_QUERY procedure, which is configured to execute
     as owner and allow us to take advantage of FUTURE grants (which is not
     available to applications).
     """
@@ -122,7 +122,7 @@ class SnowflakeClient:
                         f"ALTER SESSION SET STATEMENT_TIMEOUT_IN_SECONDS={timeout}"
                     )
                     cur.execute(
-                        "CALL MCD_APP_HELPER.MCD_APP.MCD_APP_EXECUTE_QUERY(?)",
+                        "CALL MCD_AGENT_HELPER.MCD_AGENT.MCD_AGENT_EXECUTE_QUERY(?)",
                         [sql_query],
                     )
                     logger.info(f"Sync query executed: {operation_id} {sql_query}")
@@ -137,12 +137,12 @@ class SnowflakeClient:
                         BEGIN
                             BEGIN
                                 ALTER SESSION SET STATEMENT_TIMEOUT_IN_SECONDS={timeout};
-                                CALL MCD_APP_HELPER.MCD_APP.MCD_APP_EXECUTE_QUERY(:query);
+                                CALL MCD_AGENT_HELPER.MCD_AGENT.MCD_AGENT_EXECUTE_QUERY(:query);
                                 SELECT * FROM TABLE(RESULT_SCAN(:SQLID));
-                                SELECT mcd_app.core.query_completed(:op_id, :SQLID);
+                                SELECT mcd_agent.core.query_completed(:op_id, :SQLID);
                             EXCEPTION
                                 WHEN OTHER THEN BEGIN
-                                    SELECT mcd_app.core.query_failed(:op_id, :sqlcode, :sqlerrm, :sqlstate);
+                                    SELECT mcd_agent.core.query_failed(:op_id, :sqlcode, :sqlerrm, :sqlstate);
                                 END;
                             END;
                         END;
