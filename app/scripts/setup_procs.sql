@@ -1,3 +1,5 @@
+-- Stored procedure used to setup the application for the first time and also to update/restart the container service.
+-- This stored procedure will create the necessary resources for the application to run, including compute pool, warehouse and UDF functions.
 CREATE OR REPLACE PROCEDURE app_public.start_app(
        min_nodes INT DEFAULT 2,
        max_nodes INT DEFAULT 2,
@@ -41,23 +43,12 @@ BEGIN
    ALTER SERVICE IF EXISTS core.mcd_app_service SET EXTERNAL_ACCESS_INTEGRATIONS=(reference('monte_carlo_external_access'));
    ALTER SERVICE IF EXISTS core.mcd_app_service FROM spec='service/mcd_app_spec.yaml';
 
+   -- UDF functions used from the Streamlit application
    CREATE OR REPLACE FUNCTION core.push_metrics ()
       RETURNS varchar
       SERVICE=core.mcd_app_service
       ENDPOINT='mcd-app-endpoint'
       AS '/api/v1/test/metrics';
-
-   CREATE OR REPLACE FUNCTION core.query_completed(OP_ID VARCHAR, QUERY_ID VARCHAR)
-      RETURNS varchar
-      SERVICE=core.mcd_app_service
-      ENDPOINT='mcd-app-endpoint'
-      AS '/api/v1/agent/execute/snowflake/query_completed';
-
-   CREATE OR REPLACE FUNCTION core.query_failed(OP_ID VARCHAR, CODE INT, MSG VARCHAR, ST VARCHAR)
-      RETURNS varchar
-      SERVICE=core.mcd_app_service
-      ENDPOINT='mcd-app-endpoint'
-      AS '/api/v1/agent/execute/snowflake/query_failed';
 
    CREATE OR REPLACE FUNCTION core.health_check()
       RETURNS varchar
@@ -71,12 +62,27 @@ BEGIN
       ENDPOINT='mcd-app-endpoint'
       AS '/api/v1/test/reachability';
 
+  -- UDF functions used from the async query executed by the agent, used to indicate
+  -- completion or failure of the executed queries.
+  CREATE OR REPLACE FUNCTION core.query_completed(OP_ID VARCHAR, QUERY_ID VARCHAR)
+      RETURNS varchar
+      SERVICE=core.mcd_app_service
+      ENDPOINT='mcd-app-endpoint'
+      AS '/api/v1/agent/execute/snowflake/query_completed';
+
+  CREATE OR REPLACE FUNCTION core.query_failed(OP_ID VARCHAR, CODE INT, MSG VARCHAR, ST VARCHAR)
+      RETURNS varchar
+      SERVICE=core.mcd_app_service
+      ENDPOINT='mcd-app-endpoint'
+      AS '/api/v1/agent/execute/snowflake/query_failed';
+
    RETURN 'Service successfully created or updated';
 END;
 $$;
 
 GRANT USAGE ON PROCEDURE app_public.start_app(INT, INT, VARCHAR, VARCHAR, INT) TO APPLICATION ROLE app_admin;
 
+-- Public stored procedures intended to be used from Snowsight for troubleshooting purposes.
 CREATE OR REPLACE PROCEDURE app_public.service_status()
 RETURNS VARCHAR
 LANGUAGE SQL
@@ -108,6 +114,7 @@ $$;
 
 GRANT USAGE ON PROCEDURE app_public.service_logs(int) TO APPLICATION ROLE app_user;
 
+-- Stored procedures used to manage the external access integration, invoked by the application setup process
 CREATE OR REPLACE PROCEDURE app_admin.get_config_for_reference(ref_name STRING)
 RETURNS STRING
 LANGUAGE SQL
