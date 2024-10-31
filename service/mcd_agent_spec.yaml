@@ -1,15 +1,15 @@
 spec:
   container:
-  - name: mcd-app
-    image: /mcd_repo/mcd_app/mcd_app_repository/mcd_app:latest
+  - name: mcd-agent
+    image: /mcd_repo/mcd_agent/mcd_agent_repository/mcd_agent:latest
     readinessProbe:
       port: 8000
       path: /api/v1/test/healthcheck
     secrets:
       - snowflakeSecret:
-          objectName: 'core.mcd_app_token'
+          objectName: 'core.mcd_agent_token'
         directoryPath: '/usr/local/creds'
   endpoint:
-  - name: mcd-app-endpoint
+  - name: mcd-agent-endpoint
     port: 8000
     public: false

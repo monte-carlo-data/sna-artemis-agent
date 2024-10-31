@@ -103,10 +103,10 @@ jobs:
       - run:
           name: Push image to Snowflake repo
           command: |
-            docker tag montecarlodata/<< parameters.docker_hub_repository >>:latest $SNOWFLAKE_REPO_URL/mcd_app:<< parameters.code_version >>
-            docker push $SNOWFLAKE_REPO_URL/mcd_app:<< parameters.code_version >>
-            docker tag montecarlodata/<< parameters.docker_hub_repository >>:latest $SNOWFLAKE_REPO_URL/mcd_app:latest
-            docker push $SNOWFLAKE_REPO_URL/mcd_app:latest
+            docker tag montecarlodata/<< parameters.docker_hub_repository >>:latest $SNOWFLAKE_REPO_URL/mcd_agent:<< parameters.code_version >>
+            docker push $SNOWFLAKE_REPO_URL/mcd_agent:<< parameters.code_version >>
+            docker tag montecarlodata/<< parameters.docker_hub_repository >>:latest $SNOWFLAKE_REPO_URL/mcd_agent:latest
+            docker push $SNOWFLAKE_REPO_URL/mcd_agent:latest
 
   restart-snowflake-service:
     machine:
@@ -116,7 +116,7 @@ jobs:
       - run:
           name: Restart Snowflake service
           command: |
-            snow sql --query "CALL MCD_APP.APP_PUBLIC.START_APP()" --temporary-connection
+            snow sql --query "CALL MCD_AGENT.APP_PUBLIC.START_APP()" --temporary-connection
 
   run-test-docker:
     machine:
