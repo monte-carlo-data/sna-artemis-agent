@@ -5,7 +5,7 @@ artifacts:
    readme: README.md
    container_services:
       images:
-      - /mc_app_data/mc_app/mc_app_repository/mc_app:latest
+      - /mcd_repo/mcd_app/mcd_app_repository/mcd_app:latest
    default_streamlit: ui.monte_carlo_agent
 
 privileges:

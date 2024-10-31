@@ -124,7 +124,7 @@ class SnaService:
         https://docs.snowflake.com/en/developer-guide/snowpark-container-services/monitoring-services#accessing-compute-pool-metrics
         """
         response = requests.get(
-            "http://discover.monitor.mc_app_compute_pool.snowflakecomputing.internal:9001/metrics"
+            "http://discover.monitor.mcd_app_compute_pool.snowflakecomputing.internal:9001/metrics"
         )
         lines = response.text.splitlines()
         return lines
