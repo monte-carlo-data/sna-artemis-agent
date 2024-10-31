@@ -108,6 +108,16 @@ jobs:
             docker tag montecarlodata/<< parameters.docker_hub_repository >>:latest $SNOWFLAKE_REPO_URL/mcd_app:latest
             docker push $SNOWFLAKE_REPO_URL/mcd_app:latest
 
+  restart-snowflake-service:
+    machine:
+      image: ubuntu-2204:current
+    steps:
+      - setup-snowflake-cli
+      - run:
+          name: Restart Snowflake service
+          command: |
+            snow sql --query "CALL MCD_APP.APP_PUBLIC.START_APP()" --temporary-connection
+
   run-test-docker:
     machine:
       image: ubuntu-2204:current
@@ -166,6 +176,17 @@ workflows:
             - snowflake-app-dev
           requires:
             - run-test-docker
+          filters:
+            branches:
+              only:
+                - dev
+      - restart-snowflake-service:
+          name: restart-snowflake-service-dev
+          context:
+            - snowflake-app-dev
+          requires:
+            - build-and-push-image-dev
+            - publish-snowflake-app-dev
           filters:
             branches:
               only:
