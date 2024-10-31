@@ -103,10 +103,10 @@ jobs:
       - run:
           name: Push image to Snowflake repo
           command: |
-            docker tag montecarlodata/<< parameters.docker_hub_repository >>:latest $SNOWFLAKE_REPO_URL/mc_app:<< parameters.code_version >>
-            docker push $SNOWFLAKE_REPO_URL/mc_app:<< parameters.code_version >>
-            docker tag montecarlodata/<< parameters.docker_hub_repository >>:latest $SNOWFLAKE_REPO_URL/mc_app:latest
-            docker push $SNOWFLAKE_REPO_URL/mc_app:latest
+            docker tag montecarlodata/<< parameters.docker_hub_repository >>:latest $SNOWFLAKE_REPO_URL/mcd_app:<< parameters.code_version >>
+            docker push $SNOWFLAKE_REPO_URL/mcd_app:<< parameters.code_version >>
+            docker tag montecarlodata/<< parameters.docker_hub_repository >>:latest $SNOWFLAKE_REPO_URL/mcd_app:latest
+            docker push $SNOWFLAKE_REPO_URL/mcd_app:latest
 
   run-test-docker:
     machine:

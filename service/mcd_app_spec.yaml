@@ -1,15 +1,15 @@
 spec:
   container:
-  - name: mc-app
-    image: /mc_app_data/mc_app/mc_app_repository/mc_app:latest
+  - name: mcd-app
+    image: /mcd_repo/mcd_app/mcd_app_repository/mcd_app:latest
     readinessProbe:
       port: 8000
       path: /api/v1/test/healthcheck
     secrets:
       - snowflakeSecret:
-          objectName: 'core.mc_app_token'
+          objectName: 'core.mcd_app_token'
         directoryPath: '/usr/local/creds'
   endpoint:
-  - name: mc-app-endpoint
+  - name: mcd-app-endpoint
     port: 8000
     public: false
