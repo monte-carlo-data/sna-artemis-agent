@@ -1,4 +1,8 @@
+-- role used for read-only operations like getting logs, checking service status, etc.
 CREATE APPLICATION ROLE IF NOT EXISTS app_user;
+
+-- role used for administrative operations like starting/stopping the service, configuring the
+-- external access integrations, etc.
 CREATE APPLICATION ROLE IF NOT EXISTS app_admin;
 
 CREATE SCHEMA IF NOT EXISTS core;
