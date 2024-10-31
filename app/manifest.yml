@@ -2,7 +2,7 @@ manifest_version: 1
 
 artifacts:
    setup_script: scripts/setup_script.sql
-   readme: README.md
+   readme: README-app.md
    container_services:
       images:
       - /mcd_repo/mcd_app/mcd_app_repository/mcd_app:latest
