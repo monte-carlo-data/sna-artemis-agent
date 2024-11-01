@@ -17,9 +17,8 @@ from agent.utils.utils import BACKEND_SERVICE_URL
 _QUERY_OPERATION = {
     "operation_id": "1234",
     "operation": {
-        "commands": [
-            {"target": "_cursor", "method": "execute", "args": ["SELECT * FROM table"]},
-        ]
+        "type": "snowflake_query",
+        "query": "SELECT * FROM table",
     },
     "path": "/api/v1/agent/execute/snowflake/query",
 }
