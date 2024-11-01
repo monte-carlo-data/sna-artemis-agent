@@ -1,8 +1,9 @@
 import logging
 import os
+from sqlite3 import ProgrammingError
 from typing import Dict, Any, Optional
 
-from snowflake.connector import connect as snowflake_connect
+from snowflake.connector import connect as snowflake_connect, DatabaseError
 from snowflake.connector.cursor import SnowflakeCursor
 
 from agent.sna.sf_query import SnowflakeQuery
@@ -162,3 +163,20 @@ class SnowflakeClient:
         if ":" in msg:
             return msg[(msg.index(":") + 1) :].strip()
         return msg
+
+    @staticmethod
+    def result_for_exception(ex: Exception) -> Dict:
+        result: Dict[str, Any] = {
+            ATTRIBUTE_NAME_ERROR: str(ex),
+        }
+        if isinstance(ex, DatabaseError):
+            result[ATTRIBUTE_NAME_ERROR_ATTRS] = {
+                "errno": ex.errno,
+                "sqlstate": ex.sqlstate,
+            }
+            if isinstance(ex, ProgrammingError):
+                result[ATTRIBUTE_NAME_ERROR_TYPE] = "ProgrammingError"
+            elif isinstance(ex, DatabaseError):
+                result[ATTRIBUTE_NAME_ERROR_TYPE] = "DatabaseError"
+
+        return result
