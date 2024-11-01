@@ -26,3 +26,10 @@ references:
       register_callback: app_admin.register_single_reference
       configuration_callback: app_admin.get_config_for_reference
       required_at_setup: true
+  - mcd_agent_helper_execute_query:
+      label: "Execute Query Stored Procedure"
+      description: "This is the stored procedure used to execute queries, usually MCD_AGENT_HELPER.MCD_AGENT.MCD_AGENT_EXECUTE_QUERY"
+      privileges:
+        - USAGE
+      object_type: PROCEDURE
+      register_callback: app_admin.register_single_reference

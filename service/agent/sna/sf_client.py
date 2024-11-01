@@ -123,7 +123,7 @@ class SnowflakeClient:
                         f"ALTER SESSION SET STATEMENT_TIMEOUT_IN_SECONDS={timeout}"
                     )
                     cur.execute(
-                        "CALL MCD_AGENT_HELPER.MCD_AGENT.MCD_AGENT_EXECUTE_QUERY(?)",
+                        "CALL mcd_agent.core.execute_query(?)",
                         [sql_query],
                     )
                     logger.info(f"Sync query executed: {operation_id} {sql_query}")
@@ -138,7 +138,7 @@ class SnowflakeClient:
                         BEGIN
                             BEGIN
                                 ALTER SESSION SET STATEMENT_TIMEOUT_IN_SECONDS={timeout};
-                                CALL MCD_AGENT_HELPER.MCD_AGENT.MCD_AGENT_EXECUTE_QUERY(:query);
+                                CALL mcd_agent.core.execute_query(:query);
                                 SELECT * FROM TABLE(RESULT_SCAN(:SQLID));
                                 SELECT mcd_agent.core.query_completed(:op_id, :SQLID);
                             EXCEPTION

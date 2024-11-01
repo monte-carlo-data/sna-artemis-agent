@@ -5,10 +5,12 @@ import json
 import pandas as pd
 import streamlit as st
 
-# import snowflake.permissions as permissions
+import snowflake.permissions as permissions
 from snowflake.snowpark import Session
 from snowflake.snowpark.context import get_active_session
 
+if not permissions.get_reference_associations("mcd_agent_helper_execute_query"):
+    permissions.request_reference("mcd_agent_helper_execute_query")
 st.session_state.logs_table = []
 
 
