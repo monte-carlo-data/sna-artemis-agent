@@ -197,7 +197,10 @@ class SnaService:
         operation_type = operation.get("type")
         if operation_type == "snowflake_query":
             return operation.get("query"), operation.get("timeout")
-        return None, None
+        elif operation_type == "snowflake_connection_test":
+            return None, None
+        else:
+            raise ValueError(f"Invalid operation type: {operation_type}")
 
     def _schedule_query(self, operation_id: str, query: str, timeout: Optional[int]):
         self._queries_runner.schedule(SnowflakeQuery(operation_id, query, timeout))

@@ -63,11 +63,17 @@ class SSEClientReceiver:
                         break
                     try:
                         event = json.loads(event.data)
+                    except Exception as parse_ex:
+                        logger.exception(
+                            f"Failed to parse event: {parse_ex}, text: {event.data}"
+                        )
+                        continue
+                    try:
                         if self._event_handler:
                             self._event_handler(event)
                     except Exception as parse_ex:
-                        logger.debug(
-                            f"Failed to parse event: {parse_ex}, text: {event.data}"
+                        logger.exception(
+                            f"Failed to process event: {parse_ex}, text: {event.data}"
                         )
             except Exception as ex:
                 logger.error(f"Connection failed: {ex}")
