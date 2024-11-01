@@ -194,25 +194,10 @@ class SnaService:
         if operation.get("__mcd_size_exceeded__", False):
             logger.info("Downloading operation from orchestrator")
             operation = cls._download_operation(operation_id)
-        commands = operation.get("commands", [])
-        timeout: Optional[int] = None
-        resolved_query: Optional[str] = None
-        for command in commands:
-            if (
-                command.get("target") == "_cursor"
-                and command.get("method") == "execute"
-            ):
-                query = command.get("args", [None])[0]
-                if not query:
-                    continue
-                if query.startswith("ALTER SESSION SET STATEMENT_TIMEOUT_IN_SECONDS="):
-                    timeout = int(query.split("=")[1])
-                    continue
-                resolved_query = query
-                if not timeout:
-                    timeout = command.get("kwargs", {}).get("timeout")
-                break
-        return resolved_query, timeout
+        operation_type = operation.get("type")
+        if operation_type == "snowflake_query":
+            return operation.get("query"), operation.get("timeout")
+        return None, None
 
     def _schedule_query(self, operation_id: str, query: str, timeout: Optional[int]):
         self._queries_runner.schedule(SnowflakeQuery(operation_id, query, timeout))
