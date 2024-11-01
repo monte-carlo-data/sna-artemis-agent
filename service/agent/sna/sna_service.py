@@ -1,14 +1,11 @@
-import json
 import logging
-import os
-import sys
 import uuid
 from typing import Dict, Tuple, Optional, Any, List
-from urllib.parse import urljoin
 
 import requests
 from snowflake.connector import DatabaseError, ProgrammingError
 
+from agent.backend.backend_client import BackendClient
 from agent.events.events_client import EventsClient
 from agent.events.receiver_factory import ReceiverFactory
 from agent.events.sse_client_receiver import SSEClientReceiverFactory
@@ -17,25 +14,19 @@ from agent.sna.queries_runner import QueriesRunner
 from agent.sna.results_publisher import ResultsPublisher
 from agent.sna.sf_client import SnowflakeClient
 from agent.sna.sf_query import SnowflakeQuery
+from agent.utils import utils
 from agent.utils.serde import (
-    AgentSerializer,
     ATTRIBUTE_NAME_ERROR_TYPE,
     ATTRIBUTE_NAME_ERROR_ATTRS,
     ATTRIBUTE_NAME_ERROR,
     ATTRIBUTE_NAME_RESULT,
     ATTRIBUTE_NAME_TRACE_ID,
 )
-from agent.utils.settings import VERSION, BUILD_NUMBER
 from agent.utils.utils import (
     BACKEND_SERVICE_URL,
     AGENT_ID,
-    get_mc_login_token,
 )
 
-HEALTH_ENV_VARS = [
-    "PYTHON_VERSION",
-    "SERVER_SOFTWARE",
-]
 logger = logging.getLogger(__name__)
 
 
@@ -89,20 +80,12 @@ class SnaService:
 
     @classmethod
     def health_information(cls, trace_id: Optional[str] = None) -> Dict[str, Any]:
-        health_info = {
-            "platform": "SNA",
-            "version": VERSION,
-            "build": BUILD_NUMBER,
-            "env": cls._env_dictionary(),
-        }
-        if trace_id:
-            health_info["trace_id"] = trace_id
-        return health_info
+        return utils.health_information(trace_id)
 
     def run_reachability_test(self, trace_id: Optional[str] = None) -> Dict[str, Any]:
         trace_id = trace_id or str(uuid.uuid4())
         logger.info(f"Running reachability test, trace_id: {trace_id}")
-        return self._execute_backend_operation(f"/api/v1/test/ping?trace_id={trace_id}")
+        return BackendClient.execute_operation(f"/api/v1/test/ping?trace_id={trace_id}")
 
     def query_completed(self, operation_id: str, query_id: str):
         """
@@ -136,7 +119,7 @@ class SnaService:
         and pushes them to the MC backend.
         """
         metrics = self.fetch_metrics()
-        self._push_results_to_backend(
+        BackendClient.push_results(
             "metrics",
             {
                 "metrics": metrics,
@@ -169,7 +152,7 @@ class SnaService:
         if query:
             self._schedule_query(operation_id, query, timeout)
         else:  # connection test
-            self._push_results_to_backend(
+            BackendClient.push_results(
                 operation_id,
                 {
                     ATTRIBUTE_NAME_RESULT: {
@@ -193,7 +176,7 @@ class SnaService:
         operation = event.get("operation", {})
         if operation.get("__mcd_size_exceeded__", False):
             logger.info("Downloading operation from orchestrator")
-            operation = cls._download_operation(operation_id)
+            operation = BackendClient.download_operation(operation_id)
         operation_type = operation.get("type")
         if operation_type == "snowflake_query":
             return operation.get("query"), operation.get("timeout")
@@ -205,7 +188,8 @@ class SnaService:
     def _schedule_query(self, operation_id: str, query: str, timeout: Optional[int]):
         self._queries_runner.schedule(SnowflakeQuery(operation_id, query, timeout))
 
-    def _run_query(self, query: SnowflakeQuery):
+    @staticmethod
+    def _run_query(query: SnowflakeQuery):
         """
         Invoked by queries runner to run a query
         """
@@ -214,11 +198,11 @@ class SnaService:
             # if there's no result, the query was executed asynchronously
             # we'll get the result through query_completed/query_failed callbacks
             if result:
-                self._push_results_to_backend(query.operation_id, result)
+                BackendClient.push_results(query.operation_id, result)
         except Exception as ex:
             logger.error(f"Query failed: {query.query}, error: {ex}")
-            self._push_results_to_backend(
-                query.operation_id, self._result_for_exception(ex)
+            BackendClient.push_results(
+                query.operation_id, SnowflakeClient.result_for_exception(ex)
             )
 
     def _schedule_push_results_for_query(self, operation_id: str, query_id: str):
@@ -232,7 +216,7 @@ class SnaService:
         if result.query_id:
             cls._push_results_for_query(result.operation_id, result.query_id)
         elif result.result is not None:
-            cls._push_results_to_backend(result.operation_id, result.result)
+            BackendClient.push_results(result.operation_id, result.result)
         else:
             logger.error(f"Invalid result for operation: {result.operation_id}")
 
@@ -243,104 +227,6 @@ class SnaService:
         """
         try:
             result = SnowflakeClient.result_for_query(query_id)
-            cls._push_results_to_backend(operation_id, result)
+            BackendClient.push_results(operation_id, result)
         except Exception as ex:
             logger.error(f"Failed to push results for query: {query_id}, error: {ex}")
-
-    @staticmethod
-    def _result_for_exception(ex: Exception) -> Dict:
-        result: Dict[str, Any] = {
-            ATTRIBUTE_NAME_ERROR: str(ex),
-        }
-        if isinstance(ex, DatabaseError):
-            result[ATTRIBUTE_NAME_ERROR_ATTRS] = {
-                "errno": ex.errno,
-                "sqlstate": ex.sqlstate,
-            }
-            if isinstance(ex, ProgrammingError):
-                result[ATTRIBUTE_NAME_ERROR_TYPE] = "ProgrammingError"
-            elif isinstance(ex, DatabaseError):
-                result[ATTRIBUTE_NAME_ERROR_TYPE] = "DatabaseError"
-
-        return result
-
-    @staticmethod
-    def _push_results_to_backend(operation_id: str, result: Dict):
-        logger.info(f"Sending query results to backend")
-        try:
-            results_url = urljoin(
-                BACKEND_SERVICE_URL, f"/api/v1/agent/operations/{operation_id}/result"
-            )
-            result_str = json.dumps(
-                {
-                    "agent_id": AGENT_ID,
-                    "result": result,
-                },
-                cls=AgentSerializer,
-            )
-            logger.info(f"Sending result to backend: {result_str[:500]}")
-            response = requests.post(
-                results_url,
-                data=result_str,
-                headers={
-                    "Content-Type": "application/json",
-                    **get_mc_login_token(),
-                },
-            )
-            logger.info(
-                f"Sent query results to backend, response: {response.status_code}"
-            )
-        except Exception as ex:
-            logger.error(f"Failed to push results to backend: {ex}")
-
-    @staticmethod
-    def _execute_backend_operation(
-        path: str, method: str = "GET", body: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
-        try:
-            url = urljoin(BACKEND_SERVICE_URL, path)
-            headers = get_mc_login_token()
-            if body:
-                headers["Content-Type"] = "application/json"
-            response = requests.request(
-                method=method,
-                url=url,
-                json=body,
-                headers=headers,
-            )
-            logger.info(
-                f"Sent backend request {path}, response: {response.status_code}"
-            )
-            response.raise_for_status()
-            return response.json() or {"error": "empty response"}
-        except Exception as ex:
-            logger.error(f"Error sending request to backend: {ex}")
-            return {
-                "error": str(ex),
-            }
-
-    @classmethod
-    def _download_operation(cls, operation_id: str) -> Dict:
-        operation = cls._execute_backend_operation(
-            f"/api/v1/agent/operations/{operation_id}/request"
-        )
-        if error_message := operation.get("error"):
-            raise Exception(
-                f"Failed to download operation {operation_id}: {error_message}"
-            )
-        return operation
-
-    @staticmethod
-    def _env_dictionary() -> Dict:
-        env: Dict[str, Optional[str]] = {
-            "PYTHON_SYS_VERSION": sys.version,
-            "CPU_COUNT": str(os.cpu_count()),
-        }
-        env.update(
-            {
-                env_var: os.getenv(env_var)
-                for env_var in HEALTH_ENV_VARS
-                if os.getenv(env_var)
-            }
-        )
-        return env
