@@ -1,7 +1,7 @@
 import logging
 import os
 from sqlite3 import ProgrammingError
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Tuple, List
 
 from snowflake.connector import connect as snowflake_connect, DatabaseError
 from snowflake.connector.cursor import SnowflakeCursor
@@ -50,7 +50,7 @@ class SnowflakeClient:
 
     @classmethod
     def result_for_query(cls, query_id: str) -> Dict[str, Any]:
-        with (conn := cls._connect()):
+        with cls._connect() as conn:
             with conn.cursor() as cur:
                 conn.get_query_status_throw_if_error(query_id)
                 cur.get_results_from_sfqid(query_id)
@@ -72,6 +72,17 @@ class SnowflakeClient:
             ATTRIBUTE_NAME_ERROR_ATTRS: {"errno": code, "sqlstate": state},
             ATTRIBUTE_NAME_ERROR_TYPE: error_type,
         }
+
+    @classmethod
+    def run_query_and_fetch_all(
+        cls,
+        query: str,
+        *args,  # type: ignore
+    ) -> Tuple[List[Tuple], List[Tuple]]:
+        with cls._connect() as conn:
+            with conn.cursor() as cur:
+                cur.execute(query, *args)
+                return cur.fetchall(), cur.description  # type: ignore
 
     @staticmethod
     def _result_for_cursor(cursor: SnowflakeCursor) -> Dict[str, Any]:
@@ -110,7 +121,7 @@ class SnowflakeClient:
         timeout = query.timeout or 850
         operation_id = query.operation_id
         sql_query = query.query
-        with (conn := cls._connect()):
+        with cls._connect() as conn:
             with conn.cursor() as cur:
                 if _SYNC_QUERIES:
                     cur.execute(sql_query)
@@ -123,7 +134,7 @@ class SnowflakeClient:
                         f"ALTER SESSION SET STATEMENT_TIMEOUT_IN_SECONDS={timeout}"
                     )
                     cur.execute(
-                        "CALL MCD_AGENT_HELPER.MCD_AGENT.MCD_AGENT_EXECUTE_QUERY(?)",
+                        "CALL mcd_agent.core.execute_helper_query(?)",
                         [sql_query],
                     )
                     logger.info(f"Sync query executed: {operation_id} {sql_query}")
@@ -138,7 +149,7 @@ class SnowflakeClient:
                         BEGIN
                             BEGIN
                                 ALTER SESSION SET STATEMENT_TIMEOUT_IN_SECONDS={timeout};
-                                CALL MCD_AGENT_HELPER.MCD_AGENT.MCD_AGENT_EXECUTE_QUERY(:query);
+                                CALL mcd_agent.core.execute_helper_query(:query);
                                 SELECT * FROM TABLE(RESULT_SCAN(:SQLID));
                                 SELECT mcd_agent.core.query_completed(:op_id, :SQLID);
                             EXCEPTION

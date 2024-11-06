@@ -17,3 +17,5 @@ GRANT USAGE ON SCHEMA app_public TO APPLICATION ROLE app_user;
 EXECUTE IMMEDIATE FROM '/scripts/setup_procs.sql';
 EXECUTE IMMEDIATE FROM '/scripts/setup_ui.sql';
 EXECUTE IMMEDIATE FROM '/scripts/setup_secrets.sql';
+EXECUTE IMMEDIATE FROM '/scripts/setup_stage.sql';
+
