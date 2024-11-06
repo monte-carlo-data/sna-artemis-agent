@@ -62,7 +62,5 @@ class EventsClient:
             logger.info(f"{event_type}: {event.get('ts') or event.get('heartbeat')}")
             if event_type == "heartbeat":
                 self._heartbeat_checker.heartbeat_received()
-            if event_type == "welcome":
-                logger.info(f"Agent ID: {event.get('agent_id')}")
         else:
             self._event_handler(event)
