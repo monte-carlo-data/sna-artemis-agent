@@ -14,6 +14,7 @@ from agent.sna.queries_runner import QueriesRunner
 from agent.sna.results_publisher import ResultsPublisher
 from agent.sna.sf_client import SnowflakeClient
 from agent.sna.sf_query import SnowflakeQuery
+from agent.storage.storage_service import StorageService
 from agent.utils import utils
 from agent.utils.serde import (
     ATTRIBUTE_NAME_ERROR_TYPE,
@@ -21,6 +22,7 @@ from agent.utils.serde import (
     ATTRIBUTE_NAME_ERROR,
     ATTRIBUTE_NAME_RESULT,
     ATTRIBUTE_NAME_TRACE_ID,
+    decode_dictionary,
 )
 from agent.utils.utils import (
     BACKEND_SERVICE_URL,
@@ -51,11 +53,13 @@ class SnaService:
         results_publisher: Optional[ResultsPublisher] = None,
         events_client: Optional[EventsClient] = None,
         receiver_factory: Optional[ReceiverFactory] = None,
+        storage_service: Optional[StorageService] = None,
     ):
         self._queries_runner = queries_runner or QueriesRunner(handler=self._run_query)
         self._results_publisher = results_publisher or ResultsPublisher(
             handler=self._push_results
         )
+        self._storage = storage_service or StorageService()
 
         if events_client:
             self._events_client = events_client
@@ -142,15 +146,22 @@ class SnaService:
                 self._execute_operation(path, operation_id, event)
 
     def _execute_operation(self, path: str, operation_id: str, event: Dict[str, Any]):
-        if path.startswith("/api/v1/agent/execute/"):
-            self._execute_agent_operation(operation_id, event)
+        operation = event.get("operation", {})
+        if operation.get("__mcd_size_exceeded__", False):
+            logger.info("Downloading operation from orchestrator")
+            event["operation"] = BackendClient.download_operation(operation_id)
+
+        if path.startswith("/api/v1/agent/execute/snowflake"):
+            self._execute_snowflake_operation(operation_id, event)
+        elif path.startswith("/api/v1/agent/execute/storage"):
+            self._execute_storage_operation(operation_id, event)
         elif path == "/api/v1/test/health":
             self._execute_health(operation_id, event)
         else:
             logger.error(f"Invalid path received: {path}, operation_id: {operation_id}")
 
-    def _execute_agent_operation(self, operation_id: str, event: Dict[str, Any]):
-        query, timeout = self._get_query_from_event(operation_id, event)
+    def _execute_snowflake_operation(self, operation_id: str, event: Dict[str, Any]):
+        query, timeout = self._get_query_from_event(event)
         if query:
             self._schedule_query(operation_id, query, timeout)
         else:  # connection test
@@ -164,21 +175,31 @@ class SnaService:
                 },
             )
 
+    def _execute_storage_operation(self, operation_id: str, event: Dict[str, Any]):
+        try:
+            storage_result = self._storage.execute_operation(decode_dictionary(event))
+            result = {
+                ATTRIBUTE_NAME_RESULT: storage_result,
+            }
+        except Exception as ex:
+            logger.error(f"Storage operation failed: {ex}")
+            result = {
+                ATTRIBUTE_NAME_ERROR_TYPE: type(ex).__name__,
+                ATTRIBUTE_NAME_ERROR: str(ex),
+            }
+
+        BackendClient.push_results(operation_id, result)
+
     def _execute_health(self, operation_id: str, event: Dict[str, Any]):
-        trace_id = event.get("trace_id", operation_id)
+        trace_id = event.get("operation", {}).get("trace_id", operation_id)
         health_information = self.health_information(trace_id=trace_id)
         self._schedule_push_results(operation_id, health_information)
 
     @classmethod
-    def _get_query_from_event(
-        cls, operation_id: str, event: Dict
-    ) -> Tuple[Optional[str], Optional[int]]:
+    def _get_query_from_event(cls, event: Dict) -> Tuple[Optional[str], Optional[int]]:
         if legacy_query := event.get("query"):
             return legacy_query, None
         operation = event.get("operation", {})
-        if operation.get("__mcd_size_exceeded__", False):
-            logger.info("Downloading operation from orchestrator")
-            operation = BackendClient.download_operation(operation_id)
         operation_type = operation.get("type")
         if operation_type == "snowflake_query":
             return operation.get("query"), operation.get("timeout")

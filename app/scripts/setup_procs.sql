@@ -79,8 +79,9 @@ BEGIN
   RETURN 'Service successfully created or updated';
 END;
 $$;
+GRANT USAGE ON PROCEDURE app_public.start_app(INT, INT, VARCHAR, VARCHAR, INT) TO APPLICATION ROLE app_admin;
 
-CREATE OR REPLACE PROCEDURE core.execute_query(query STRING)
+CREATE OR REPLACE PROCEDURE core.execute_helper_query(query STRING)
 RETURNS TABLE()
 LANGUAGE SQL
 AS
@@ -92,7 +93,16 @@ BEGIN
 END;
 $$;
 
-GRANT USAGE ON PROCEDURE app_public.start_app(INT, INT, VARCHAR, VARCHAR, INT) TO APPLICATION ROLE app_admin;
+CREATE OR REPLACE PROCEDURE core.execute_query(query STRING)
+    RETURNS TABLE()
+    LANGUAGE SQL
+AS
+$$
+BEGIN
+    LET rs RESULTSET := (EXECUTE IMMEDIATE :query);
+    RETURN TABLE(rs);
+END;
+$$;
 
 CREATE OR REPLACE PROCEDURE app_public.suspend_service()
 RETURNS VARCHAR

@@ -45,6 +45,7 @@ class EventsClient:
     def stop(self):
         self._stopped = True
         self._heartbeat_checker.stop()
+        self._receiver.stop()
 
     def _reconnect(self):
         self._receiver.stop()
