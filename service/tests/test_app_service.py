@@ -25,7 +25,9 @@ _QUERY_OPERATION = {
 
 _HEALTH_OPERATION = {
     "operation_id": "1234",
-    "trace_id": "5432",
+    "operation": {
+        "trace_id": "5432",
+    },
     "path": "/api/v1/test/health",
 }
 
@@ -117,7 +119,7 @@ class AppServiceTests(TestCase):
         events_client._event_received(_HEALTH_OPERATION)
         self._mock_results_publisher.schedule_push_results.assert_called_once_with(
             "1234",
-            service.health_information(_HEALTH_OPERATION["trace_id"]),
+            service.health_information(_HEALTH_OPERATION["operation"]["trace_id"]),
         )
 
     def test_reachability_test(self):
