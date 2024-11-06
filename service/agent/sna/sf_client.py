@@ -1,9 +1,12 @@
 import logging
 import os
-from sqlite3 import ProgrammingError
 from typing import Dict, Any, Optional, Tuple, List
 
-from snowflake.connector import connect as snowflake_connect, DatabaseError
+from snowflake.connector import (
+    connect as snowflake_connect,
+    DatabaseError,
+    ProgrammingError,
+)
 from snowflake.connector.cursor import SnowflakeCursor
 
 from agent.sna.sf_query import SnowflakeQuery
