@@ -1,0 +1,14 @@
+definition_version: 1
+native_app:
+   name: mcd_agent
+   artifacts:
+      - src: app/*
+        dest: ./
+      - service/mcd_agent_spec.yaml
+   package:
+      name: mcd_agent_pkg
+      role: mcd_repo_role
+   application:
+      name: mcd_agent
+      debug: false
+      role: mcd_repo_role

@@ -1,0 +1,26 @@
+manifest_version: 1
+
+artifacts:
+   setup_script: scripts/setup_script.sql
+   readme: README-app.md
+   container_services:
+      images:
+      - /mcd_repo/mcd_agent/mcd_agent_repository/mcd_agent:latest
+   default_streamlit: ui.monte_carlo_agent
+
+privileges:
+- CREATE COMPUTE POOL:
+    description: "Permission to create compute pools for running services"
+- CREATE WAREHOUSE:
+    description: "Permission to create warehouses for running services"
+
+references:
+  - monte_carlo_external_access:
+      label: "Monte Carlo External Access Integration"
+      description: "This is required to access Monte Carlo"
+      privileges:
+        - USAGE
+      object_type: EXTERNAL ACCESS INTEGRATION
+      register_callback: app_admin.register_single_reference
+      configuration_callback: app_admin.get_config_for_reference
+      required_at_setup: true
