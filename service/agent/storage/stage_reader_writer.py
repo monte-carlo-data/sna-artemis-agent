@@ -12,7 +12,7 @@ from agent.sna.sf_client import SnowflakeClient
 from agent.storage.base_storage_client import BaseStorageClient
 from agent.utils.utils import LOCAL
 
-_DEFAULT_STAGE_NAME = os.getenv("STAGE_NAME", "mcd_agent.core.app_stage")
+_DEFAULT_STAGE_NAME = os.getenv("STAGE_NAME", "mcd_agent.core.data_store")
 _DEFAULT_PREFIX = "mcd"
 _SNOWFLAKE_ERROR_FILE_NOT_FOUND = 253006
 
@@ -29,6 +29,10 @@ class StageReaderWriter(BaseStorageClient):
         return self._stage_name
 
     def write(self, key: str, obj_to_write: Union[bytes, str]) -> None:
+        """
+        Uses `PUT` to upload the file to the internal stage, the contents are first saved to
+        a temporary file that gets deleted automatically.
+        """
         folder, file_name = self._parse_key(key)
         bytes_to_write = (
             obj_to_write.encode("utf-8")
@@ -50,6 +54,10 @@ class StageReaderWriter(BaseStorageClient):
         decompress: Optional[bool] = False,
         encoding: Optional[str] = None,
     ) -> Union[bytes, str]:
+        """
+        Uses `GET` to download the file to a temporary location and return its contents.
+        The file is deleted automatically.
+        """
         _, file_name = self._parse_key(key)
         with self._temp_directory() as tmp_dir:
             get_query = (
@@ -71,10 +79,18 @@ class StageReaderWriter(BaseStorageClient):
         return content
 
     def delete(self, key: str) -> None:
+        """
+        Uses `REMOVE` to delete the file.
+        """
         delete_query = f"REMOVE @{self._stage_name}/{self._apply_prefix(key)}"
         self._run_stage_query(delete_query, "delete", key)
 
     def download_file(self, key: str, download_path: str) -> None:
+        """
+        Uses `GET` to download the file to the specified location, `GET` works by downloading
+        the file with the same name to a local folder, then we rename it to match the
+        requested file name.
+        """
         download_dir, download_file_name = os.path.split(download_path)
         _, file_name = self._parse_key(key)
 
@@ -88,6 +104,9 @@ class StageReaderWriter(BaseStorageClient):
             os.rename(os.path.join(download_dir, file_name), download_path)
 
     def upload_file(self, key: str, local_file_path: str) -> None:
+        """
+        Uses `PUT` to upload the file to the internal stage.
+        """
         put_query = (
             f"PUT file://{local_file_path} @{self._stage_name}/{self._apply_prefix(key)} "
             f"AUTO_COMPRESS=FALSE OVERWRITE=TRUE"
@@ -95,9 +114,15 @@ class StageReaderWriter(BaseStorageClient):
         self._run_stage_query(put_query, "upload", key)
 
     def read_many_json(self, prefix: str) -> Dict:
+        """
+        Not implemented as it's not used for the Snowflake case.
+        """
         raise NotImplementedError("read_many_json")
 
     def managed_download(self, key: str, download_path: str):
+        """
+        For this platform, the same as `download_file`.
+        """
         self.download_file(key, download_path)
 
     def list_objects(
@@ -109,9 +134,20 @@ class StageReaderWriter(BaseStorageClient):
         *args,  # type: ignore
         **kwargs,  # type: ignore
     ) -> Tuple[Union[List, None], Union[str, None]]:
+        """
+        Not implemented as it's not used for the Snowflake case.
+        """
         raise NotImplementedError("list_objects")
 
     def generate_presigned_url(self, key: str, expiration: timedelta) -> str:
+        """
+        This method uses GET_PRESIGNED_URL to generate the pre-signed URL.
+        During the implementation phase we found that running this inside the Snowflake App
+        generates an invalid URL, but it generates a valid one if we call it from a
+        stored procedure.
+        So, we're using the `execute_query` stored procedure to wrap the query that
+        generates the URL.
+        """
         full_key = self._apply_prefix(key) or key
         if full_key.startswith("/"):
             full_key = full_key[1:]
@@ -139,10 +175,20 @@ class StageReaderWriter(BaseStorageClient):
         raise BaseStorageClient.GenericError("No pre-signed URL returned")
 
     def is_bucket_private(self) -> bool:
+        """
+        This is called as part of the storage validation from MC, to confirm the storage
+        is properly configured to reject public access, but that's not relevant for
+        Snowflake, as internal stages are always private, so we're just returning True.
+        """
         return True
 
     @staticmethod
     def _parse_key(key: str) -> Tuple[str, str]:
+        """
+        Returns the path to the folder and the file name, this is required because
+        some stage operations require the folder and the file name to be passed separately,
+        for example when uploading files.
+        """
         folder, file_name = os.path.split(key)
         folder = folder + "/" if folder and folder != "/" else ""
         return folder, file_name
@@ -151,6 +197,10 @@ class StageReaderWriter(BaseStorageClient):
     def _temp_location(
         self, file_name: str, contents: Optional[bytes] = None
     ) -> Iterator[str]:
+        """
+        Creates a temporary file with the specified contents (if any) and returns the path to it.
+        The file is deleted when the context manager exits.
+        """
         tmp_location = os.path.join(tempfile.gettempdir(), str(uuid4()), file_name)
         dir_name = os.path.dirname(tmp_location)
         os.makedirs(dir_name, exist_ok=True)
@@ -167,6 +217,10 @@ class StageReaderWriter(BaseStorageClient):
 
     @contextlib.contextmanager
     def _temp_directory(self) -> Iterator[str]:
+        """
+        Creates a temporary directory and returns the path to it.
+        The directory is deleted when the context manager exits.
+        """
         tmp_location = os.path.join(tempfile.gettempdir(), str(uuid4()))
         os.makedirs(tmp_location, exist_ok=True)
 
