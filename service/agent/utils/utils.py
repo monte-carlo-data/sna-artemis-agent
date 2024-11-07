@@ -34,6 +34,9 @@ _HEALTH_ENV_VARS = [
     "PYTHON_VERSION",
     "SERVER_SOFTWARE",
     "SNOWFLAKE_ACCOUNT",
+    "SNOWFLAKE_DATABASE",
+    "SNOWFLAKE_HOST",
+    "SNOWFLAKE_SERVICE_NAME",
 ]
 
 logger = logging.getLogger(__name__)
