@@ -28,7 +28,7 @@ BEGIN
 
    EXECUTE IMMEDIATE ('ALTER COMPUTE POOL IF EXISTS ' || :pool_name || ' SET MIN_NODES = ' || :min_nodes);
    EXECUTE IMMEDIATE ('ALTER COMPUTE POOL IF EXISTS ' || :pool_name || ' SET MAX_NODES = ' || :max_nodes);
-   EXECUTE IMMEDIATE ('ALTER COMPUTE POOL IF EXISTS ' || :pool_name || ' SET INSTANCE_FAMILY = ' || :family);
+
    LET create_pool_sql VARCHAR := 'CREATE COMPUTE POOL IF NOT EXISTS ' || :pool_name
        || ' MIN_NODES = ' || :min_nodes
        || ' MAX_NODES = ' || :max_nodes
