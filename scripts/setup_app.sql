@@ -4,8 +4,12 @@
 -- The application is then granted access to the stored procedure and the database where it is defined.
 
 -- Configuration
+-- Role name to use to execute queries, can be changed to any other name
 set mcd_agent_role_name='MCD_AGENT_ROLE';
+-- Database name used to create the stored procedure, can be changed to any other name
 set mcd_helper_db_name='MCD_AGENT_HELPER';
+
+-- Application name, cannot be changed
 set mcd_agent_name='MCD_AGENT';
 set mcd_agent_user_role=$mcd_agent_name || '.APP_USER';
 

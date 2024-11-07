@@ -14,6 +14,10 @@ logger = logging.getLogger(__name__)
 
 
 class SSEClientReceiverFactory(ReceiverFactory):
+    """
+    SSE Receiver Factory
+    """
+
     def create_receiver(
         self, base_url: str, agent_id: str, handler: Callable[[Dict], None]
     ):
