@@ -13,8 +13,6 @@ privileges:
     description: "Permission to create compute pools for running services"
 - CREATE WAREHOUSE:
     description: "Permission to create warehouses for running services"
-- IMPORTED PRIVILEGES ON SNOWFLAKE DB:
-    description: "Permission to access query history"
 
 references:
   - monte_carlo_external_access:
