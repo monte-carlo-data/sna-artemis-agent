@@ -3,7 +3,6 @@ import uuid
 from typing import Dict, Tuple, Optional, Any, List
 
 import requests
-from snowflake.connector import DatabaseError, ProgrammingError
 
 from agent.backend.backend_client import BackendClient
 from agent.events.events_client import EventsClient
@@ -16,9 +15,6 @@ from agent.sna.sf_client import SnowflakeClient
 from agent.sna.sf_query import SnowflakeQuery
 from agent.utils import utils
 from agent.utils.serde import (
-    ATTRIBUTE_NAME_ERROR_TYPE,
-    ATTRIBUTE_NAME_ERROR_ATTRS,
-    ATTRIBUTE_NAME_ERROR,
     ATTRIBUTE_NAME_RESULT,
     ATTRIBUTE_NAME_TRACE_ID,
 )

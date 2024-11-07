@@ -12,8 +12,16 @@ logger = logging.getLogger(__name__)
 
 
 class BackendClient:
+    """
+    Client used to interact with the MC Backend (Orchestrator) service.
+    """
+
     @staticmethod
     def push_results(operation_id: str, result: Dict[str, Any]):
+        """
+        Pushes the result for a given operation, please note results are sent by a separate thread.
+        See `ResultsPublisher` for more information.
+        """
         logger.info(f"Sending query results to backend")
         try:
             results_url = urljoin(
@@ -45,6 +53,9 @@ class BackendClient:
     def execute_operation(
         path: str, method: str = "GET", body: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
+        """
+        Performs an operation on the backend service. For example `ping`.
+        """
         try:
             url = urljoin(BACKEND_SERVICE_URL, path)
             headers = get_mc_login_token()
@@ -69,6 +80,11 @@ class BackendClient:
 
     @classmethod
     def download_operation(cls, operation_id: str) -> Dict:
+        """
+        Download the full body for an operation, `SSE` has a limit in the size of the events, so
+        when the operation exceeds that size we perform an additional request to get the full
+        operation.
+        """
         operation = cls.execute_operation(
             f"/api/v1/agent/operations/{operation_id}/request"
         )
