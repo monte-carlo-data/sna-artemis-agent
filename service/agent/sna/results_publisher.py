@@ -9,6 +9,12 @@ logger = logging.getLogger(__name__)
 
 
 class ResultsPublisher(QueueAsyncProcessor[AgentOperationResult]):
+    """
+    This class is responsible for processing results to be sent to the backend.
+    Currently, it uses a queue and a single thread to publish them, the handler
+    is used to send the results.
+    """
+
     def __init__(self, handler: Callable[[AgentOperationResult], None]):
         self._results_handler = handler
         super().__init__(name="ResultsPublisher", handler=self._handler_wrapper)

@@ -19,6 +19,10 @@ ATTRIBUTE_NAME_ERROR_ATTRS = "__mcd_error_attrs__"
 
 
 class AgentSerializer(json.JSONEncoder):
+    """
+    JSON serializer for agent data, this is based on the same class from the `apollo-agent` project.
+    """
+
     @classmethod
     def serialize(cls, value: Any) -> Any:
         if isinstance(value, datetime):

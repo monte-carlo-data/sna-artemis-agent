@@ -18,9 +18,25 @@ AGENT_ID = os.getenv("AGENT_ID", "snowflake")
 LOCAL = os.getenv("ENV", "snowflake") == "local"
 DEBUG = os.getenv("DEBUG", "false").lower() == "true"
 
+_X_MCD_ID = "x-mcd-id"
+_X_MCD_TOKEN = "x-mcd-token"
+_MCD_ID_ATTR = "mcd-id"
+_MCD_TOKEN_ATTR = "mcd-token"
+_LOCAL_TOKEN_ID = "local-token-id"
+_LOCAL_TOKEN_SECRET = "local-token-secret"
+_NO_TOKEN_ID = "no-token-id"
+_NO_TOKEN_SECRET = "no-token-secret"
+
+_SECRET_STRING_PATH = "/usr/local/creds/secret_string"
+_SNOWFLAKE_TOKEN_PATH = "/snowflake/session/token"
+
 _HEALTH_ENV_VARS = [
     "PYTHON_VERSION",
     "SERVER_SOFTWARE",
+    "SNOWFLAKE_ACCOUNT",
+    "SNOWFLAKE_DATABASE",
+    "SNOWFLAKE_HOST",
+    "SNOWFLAKE_SERVICE_NAME",
 ]
 
 logger = logging.getLogger(__name__)
@@ -35,18 +51,18 @@ def init_logging():
 def get_mc_login_token() -> Dict[str, str]:
     if LOCAL:
         return {
-            "x-mcd-id": "local-token-id",
-            "x-mcd-token": "local-token-secret",
+            _X_MCD_ID: _LOCAL_TOKEN_ID,
+            _X_MCD_TOKEN: _LOCAL_TOKEN_SECRET,
         }
-    if os.path.exists("/usr/local/creds/secret_string"):
-        with open("/usr/local/creds/secret_string", "r") as f:
+    if os.path.exists(_SECRET_STRING_PATH):
+        with open(_SECRET_STRING_PATH, "r") as f:
             key_str = f.read()
         try:
             key_json = json.loads(key_str)
-            if "mcd_id" in key_json and "mcd_token" in key_json:
+            if _MCD_ID_ATTR in key_json and _MCD_TOKEN_ATTR in key_json:
                 return {
-                    "x-mcd-id": key_json["mcd_id"],
-                    "x-mcd-token": key_json["mcd_token"],
+                    _X_MCD_ID: key_json[_MCD_ID_ATTR],
+                    _X_MCD_TOKEN: key_json[_MCD_TOKEN_ATTR],
                 }
         except JSONDecodeError as ex:
             logger.error(f"Failed to parse Key JSON: {ex}")
@@ -54,13 +70,13 @@ def get_mc_login_token() -> Dict[str, str]:
         logger.warning("No token file found")
 
     return {
-        "x-mcd-id": "no-token-id",
-        "x-mcd-token": "no-token-secret",
+        _X_MCD_ID: _NO_TOKEN_ID,
+        _X_MCD_TOKEN: _NO_TOKEN_SECRET,
     }
 
 
 def get_sf_login_token():
-    with open("/snowflake/session/token", "r") as f:
+    with open(_SNOWFLAKE_TOKEN_PATH, "r") as f:
         return f.read()
 
 

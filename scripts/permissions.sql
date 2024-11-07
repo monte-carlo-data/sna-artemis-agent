@@ -2,9 +2,11 @@
 -- It should be executed for each database to be monitored, updating the value of
 -- `database_to_monitor` accordingly.
 
-
 -- Configuration
+-- Name of the database to monitor
 set database_to_monitor='<your_database>';
+
+-- Role name to use to execute queries, must be the same role name used in setup_app.sql
 set mc_role_name='MCD_AGENT_ROLE';
 
 -- Set role for grants

@@ -15,6 +15,13 @@ from agent.utils.utils import enable_tcp_keep_alive, init_logging
 SERVICE_HOST = os.getenv("SERVER_HOST", "0.0.0.0")
 SERVICE_PORT = os.getenv("SERVER_PORT") or "8081"
 
+"""
+This is the main entry point for the Agent service, it starts a Flask application
+and the `SnaService` that will handle the communication with the MC backend.
+It defines a few HTTP endpoints that will be used to communicate with the `Streamlit` app
+and as UDF functions (as callbacks for query completion and failure).
+"""
+
 init_logging()
 logger = logging.getLogger(__name__)
 

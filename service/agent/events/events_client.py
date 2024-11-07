@@ -10,6 +10,18 @@ logger = logging.getLogger(__name__)
 
 
 class EventsClient:
+    """
+    Client that abstract the underlying technology used to receive events from the backend,
+    it could use a polling approach or a push approach like websockets or SSE.
+    It delegates the creation of the receiver (the actual implementation that generates events)
+    to the `ReceiverFactory`, which uses `SSE` by default.
+    There are two event types that are handled here and not forwarded to the event handler:
+    - `welcome`: sent as the first message after the connection is established
+    - `heartbeat`: sent periodically by the server (by default every minute) to keep the connection
+        alive. This class will re-establish the connection if we don't receive a heartbeat after
+        2 minutes.
+    """
+
     def __init__(
         self,
         receiver_factory: ReceiverFactory,
