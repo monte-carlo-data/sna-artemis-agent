@@ -6,6 +6,11 @@ from typing import Dict, Any, Optional
 from snowflake.connector import connect as snowflake_connect, DatabaseError
 from snowflake.connector.cursor import SnowflakeCursor
 
+from agent.sna.sf_queries import (
+    QUERY_EXECUTE_QUERY_WITH_HELPER,
+    QUERY_SET_STATEMENT_TIMEOUT,
+    QUERY_EXECUTE_QUERY_WITH_HELPER_SYNC,
+)
 from agent.sna.sf_query import SnowflakeQuery
 from agent.utils.serde import (
     ATTRIBUTE_NAME_RESULT,
@@ -119,37 +124,14 @@ class SnowflakeClient:
                     )
                     return cls._result_for_cursor(cur)
                 elif _SNOWFLAKE_SYNC_QUERIES:
-                    cur.execute(
-                        f"ALTER SESSION SET STATEMENT_TIMEOUT_IN_SECONDS={timeout}"
-                    )
-                    cur.execute(
-                        "CALL MCD_AGENT_HELPER.MCD_AGENT.MCD_AGENT_EXECUTE_QUERY(?)",
-                        [sql_query],
-                    )
+                    cur.execute(QUERY_SET_STATEMENT_TIMEOUT.format(timeout=timeout))
+                    cur.execute(QUERY_EXECUTE_QUERY_WITH_HELPER_SYNC, [sql_query])
                     logger.info(f"Sync query executed: {operation_id} {sql_query}")
                     return cls._result_for_cursor(cur)
                 else:
-                    execute_query = f"""
-                    WITH RUN_QUERY AS PROCEDURE(op_id VARCHAR, query STRING)
-                        RETURNS VARCHAR
-                        LANGUAGE SQL
-                        AS
-                        $$
-                        BEGIN
-                            BEGIN
-                                ALTER SESSION SET STATEMENT_TIMEOUT_IN_SECONDS={timeout};
-                                CALL MCD_AGENT_HELPER.MCD_AGENT.MCD_AGENT_EXECUTE_QUERY(:query);
-                                SELECT * FROM TABLE(RESULT_SCAN(:SQLID));
-                                SELECT mcd_agent.core.query_completed(:op_id, :SQLID);
-                            EXCEPTION
-                                WHEN OTHER THEN BEGIN
-                                    SELECT mcd_agent.core.query_failed(:op_id, :sqlcode, :sqlerrm, :sqlstate);
-                                END;
-                            END;
-                        END;
-                        $$
-                    CALL RUN_QUERY(?, ?);
-                    """
+                    execute_query = QUERY_EXECUTE_QUERY_WITH_HELPER.format(
+                        timeout=timeout
+                    )
                     cur.execute_async(execute_query, [operation_id, sql_query])
                     logger.info(
                         f"Async query executed: {operation_id} {sql_query}, id: {cur.sfqid}"
