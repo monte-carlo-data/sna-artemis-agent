@@ -92,9 +92,9 @@ BEGIN
   RETURN TABLE(rs);
 END;
 $$;
-
 GRANT USAGE ON PROCEDURE app_public.start_app(INT, INT, VARCHAR, VARCHAR, INT) TO APPLICATION ROLE app_admin;
 
+-- Public (admin-only) stored procedures intended to start/stop/restart the service
 CREATE OR REPLACE PROCEDURE app_public.suspend_service()
 RETURNS VARCHAR
 LANGUAGE SQL
@@ -105,7 +105,6 @@ BEGIN
     RETURN 'Service suspended';
 END;
 $$;
-
 GRANT USAGE ON PROCEDURE app_public.suspend_service() TO APPLICATION ROLE app_admin;
 
 CREATE OR REPLACE PROCEDURE app_public.resume_service()
@@ -118,8 +117,20 @@ BEGIN
     RETURN 'Service resumed';
 END;
 $$;
-
 GRANT USAGE ON PROCEDURE app_public.resume_service() TO APPLICATION ROLE app_admin;
+
+CREATE OR REPLACE PROCEDURE app_public.restart_service()
+RETURNS VARCHAR
+LANGUAGE SQL
+AS
+$$
+BEGIN
+    ALTER SERVICE core.mcd_agent_service SUSPEND;
+    ALTER SERVICE core.mcd_agent_service RESUME;
+    RETURN 'Service restarted';
+END;
+$$;
+GRANT USAGE ON PROCEDURE app_public.restart_service() TO APPLICATION ROLE app_admin;
 
 -- Public stored procedures intended to be used from Snowsight for troubleshooting purposes.
 CREATE OR REPLACE PROCEDURE app_public.service_status()
