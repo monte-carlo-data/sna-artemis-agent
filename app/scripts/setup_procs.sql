@@ -77,11 +77,60 @@ BEGIN
       ENDPOINT='mcd-agent-endpoint'
       AS '/api/v1/agent/execute/snowflake/query_failed';
 
-   RETURN 'Service successfully created or updated';
+  RETURN 'Service successfully created or updated';
 END;
 $$;
 
+CREATE OR REPLACE PROCEDURE core.execute_query(query STRING)
+RETURNS TABLE()
+LANGUAGE SQL
+AS
+$$
+BEGIN
+  CALL REFERENCE('mcd_agent_helper_execute_query')(:query);
+  LET rs RESULTSET := (SELECT * FROM TABLE(RESULT_SCAN(:SQLID)));
+  RETURN TABLE(rs);
+END;
+$$;
 GRANT USAGE ON PROCEDURE app_public.start_app(INT, INT, VARCHAR, VARCHAR, INT) TO APPLICATION ROLE app_admin;
+
+-- Public (admin-only) stored procedures intended to start/stop/restart the service
+CREATE OR REPLACE PROCEDURE app_public.suspend_service()
+RETURNS VARCHAR
+LANGUAGE SQL
+AS
+$$
+BEGIN
+    ALTER SERVICE core.mcd_agent_service SUSPEND;
+    RETURN 'Service suspended';
+END;
+$$;
+GRANT USAGE ON PROCEDURE app_public.suspend_service() TO APPLICATION ROLE app_admin;
+
+CREATE OR REPLACE PROCEDURE app_public.resume_service()
+RETURNS VARCHAR
+LANGUAGE SQL
+AS
+$$
+BEGIN
+    ALTER SERVICE core.mcd_agent_service RESUME;
+    RETURN 'Service resumed';
+END;
+$$;
+GRANT USAGE ON PROCEDURE app_public.resume_service() TO APPLICATION ROLE app_admin;
+
+CREATE OR REPLACE PROCEDURE app_public.restart_service()
+RETURNS VARCHAR
+LANGUAGE SQL
+AS
+$$
+BEGIN
+    ALTER SERVICE core.mcd_agent_service SUSPEND;
+    ALTER SERVICE core.mcd_agent_service RESUME;
+    RETURN 'Service restarted';
+END;
+$$;
+GRANT USAGE ON PROCEDURE app_public.restart_service() TO APPLICATION ROLE app_admin;
 
 -- Public stored procedures intended to be used from Snowsight for troubleshooting purposes.
 CREATE OR REPLACE PROCEDURE app_public.service_status()

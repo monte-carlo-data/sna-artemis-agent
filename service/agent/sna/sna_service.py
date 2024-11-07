@@ -87,12 +87,14 @@ class SnaService:
         """
         Invoked by the Snowflake stored procedure when a query execution is completed
         """
+        logger.info(f"Query completed: {operation_id}, query_id: {query_id}")
         self._schedule_push_results_for_query(operation_id, query_id)
 
     def query_failed(self, operation_id: str, code: int, msg: str, state: str):
         """
         Invoked by the Snowflake stored procedure when a query execution failed
         """
+        logger.info(f"Query failed: {operation_id}: {msg}")
         result = SnowflakeClient.result_for_query_failed(operation_id, code, msg, state)
         self._schedule_push_results(operation_id, result)
 

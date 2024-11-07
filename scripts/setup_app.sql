@@ -25,10 +25,6 @@ GRANT ROLE identifier($mcd_agent_role_name) TO ROLE ACCOUNTADMIN;
 -- Grant privileges to allow access to query history
 GRANT IMPORTED PRIVILEGES ON DATABASE "SNOWFLAKE" TO ROLE identifier($mcd_agent_role_name);
 
--- Grant access to the app
-GRANT APPLICATION ROLE identifier($mcd_agent_user_role) TO ROLE identifier($mcd_agent_role_name);
-
-
 -- Create a database to define the helper stored procedure
 CREATE DATABASE IF NOT EXISTS identifier($mcd_helper_db_name);
 GRANT OWNERSHIP ON DATABASE identifier($mcd_helper_db_name) TO ROLE identifier($mcd_agent_role_name);
@@ -47,7 +43,3 @@ BEGIN
     LET rs RESULTSET := (EXECUTE IMMEDIATE :query);
     RETURN TABLE(rs);
 END;
-
-GRANT USAGE ON DATABASE identifier($mcd_helper_db_name) TO APPLICATION identifier($mcd_agent_name);
-GRANT USAGE ON SCHEMA MCD_AGENT TO APPLICATION identifier($mcd_agent_name);
-GRANT USAGE ON PROCEDURE MCD_AGENT_EXECUTE_QUERY(STRING) TO APPLICATION identifier($mcd_agent_name);
