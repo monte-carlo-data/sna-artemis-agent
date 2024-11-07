@@ -10,24 +10,17 @@ if not permissions.get_reference_associations("mcd_agent_helper_execute_query"):
     permissions.request_reference("mcd_agent_helper_execute_query")
 
 
-def restart_container(token_updated: bool = False):
-    session: Session = get_active_session()
-    result = session.sql(
-        f"CALL app_public.start_app();",
-    ).collect()
-    if token_updated:
-        st.success(
-            f"Token updated and container restarted, status: ({_get_container_status_text()})"
-        )
-    else:
-        st.success(f"Container restarted: {result[0][0]}")
-
-
 def get_container_status():
+    """
+    Shows the container status
+    """
     st.info(_get_container_status_text())
 
 
 def _get_container_status_text() -> str:
+    """
+    Uses `service_status` stored procedure to get the status of the container.
+    """
     session: Session = get_active_session()
     result = session.sql(
         "CALL app_public.service_status();",
@@ -36,51 +29,57 @@ def _get_container_status_text() -> str:
 
 
 def setup_connection():
+    """
+    Sets the id/token in the Snowflake secret and starts/restarts the service.
+    """
     key_id = st.session_state.key_input_id
     key_secret = st.session_state.key_input_secret
     key_json = {"mcd_id": key_id, "mcd_token": key_secret}
     session: Session = get_active_session()
+
+    # set the secret
     session.sql(
         f"ALTER SECRET MCD_AGENT.CORE.MCD_AGENT_TOKEN SET SECRET_STRING=?;",
         params=[json.dumps(key_json)],
     ).collect()
-    restart_container(True)
 
+    # restart the container
+    session.sql("CALL app_public.start_app();").collect()
 
-def push_metrics():
-    _execute_function("push_metrics")
-
-
-def health_check():
-    _execute_function("health_check")
+    # show the updated status
+    st.success(
+        f"Token updated and container restarted, status: ({_get_container_status_text()})"
+    )
 
 
 def reachability_test():
-    _execute_function("reachability_test")
-
-
-def _execute_function(name: str):
+    """
+    Executes the `reachability_test` stored procedure and shows the result.
+    """
     session: Session = get_active_session()
     result = session.sql(
-        f"SELECT core.{name}();",
+        f"SELECT core.reachability_test();",
     ).collect()
     st.info(result[0][0])
 
 
 def logs_panel():
-    logs_table = _fetch_logs()
+    """
+    Uses `service_logs` stored procedure to fetch the logs and shows them using a dataframe
+    """
+    session: Session = get_active_session()
+    try:
+        logs_table = session.sql("CALL app_public.service_logs(1000)").collect()
+    except Exception:
+        logs_table = []
     return st.dataframe(pd.DataFrame(reversed(logs_table)), width=1000, height=500)
 
 
-def _fetch_logs():
-    session: Session = get_active_session()
-    try:
-        return session.sql("CALL app_public.service_logs(1000)").collect()
-    except Exception:
-        return []
-
-
 def update_token_panel(status_container=None):
+    """
+    Shows the form to input the key id and key secret to update the token.
+    """
+
     def setup_connection_wrapper():
         if status_container:
             with status_container:
