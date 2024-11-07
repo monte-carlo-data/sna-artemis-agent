@@ -5,7 +5,7 @@ See [here](https://docs.getmontecarlo.com/docs/platform-architecture) for archit
 deployment options.
 
 # Project description
-This project is a Monte Carlo Data egress-only agent for Snowflake, tt runs as a Snowflake Native Application using Snowpark Container Services.
+This project is a Monte Carlo Data egress-only agent for Snowflake, it runs as a Snowflake Native Application using Snowpark Container Services.
 The UI in the Snowflake Application is used only for configuration and troubleshooting, the agent itself runs in the container.
 The agent starts automatically when the container starts, connects to the Monte Carlo Cloud services, and listens for requests to execute Snowflake queries to collect metadata and other resources like query logs.
 
