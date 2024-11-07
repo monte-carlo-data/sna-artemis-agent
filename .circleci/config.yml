@@ -1,0 +1,221 @@
+version: 2.1
+
+orbs:
+  docker: circleci/docker@2.8.0
+
+commands:
+  verify-version-in-docker-image:
+    parameters:
+      image:
+        description: Image name to validate
+        type: string
+      version:
+        description: Expected contents for /agent/version file
+        type: string
+    steps:
+    - run:
+        name: Verify version in Docker image
+        command: |
+          image_version=$(docker run --rm --entrypoint python << parameters.image >> agent/utils/settings.py)
+          if [ $image_version = "<< parameters.version >>" ]
+            then exit 0
+            else echo "Failed to find expected version, found: $image_version"; exit 1
+          fi
+  generate-version-number-dev:
+    steps:
+    - run:
+        command: |
+          PIPELINE_NUMBER=<< pipeline.number >>
+          if git describe --tags --abbrev=0; then TAG=$(git describe --tags --abbrev=0); else TAG=v0.0.0; fi
+          VERSION=${TAG#v}
+          echo "NEXT_VERSION=$(echo "$VERSION" | awk 'BEGIN{FS=OFS="."} {$3+=1} 1')rc${PIPELINE_NUMBER}" >> $BASH_ENV
+          source $BASH_ENV
+        name: Generate dev version number
+  generate-version-number-prod:
+    steps:
+    - run:
+        command: |
+          if git describe --tags --abbrev=0; then TAG=$(git describe --tags --abbrev=0); else exit 1; fi
+          echo "VERSION_TAG=${TAG#v}" >> $BASH_ENV
+          source $BASH_ENV
+        name: Generate prod version number
+  setup-snowflake-cli:
+    steps:
+    - run:
+        command: |
+          cd /tmp
+          wget https://sfc-repo.snowflakecomputing.com/snowflake-cli/linux_x86_64/3.1.0/snowflake-cli-3.1.0.x86_64.deb
+          sudo dpkg -i snowflake-cli-3.1.0.x86_64.deb
+          echo $SNOWFLAKE_PRIVATE_KEY_VALUE > $SNOWFLAKE_PRIVATE_KEY_PATH
+          sed -i -e 's/\\n/\n/g' $SNOWFLAKE_PRIVATE_KEY_PATH
+          snow connection test --temporary-connection
+          snow spcs image-registry login --temporary-connection
+        name: Setup Snowflake CLI
+
+jobs:
+  run-linter:
+    docker:
+      - image: cimg/python:3.12-node
+    steps:
+      - checkout
+      - run:
+          name: Install dependencies
+          command: |
+            python -m venv .venv
+            . .venv/bin/activate
+            pip install --no-cache-dir --upgrade pip
+            cd service
+            pip install --no-cache-dir -r requirements.txt -r requirements-build.txt -r requirements-dev.txt
+      - run:
+          name: 'Run black / pyright'
+          command: |
+            . .venv/bin/activate
+            black --check .
+            pyright
+
+  build-and-push-image:
+    machine:
+      image: ubuntu-2204:current
+    parameters:
+      docker_hub_repository:
+        type: string
+      code_version:
+        type: string
+    steps:
+      - checkout
+      - docker/check:
+          use-docker-credentials-store: true
+      - setup-snowflake-cli
+      - docker/build:
+          step-name: Build service image
+          path: service
+          docker-context: service
+          use-buildkit: true  # to build only the required stages
+          extra_build_args: --build-arg code_version=<< parameters.code_version >> --build-arg build_number=<< pipeline.number >>
+          image: montecarlodata/<< parameters.docker_hub_repository >>
+          tag: latest,<< parameters.code_version >>
+      - verify-version-in-docker-image:
+          image: montecarlodata/<< parameters.docker_hub_repository >>:latest
+          version: << parameters.code_version >>,<< pipeline.number >>
+      - docker/push:
+          image: montecarlodata/<< parameters.docker_hub_repository >>
+          tag: latest,<< parameters.code_version >>
+      - run:
+          name: Push image to Snowflake repo
+          command: |
+            docker tag montecarlodata/<< parameters.docker_hub_repository >>:latest $SNOWFLAKE_REPO_URL/mcd_agent:<< parameters.code_version >>
+            docker push $SNOWFLAKE_REPO_URL/mcd_agent:<< parameters.code_version >>
+            docker tag montecarlodata/<< parameters.docker_hub_repository >>:latest $SNOWFLAKE_REPO_URL/mcd_agent:latest
+            docker push $SNOWFLAKE_REPO_URL/mcd_agent:latest
+
+  restart-snowflake-service:
+    machine:
+      image: ubuntu-2204:current
+    steps:
+      - setup-snowflake-cli
+      - run:
+          name: Restart Snowflake service
+          command: |
+            snow sql --query "CALL MCD_AGENT.APP_PUBLIC.START_APP()" --temporary-connection
+
+  run-test-docker:
+    machine:
+      image: ubuntu-2204:current
+    steps:
+      - checkout
+      - docker/build:
+          path: service
+          docker-context: service
+          image: mcd/sna-agent-tests
+          use-buildkit: true  # to build only the required stages
+          extra_build_args: --target tests
+          step-name: Run tests in docker build
+
+  publish-snowflake-app:
+    machine:
+      image: ubuntu-2204:current
+    steps:
+      - checkout
+      - setup-snowflake-cli
+      - run:
+          name: Publish Snowflake app
+          command: |
+            snow app run --temporary-connection
+
+workflows:
+  version: 2
+
+  build-sna:
+    jobs:
+      - run-linter
+      - run-test-docker:
+          # run for all tags and branches
+          # we need to add this so the job is available for build-and-push-image-prod
+          filters:
+            tags:
+              only: /.*/
+      - build-and-push-image:
+          name: build-and-push-image-dev
+          docker_hub_repository: prerelease-sna-agent
+          code_version: ${NEXT_VERSION}
+          pre-steps:
+            - checkout
+            - generate-version-number-dev
+          context:
+            - docker
+            - snowflake-app-dev
+          requires:
+            - run-test-docker
+          filters:
+            branches:
+              only:
+                - dev
+      - publish-snowflake-app:
+          name: publish-snowflake-app-dev
+          context:
+            - snowflake-app-dev
+          requires:
+            - run-test-docker
+          filters:
+            branches:
+              only:
+                - dev
+      - restart-snowflake-service:
+          name: restart-snowflake-service-dev
+          context:
+            - snowflake-app-dev
+          requires:
+            - build-and-push-image-dev
+            - publish-snowflake-app-dev
+          filters:
+            branches:
+              only:
+                - dev
+      - build-and-push-image:
+          name: build-and-push-image-prod
+          docker_hub_repository: sna-agent
+          code_version: ${VERSION_TAG}
+          pre-steps:
+            - checkout
+            - generate-version-number-prod
+          context:
+            - docker
+            - snowflake-app-prod
+          requires:
+            - run-test-docker
+          filters: # run only for tags starting with v, don't run for branches
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
+      - publish-snowflake-app:
+          name: publish-snowflake-app-prod
+          requires:
+            - run-test-docker
+          context:
+            - snowflake-app-prod
+          filters: # run only for tags starting with v, don't run for branches
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
