@@ -65,8 +65,9 @@ class SSEClientReceiver:
                 for event in self._sse_client:
                     if self._stopped:
                         break
+                    event_data = event.data
                     try:
-                        event = json.loads(event.data)
+                        event = json.loads(event_data)
                     except Exception as parse_ex:
                         logger.exception(
                             f"Failed to parse event: {parse_ex}, text: {event.data}"
@@ -75,9 +76,9 @@ class SSEClientReceiver:
                     try:
                         if self._event_handler:
                             self._event_handler(event)
-                    except Exception as parse_ex:
+                    except Exception as handle_ex:
                         logger.exception(
-                            f"Failed to process event: {parse_ex}, text: {event.data}"
+                            f"Failed to process event: {handle_ex}, text: {event_data}"
                         )
             except Exception as ex:
                 logger.error(f"Connection failed: {ex}")

@@ -108,6 +108,7 @@ BEGIN
     LET rs RESULTSET := (EXECUTE IMMEDIATE :query);
     RETURN TABLE(rs);
 END;
+$$;
 
 -- Public (admin-only) stored procedures intended to start/stop/restart the service
 CREATE OR REPLACE PROCEDURE app_public.suspend_service()
