@@ -28,6 +28,7 @@ BEGIN
 
    EXECUTE IMMEDIATE ('ALTER COMPUTE POOL IF EXISTS ' || :pool_name || ' SET MIN_NODES = ' || :min_nodes);
    EXECUTE IMMEDIATE ('ALTER COMPUTE POOL IF EXISTS ' || :pool_name || ' SET MAX_NODES = ' || :max_nodes);
+
    LET create_pool_sql VARCHAR := 'CREATE COMPUTE POOL IF NOT EXISTS ' || :pool_name
        || ' MIN_NODES = ' || :min_nodes
        || ' MAX_NODES = ' || :max_nodes
@@ -81,6 +82,8 @@ END;
 $$;
 GRANT USAGE ON PROCEDURE app_public.start_app(INT, INT, VARCHAR, VARCHAR, INT) TO APPLICATION ROLE app_admin;
 
+-- Stored procedure used to run queries using the reference defined in the manifest file,
+-- which uses the stored procedure defined in MCD_APP_HELPER.
 CREATE OR REPLACE PROCEDURE core.execute_helper_query(query STRING)
 RETURNS TABLE()
 LANGUAGE SQL
@@ -93,6 +96,9 @@ BEGIN
 END;
 $$;
 
+-- Stored procedure used as a wrapper to execute queries.
+-- Certain queries like GET_PRESIGNED_URL return invalid results when executed from the app
+-- but work fine when executed from a stored procedure like this.
 CREATE OR REPLACE PROCEDURE core.execute_query(query STRING)
     RETURNS TABLE()
     LANGUAGE SQL
@@ -104,6 +110,7 @@ BEGIN
 END;
 $$;
 
+-- Public (admin-only) stored procedures intended to start/stop/restart the service
 CREATE OR REPLACE PROCEDURE app_public.suspend_service()
 RETURNS VARCHAR
 LANGUAGE SQL
@@ -114,7 +121,6 @@ BEGIN
     RETURN 'Service suspended';
 END;
 $$;
-
 GRANT USAGE ON PROCEDURE app_public.suspend_service() TO APPLICATION ROLE app_admin;
 
 CREATE OR REPLACE PROCEDURE app_public.resume_service()
@@ -127,8 +133,20 @@ BEGIN
     RETURN 'Service resumed';
 END;
 $$;
-
 GRANT USAGE ON PROCEDURE app_public.resume_service() TO APPLICATION ROLE app_admin;
+
+CREATE OR REPLACE PROCEDURE app_public.restart_service()
+RETURNS VARCHAR
+LANGUAGE SQL
+AS
+$$
+BEGIN
+    ALTER SERVICE core.mcd_agent_service SUSPEND;
+    ALTER SERVICE core.mcd_agent_service RESUME;
+    RETURN 'Service restarted';
+END;
+$$;
+GRANT USAGE ON PROCEDURE app_public.restart_service() TO APPLICATION ROLE app_admin;
 
 -- Public stored procedures intended to be used from Snowsight for troubleshooting purposes.
 CREATE OR REPLACE PROCEDURE app_public.service_status()

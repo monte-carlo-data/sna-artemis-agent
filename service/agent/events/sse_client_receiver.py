@@ -14,6 +14,10 @@ logger = logging.getLogger(__name__)
 
 
 class SSEClientReceiverFactory(ReceiverFactory):
+    """
+    SSE Receiver Factory
+    """
+
     def create_receiver(
         self, base_url: str, agent_id: str, handler: Callable[[Dict], None]
     ):
@@ -61,8 +65,9 @@ class SSEClientReceiver:
                 for event in self._sse_client:
                     if self._stopped:
                         break
+                    event_data = event.data
                     try:
-                        event = json.loads(event.data)
+                        event = json.loads(event_data)
                     except Exception as parse_ex:
                         logger.exception(
                             f"Failed to parse event: {parse_ex}, text: {event.data}"
@@ -71,9 +76,9 @@ class SSEClientReceiver:
                     try:
                         if self._event_handler:
                             self._event_handler(event)
-                    except Exception as parse_ex:
+                    except Exception as handle_ex:
                         logger.exception(
-                            f"Failed to process event: {parse_ex}, text: {event.data}"
+                            f"Failed to process event: {handle_ex}, text: {event_data}"
                         )
             except Exception as ex:
                 logger.error(f"Connection failed: {ex}")

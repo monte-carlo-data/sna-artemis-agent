@@ -7,6 +7,11 @@ logger = logging.getLogger(__name__)
 
 
 class HeartbeatChecker:
+    """
+    This class is responsible for monitoring the heartbeat from the server and call the handler
+    when the heartbeat is missing after the configured inactivity timeout.
+    """
+
     def __init__(
         self,
         heartbeat_missing_handler: Callable[[], None],

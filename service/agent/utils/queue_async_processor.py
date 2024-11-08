@@ -8,6 +8,11 @@ T = TypeVar("T")
 
 
 class QueueAsyncProcessor(Generic[T]):
+    """
+    Base class used to process operations in a queue asynchronously.
+    Currently, it uses a single thread to process the operations.
+    """
+
     def __init__(self, name: str, handler: Callable[[T], None]):
         self._name = name
         self._handler = handler

@@ -8,6 +8,11 @@ from agent.utils.serde import AgentSerializer
 
 
 class StorageService:
+    """
+    Storage service class, used to implement the storage operations received by
+    the MC backend, by interacting with the storage client.
+    """
+
     def __init__(self, client: Optional[BaseStorageClient] = None):
         self._client = client or StageReaderWriter()
         self._mapping: Dict[str, Callable[[Dict[str, Any]], Any]] = {
@@ -20,6 +25,9 @@ class StorageService:
         }
 
     def execute_operation(self, event: Dict[str, Any]) -> Any:
+        """
+        Called by the SNA service when a "storage" operation is received.
+        """
         operation = event.get("operation", {})
         operation_type = operation.get("type")
         method = self._mapping.get(operation_type) if operation_type else None
