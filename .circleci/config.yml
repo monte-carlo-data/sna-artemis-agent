@@ -116,7 +116,7 @@ jobs:
       - run:
           name: Restart Snowflake service
           command: |
-            snow sql --query "CALL MCD_AGENT.APP_PUBLIC.START_APP()" --temporary-connection
+            snow sql --query "CALL MCD_AGENT.APP_PUBLIC.RESTART_SERVICE()" --temporary-connection
 
   run-test-docker:
     machine:
