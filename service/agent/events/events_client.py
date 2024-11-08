@@ -57,6 +57,7 @@ class EventsClient:
     def stop(self):
         self._stopped = True
         self._heartbeat_checker.stop()
+        self._receiver.stop()
 
     def _reconnect(self):
         self._receiver.stop()
@@ -69,7 +70,7 @@ class EventsClient:
 
     def _event_received(self, event: Dict):
         event_type = event.get("type")
-        if event_type in ("heartbeat", "welcome") or event.get("heartbeat"):
+        if event_type in ("heartbeat", "welcome"):
             logger.info(f"{event_type}: {event.get('ts') or event.get('heartbeat')}")
             if event_type == "heartbeat":
                 self._heartbeat_checker.heartbeat_received()

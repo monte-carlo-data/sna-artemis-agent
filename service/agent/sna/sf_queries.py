@@ -7,7 +7,7 @@ WITH RUN_QUERY AS PROCEDURE(op_id VARCHAR, query STRING)
     BEGIN
         BEGIN
             ALTER SESSION SET STATEMENT_TIMEOUT_IN_SECONDS={timeout};
-            CALL mcd_agent.core.execute_query(:query);
+            CALL mcd_agent.core.execute_helper_query(:query);
             SELECT * FROM TABLE(RESULT_SCAN(:SQLID));
             SELECT mcd_agent.core.query_completed(:op_id, :SQLID);
         EXCEPTION
@@ -22,4 +22,4 @@ CALL RUN_QUERY(?, ?);
 
 QUERY_SET_STATEMENT_TIMEOUT = "ALTER SESSION SET STATEMENT_TIMEOUT_IN_SECONDS={timeout}"
 
-QUERY_EXECUTE_QUERY_WITH_HELPER_SYNC = "CALL MCD_AGENT.CORE.EXECUTE_QUERY(?)"
+QUERY_EXECUTE_QUERY_WITH_HELPER_SYNC = "CALL MCD_AGENT.CORE.EXECUTE_HELPER_QUERY(?)"

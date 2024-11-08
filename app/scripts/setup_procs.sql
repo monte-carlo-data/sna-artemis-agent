@@ -80,8 +80,11 @@ BEGIN
   RETURN 'Service successfully created or updated';
 END;
 $$;
+GRANT USAGE ON PROCEDURE app_public.start_app(INT, INT, VARCHAR, VARCHAR, INT) TO APPLICATION ROLE app_admin;
 
-CREATE OR REPLACE PROCEDURE core.execute_query(query STRING)
+-- Stored procedure used to run queries using the reference defined in the manifest file,
+-- which uses the stored procedure defined in MCD_APP_HELPER.
+CREATE OR REPLACE PROCEDURE core.execute_helper_query(query STRING)
 RETURNS TABLE()
 LANGUAGE SQL
 AS
@@ -92,7 +95,20 @@ BEGIN
   RETURN TABLE(rs);
 END;
 $$;
-GRANT USAGE ON PROCEDURE app_public.start_app(INT, INT, VARCHAR, VARCHAR, INT) TO APPLICATION ROLE app_admin;
+
+-- Stored procedure used as a wrapper to execute queries.
+-- Certain queries like GET_PRESIGNED_URL return invalid results when executed from the app
+-- but work fine when executed from a stored procedure like this.
+CREATE OR REPLACE PROCEDURE core.execute_query(query STRING)
+    RETURNS TABLE()
+    LANGUAGE SQL
+AS
+$$
+BEGIN
+    LET rs RESULTSET := (EXECUTE IMMEDIATE :query);
+    RETURN TABLE(rs);
+END;
+$$;
 
 -- Public (admin-only) stored procedures intended to start/stop/restart the service
 CREATE OR REPLACE PROCEDURE app_public.suspend_service()
