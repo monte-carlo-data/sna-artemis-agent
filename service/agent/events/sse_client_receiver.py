@@ -18,10 +18,8 @@ class SSEClientReceiverFactory(ReceiverFactory):
     SSE Receiver Factory
     """
 
-    def create_receiver(
-        self, base_url: str, agent_id: str, handler: Callable[[Dict], None]
-    ):
-        return SSEClientReceiver(base_url, agent_id, handler)
+    def create_receiver(self, base_url: str, handler: Callable[[Dict], None]):
+        return SSEClientReceiver(base_url, handler)
 
 
 class SSEClientReceiver:
@@ -33,12 +31,10 @@ class SSEClientReceiver:
     def __init__(
         self,
         base_url: str,
-        agent_id: str,
         handler: Callable[[Dict], None],
     ):
         self._stopped = False
         self._base_url = base_url
-        self._agent_id = agent_id
         self._sse_client: Optional[sseclient.SSEClient] = None
         self._event_handler: Optional[Callable[[Dict], None]] = handler
 
@@ -54,9 +50,7 @@ class SSEClientReceiver:
         while not self._stopped:
             try:
                 logger.info("Connecting SSE Client ...")
-                url = urljoin(
-                    self._base_url, f"/stream?channel=agents.input.{self._agent_id}"
-                )
+                url = urljoin(self._base_url, f"/stream")
                 headers = {
                     "Accept": "text/event-stream",
                     **get_mc_login_token(),

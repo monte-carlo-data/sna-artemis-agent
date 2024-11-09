@@ -63,7 +63,6 @@ class StorageServiceTests(TestCase):
         self._events_client = EventsClient(
             receiver_factory=self._mock_receiver_factory,
             base_url="http://localhost",
-            agent_id="test-agent",
             handler=lambda x: None,
         )
         self._storage_client = StageReaderWriter(stage_name="test.test_stage")

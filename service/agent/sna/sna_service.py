@@ -22,10 +22,7 @@ from agent.utils.serde import (
     ATTRIBUTE_NAME_ERROR_TYPE,
     ATTRIBUTE_NAME_ERROR,
 )
-from agent.utils.utils import (
-    BACKEND_SERVICE_URL,
-    AGENT_ID,
-)
+from agent.utils.utils import BACKEND_SERVICE_URL
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +62,6 @@ class SnaService:
         else:
             self._events_client = EventsClient(
                 base_url=BACKEND_SERVICE_URL,
-                agent_id=AGENT_ID,
                 handler=self._event_handler,
                 receiver_factory=receiver_factory or SSEClientReceiverFactory(),
             )

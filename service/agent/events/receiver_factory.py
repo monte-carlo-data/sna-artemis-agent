@@ -11,6 +11,6 @@ class ReceiverFactory(ABC):
 
     @abstractmethod
     def create_receiver(
-        self, base_url: str, agent_id: str, handler: Callable[[Dict], None]
+        self, base_url: str, handler: Callable[[Dict], None]
     ) -> BaseReceiver:
         pass

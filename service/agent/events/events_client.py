@@ -26,18 +26,15 @@ class EventsClient:
         self,
         receiver_factory: ReceiverFactory,
         base_url: str,
-        agent_id: str,
         handler: Callable[[Dict], None],
         heartbeat_checker: Optional[HeartbeatChecker] = None,
     ):
         self._receiver_factory = receiver_factory
         self._base_url = base_url
-        self._agent_id = agent_id
         self._event_handler = handler
         self._stopped = False
         self._receiver = self._receiver_factory.create_receiver(
             base_url=base_url,
-            agent_id=agent_id,
             handler=self._event_received,
         )
         self._heartbeat_checker = heartbeat_checker or HeartbeatChecker(self._reconnect)
@@ -63,7 +60,6 @@ class EventsClient:
         self._receiver.stop()
         self._receiver = self._receiver_factory.create_receiver(
             base_url=self._base_url,
-            agent_id=self._agent_id,
             handler=self._event_received,
         )
         self._receiver.start()
