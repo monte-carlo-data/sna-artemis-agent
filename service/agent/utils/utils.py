@@ -14,16 +14,15 @@ BACKEND_SERVICE_URL = os.getenv(
     "BACKEND_SERVICE_URL",
     "http://mcd-orchestrator-test-nlb-9b478a23917fbdf9.elb.us-east-1.amazonaws.com",
 )
-AGENT_ID = os.getenv("AGENT_ID", "snowflake")
 LOCAL = os.getenv("ENV", "snowflake") == "local"
 DEBUG = os.getenv("DEBUG", "false").lower() == "true"
 
 _X_MCD_ID = "x-mcd-id"
 _X_MCD_TOKEN = "x-mcd-token"
-_MCD_ID_ATTR = "mcd-id"
-_MCD_TOKEN_ATTR = "mcd-token"
-_LOCAL_TOKEN_ID = "local-token-id"
-_LOCAL_TOKEN_SECRET = "local-token-secret"
+_MCD_ID_ATTR = "mcd_id"
+_MCD_TOKEN_ATTR = "mcd_token"
+_LOCAL_TOKEN_ID = os.getenv("LOCAL_TOKEN_ID", "local-token-id")
+_LOCAL_TOKEN_SECRET = os.getenv("LOCAL_TOKEN_SECRET", "local-token-secret")
 _NO_TOKEN_ID = "no-token-id"
 _NO_TOKEN_SECRET = "no-token-secret"
 
@@ -44,7 +43,9 @@ logger = logging.getLogger(__name__)
 
 def init_logging():
     logging.basicConfig(
-        stream=sys.stdout, level=logging.DEBUG if DEBUG else logging.INFO
+        stream=sys.stdout,
+        level=logging.DEBUG if DEBUG else logging.INFO,
+        format="[%(asctime)s] %(levelname)s:%(name)s: %(message)s",
     )
 
 
@@ -64,6 +65,8 @@ def get_mc_login_token() -> Dict[str, str]:
                     _X_MCD_ID: key_json[_MCD_ID_ATTR],
                     _X_MCD_TOKEN: key_json[_MCD_TOKEN_ATTR],
                 }
+            else:
+                logger.warning(f"Invalid secret string, keys: {key_json.keys()}")
         except JSONDecodeError as ex:
             logger.error(f"Failed to parse Key JSON: {ex}")
     else:

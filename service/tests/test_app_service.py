@@ -59,7 +59,6 @@ class AppServiceTests(TestCase):
         events_client = EventsClient(
             receiver_factory=self._mock_receiver_factory,
             base_url="http://localhost",
-            agent_id="test-agent",
             handler=lambda x: None,
         )
         service = SnaService(
@@ -108,7 +107,6 @@ class AppServiceTests(TestCase):
         events_client = EventsClient(
             receiver_factory=self._mock_receiver_factory,
             base_url="http://localhost",
-            agent_id="test-agent",
             handler=lambda x: None,
         )
         service = SnaService(
