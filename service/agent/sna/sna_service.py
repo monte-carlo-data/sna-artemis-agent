@@ -19,8 +19,6 @@ from agent.utils.serde import (
     ATTRIBUTE_NAME_RESULT,
     ATTRIBUTE_NAME_TRACE_ID,
     decode_dictionary,
-    ATTRIBUTE_NAME_ERROR_TYPE,
-    ATTRIBUTE_NAME_ERROR,
 )
 from agent.utils.utils import BACKEND_SERVICE_URL
 
@@ -170,18 +168,7 @@ class SnaService:
             )
 
     def _execute_storage_operation(self, operation_id: str, event: Dict[str, Any]):
-        try:
-            storage_result = self._storage.execute_operation(decode_dictionary(event))
-            result = {
-                ATTRIBUTE_NAME_RESULT: storage_result,
-            }
-        except Exception as ex:
-            logger.error(f"Storage operation failed: {ex}")
-            result = {
-                ATTRIBUTE_NAME_ERROR_TYPE: type(ex).__name__,
-                ATTRIBUTE_NAME_ERROR: str(ex),
-            }
-
+        result = self._storage.execute_operation(decode_dictionary(event))
         BackendClient.push_results(operation_id, result)
 
     def _execute_health(self, operation_id: str, event: Dict[str, Any]):
