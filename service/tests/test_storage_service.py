@@ -167,7 +167,6 @@ class StorageServiceTests(TestCase):
         mock_push_results.assert_called_once_with(
             "1234",
             {
-                ATTRIBUTE_NAME_ERROR_TYPE: "ValueError",
                 ATTRIBUTE_NAME_ERROR: "Invalid operation type: invalid",
             },
         )

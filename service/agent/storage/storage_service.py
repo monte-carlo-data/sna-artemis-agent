@@ -44,7 +44,9 @@ class StorageService:
         operation_type = operation.get("type")
         method = self._mapping.get(operation_type) if operation_type else None
         if not method:
-            raise ValueError(f"Invalid operation type: {operation_type}")
+            return {
+                ATTRIBUTE_NAME_ERROR: f"Invalid operation type: {operation_type}",
+            }
 
         try:
             storage_result = method(operation)
