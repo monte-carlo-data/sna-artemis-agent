@@ -8,14 +8,16 @@ blinker==1.8.2
     # via flask
 certifi==2024.8.30
     # via
-    #   -c requirements-build.txt
+    #   -c /Users/mrostan/Developer/mc/sna-artemis-agent/service/requirements-build.txt
     #   requests
 charset-normalizer==3.4.0
     # via
-    #   -c requirements-build.txt
+    #   -c /Users/mrostan/Developer/mc/sna-artemis-agent/service/requirements-build.txt
     #   requests
 click==8.1.7
     # via flask
+decorator==5.1.1
+    # via retry2
 flask==3.0.3
     # via
     #   -r requirements.in
@@ -26,7 +28,7 @@ gunicorn==23.0.0
     # via -r requirements.in
 idna==3.10
     # via
-    #   -c requirements-build.txt
+    #   -c /Users/mrostan/Developer/mc/sna-artemis-agent/service/requirements-build.txt
     #   requests
 itsdangerous==2.2.0
     # via flask
@@ -38,14 +40,16 @@ markupsafe==3.0.2
     #   werkzeug
 packaging==24.1
     # via
-    #   -c requirements-build.txt
+    #   -c /Users/mrostan/Developer/mc/sna-artemis-agent/service/requirements-build.txt
     #   gunicorn
 redis==5.1.1
     # via flask-sse
 requests==2.32.3
     # via
-    #   -c requirements-build.txt
+    #   -c /Users/mrostan/Developer/mc/sna-artemis-agent/service/requirements-build.txt
     #   sseclient
+retry2==0.9.5
+    # via -r requirements.in
 six==1.16.0
     # via
     #   flask-sse
@@ -54,7 +58,7 @@ sseclient==0.0.27
     # via -r requirements.in
 urllib3==2.2.3
     # via
-    #   -c requirements-build.txt
+    #   -c /Users/mrostan/Developer/mc/sna-artemis-agent/service/requirements-build.txt
     #   requests
 werkzeug==3.0.6
     # via

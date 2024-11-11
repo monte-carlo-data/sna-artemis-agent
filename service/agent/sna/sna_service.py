@@ -6,8 +6,7 @@ import requests
 
 from agent.backend.backend_client import BackendClient
 from agent.events.events_client import EventsClient
-from agent.events.receiver_factory import ReceiverFactory
-from agent.events.sse_client_receiver import SSEClientReceiverFactory
+from agent.events.sse_client_receiver import SSEClientReceiver
 from agent.sna.operation_result import AgentOperationResult
 from agent.sna.queries_runner import QueriesRunner
 from agent.sna.results_publisher import ResultsPublisher
@@ -45,7 +44,6 @@ class SnaService:
         queries_runner: Optional[QueriesRunner] = None,
         results_publisher: Optional[ResultsPublisher] = None,
         events_client: Optional[EventsClient] = None,
-        receiver_factory: Optional[ReceiverFactory] = None,
         storage_service: Optional[StorageService] = None,
     ):
         self._queries_runner = queries_runner or QueriesRunner(handler=self._run_query)
@@ -54,20 +52,14 @@ class SnaService:
         )
         self._storage = storage_service or StorageService()
 
-        if events_client:
-            self._events_client = events_client
-            events_client.event_handler = self._event_handler
-        else:
-            self._events_client = EventsClient(
-                base_url=BACKEND_SERVICE_URL,
-                handler=self._event_handler,
-                receiver_factory=receiver_factory or SSEClientReceiverFactory(),
-            )
+        self._events_client = events_client or EventsClient(
+            receiver=SSEClientReceiver(base_url=BACKEND_SERVICE_URL),
+        )
 
     def start(self):
         self._queries_runner.start()
         self._results_publisher.start()
-        self._events_client.start()
+        self._events_client.start(handler=self._event_handler)
 
     def stop(self):
         self._queries_runner.stop()
