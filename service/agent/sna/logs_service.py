@@ -7,7 +7,7 @@ class LogsService:
     @classmethod
     def get_logs(cls, limit: int) -> List[Dict[str, Any]]:
         logs, _ = SnowflakeClient.run_query_and_fetch_all(
-            "CALL app_public.service_logs(?)", [limit]
+            "CALL mcd_agent.app_public.service_logs(?)", [limit]
         )
         return cls._parse_logs(logs)
 
