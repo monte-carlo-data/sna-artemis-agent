@@ -45,7 +45,7 @@ BEGIN
    ALTER SERVICE IF EXISTS core.mcd_agent_service FROM spec='service/mcd_agent_spec.yaml';
 
    -- UDF functions used from the Streamlit application
-   CREATE OR REPLACE FUNCTION core.push_metrics ()
+   CREATE OR REPLACE FUNCTION core.fetch_metrics ()
       RETURNS varchar
       SERVICE=core.mcd_agent_service
       ENDPOINT='mcd-agent-endpoint'

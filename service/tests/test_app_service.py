@@ -4,6 +4,7 @@ from unittest.mock import create_autospec, patch, ANY
 from agent.events.base_receiver import BaseReceiver
 from agent.events.events_client import EventsClient
 from agent.events.heartbeat_checker import HeartbeatChecker
+from agent.sna.operations_runner import OperationsRunner, Operation
 from agent.sna.queries_runner import QueriesRunner
 from agent.sna.results_publisher import ResultsPublisher
 from agent.sna.sf_query import SnowflakeQuery
@@ -37,9 +38,11 @@ class AppServiceTests(TestCase):
     def setUp(self):
         self._mock_events_client = create_autospec(EventsClient)
         self._mock_queries_runner = create_autospec(QueriesRunner)
+        self._mock_ops_runner = create_autospec(OperationsRunner)
         self._mock_results_publisher = create_autospec(ResultsPublisher)
         self._service = SnaService(
             queries_runner=self._mock_queries_runner,
+            ops_runner=self._mock_ops_runner,
             results_publisher=self._mock_results_publisher,
             events_client=self._mock_events_client,
         )
@@ -62,6 +65,7 @@ class AppServiceTests(TestCase):
         )
         service = SnaService(
             queries_runner=self._mock_queries_runner,
+            ops_runner=self._mock_ops_runner,
             results_publisher=self._mock_results_publisher,
             events_client=events_client,
         )
@@ -110,11 +114,20 @@ class AppServiceTests(TestCase):
         )
         service = SnaService(
             queries_runner=self._mock_queries_runner,
+            ops_runner=self._mock_ops_runner,
             results_publisher=self._mock_results_publisher,
             events_client=events_client,
         )
         service.start()
         events_client._event_received(_HEALTH_OPERATION)
+        operation = Operation(
+            operation_id="1234",
+            event=_HEALTH_OPERATION,
+        )
+        self._mock_ops_runner.schedule.assert_called_once_with(operation)
+
+        # now simulate the operations runner executed the operation
+        self._service._execute_scheduled_operation(operation)
         self._mock_results_publisher.schedule_push_results.assert_called_once_with(
             "1234",
             service.health_information(_HEALTH_OPERATION["operation"]["trace_id"]),
