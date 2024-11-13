@@ -9,6 +9,7 @@ from agent.backend.backend_client import BackendClient
 from agent.events.base_receiver import BaseReceiver
 from agent.events.events_client import EventsClient
 from agent.events.heartbeat_checker import HeartbeatChecker
+from agent.sna.operations_runner import OperationsRunner
 from agent.sna.queries_runner import QueriesRunner
 from agent.sna.results_publisher import ResultsPublisher
 from agent.sna.sf_client import SnowflakeClient
@@ -58,6 +59,7 @@ _IS_BUCKET_PRIVATE_OPERATION = {
 class StorageServiceTests(TestCase):
     def setUp(self):
         self._mock_queries_runner = create_autospec(QueriesRunner)
+        self._mock_ops_runner = create_autospec(OperationsRunner)
         self._mock_results_publisher = create_autospec(ResultsPublisher)
         self._events_client = EventsClient(
             receiver=create_autospec(BaseReceiver),
@@ -67,6 +69,7 @@ class StorageServiceTests(TestCase):
         self._storage_service = StorageService(client=self._storage_client)
         self._service = SnaService(
             queries_runner=self._mock_queries_runner,
+            ops_runner=self._mock_ops_runner,
             results_publisher=self._mock_results_publisher,
             events_client=self._events_client,
             storage_service=self._storage_service,
