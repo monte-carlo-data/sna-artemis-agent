@@ -37,6 +37,7 @@ _ATTR_NAME_SIZE_EXCEEDED = "__mcd_size_exceeded__"
 _ATTR_NAME_LIMIT = "limit"
 _ATTR_NAME_QUERY = "query"
 _ATTR_NAME_TIMEOUT = "timeout"
+_ATTR_NAME_EVENTS = "events"
 
 _ATTR_OPERATION_TYPE_SNOWFLAKE_QUERY = "snowflake_query"
 _ATTR_OPERATION_TYPE_SNOWFLAKE_TEST = "snowflake_connection_test"
@@ -242,7 +243,9 @@ class SnaService:
             self._schedule_push_results(
                 operation_id,
                 {
-                    ATTRIBUTE_NAME_RESULT: LogsService.get_logs(limit),
+                    ATTRIBUTE_NAME_RESULT: {
+                        _ATTR_NAME_EVENTS: LogsService.get_logs(limit),
+                    },
                     ATTRIBUTE_NAME_TRACE_ID: trace_id,
                 },
             )
