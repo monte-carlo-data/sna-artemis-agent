@@ -6,8 +6,7 @@ import requests
 
 from agent.backend.backend_client import BackendClient
 from agent.events.events_client import EventsClient
-from agent.events.receiver_factory import ReceiverFactory
-from agent.events.sse_client_receiver import SSEClientReceiverFactory
+from agent.events.sse_client_receiver import SSEClientReceiver
 from agent.sna.operation_result import AgentOperationResult
 from agent.sna.queries_runner import QueriesRunner
 from agent.sna.results_publisher import ResultsPublisher
@@ -19,13 +18,8 @@ from agent.utils.serde import (
     ATTRIBUTE_NAME_RESULT,
     ATTRIBUTE_NAME_TRACE_ID,
     decode_dictionary,
-    ATTRIBUTE_NAME_ERROR_TYPE,
-    ATTRIBUTE_NAME_ERROR,
 )
-from agent.utils.utils import (
-    BACKEND_SERVICE_URL,
-    AGENT_ID,
-)
+from agent.utils.utils import BACKEND_SERVICE_URL
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +44,6 @@ class SnaService:
         queries_runner: Optional[QueriesRunner] = None,
         results_publisher: Optional[ResultsPublisher] = None,
         events_client: Optional[EventsClient] = None,
-        receiver_factory: Optional[ReceiverFactory] = None,
         storage_service: Optional[StorageService] = None,
     ):
         self._queries_runner = queries_runner or QueriesRunner(handler=self._run_query)
@@ -59,21 +52,14 @@ class SnaService:
         )
         self._storage = storage_service or StorageService()
 
-        if events_client:
-            self._events_client = events_client
-            events_client.event_handler = self._event_handler
-        else:
-            self._events_client = EventsClient(
-                base_url=BACKEND_SERVICE_URL,
-                agent_id=AGENT_ID,
-                handler=self._event_handler,
-                receiver_factory=receiver_factory or SSEClientReceiverFactory(),
-            )
+        self._events_client = events_client or EventsClient(
+            receiver=SSEClientReceiver(base_url=BACKEND_SERVICE_URL),
+        )
 
     def start(self):
         self._queries_runner.start()
         self._results_publisher.start()
-        self._events_client.start()
+        self._events_client.start(handler=self._event_handler)
 
     def stop(self):
         self._queries_runner.stop()
@@ -174,18 +160,7 @@ class SnaService:
             )
 
     def _execute_storage_operation(self, operation_id: str, event: Dict[str, Any]):
-        try:
-            storage_result = self._storage.execute_operation(decode_dictionary(event))
-            result = {
-                ATTRIBUTE_NAME_RESULT: storage_result,
-            }
-        except Exception as ex:
-            logger.error(f"Storage operation failed: {ex}")
-            result = {
-                ATTRIBUTE_NAME_ERROR_TYPE: type(ex).__name__,
-                ATTRIBUTE_NAME_ERROR: str(ex),
-            }
-
+        result = self._storage.execute_operation(decode_dictionary(event))
         BackendClient.push_results(operation_id, result)
 
     def _execute_health(self, operation_id: str, event: Dict[str, Any]):

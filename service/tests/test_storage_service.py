@@ -6,8 +6,9 @@ from unittest import TestCase
 from unittest.mock import create_autospec, patch, Mock, mock_open
 
 from agent.backend.backend_client import BackendClient
+from agent.events.base_receiver import BaseReceiver
 from agent.events.events_client import EventsClient
-from agent.events.receiver_factory import ReceiverFactory
+from agent.events.heartbeat_checker import HeartbeatChecker
 from agent.sna.queries_runner import QueriesRunner
 from agent.sna.results_publisher import ResultsPublisher
 from agent.sna.sf_client import SnowflakeClient
@@ -16,7 +17,6 @@ from agent.storage.stage_reader_writer import StageReaderWriter
 from agent.storage.storage_service import StorageService
 from agent.utils.serde import (
     ATTRIBUTE_NAME_RESULT,
-    ATTRIBUTE_NAME_ERROR_TYPE,
     ATTRIBUTE_NAME_ERROR,
 )
 
@@ -57,14 +57,11 @@ _IS_BUCKET_PRIVATE_OPERATION = {
 
 class StorageServiceTests(TestCase):
     def setUp(self):
-        self._mock_receiver_factory = create_autospec(ReceiverFactory)
         self._mock_queries_runner = create_autospec(QueriesRunner)
         self._mock_results_publisher = create_autospec(ResultsPublisher)
         self._events_client = EventsClient(
-            receiver_factory=self._mock_receiver_factory,
-            base_url="http://localhost",
-            agent_id="test-agent",
-            handler=lambda x: None,
+            receiver=create_autospec(BaseReceiver),
+            heartbeat_checker=create_autospec(HeartbeatChecker),
         )
         self._storage_client = StageReaderWriter(stage_name="test.test_stage")
         self._storage_service = StorageService(client=self._storage_client)
@@ -74,6 +71,7 @@ class StorageServiceTests(TestCase):
             events_client=self._events_client,
             storage_service=self._storage_service,
         )
+        self._service.start()
 
     @patch.object(SnowflakeClient, "run_query_and_fetch_all")
     @patch.object(StageReaderWriter, "_temp_location")
@@ -168,7 +166,6 @@ class StorageServiceTests(TestCase):
         mock_push_results.assert_called_once_with(
             "1234",
             {
-                ATTRIBUTE_NAME_ERROR_TYPE: "ValueError",
                 ATTRIBUTE_NAME_ERROR: "Invalid operation type: invalid",
             },
         )

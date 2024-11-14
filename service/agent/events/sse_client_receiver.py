@@ -1,30 +1,24 @@
 import json
 import logging
-import time
 from threading import Thread
 from typing import Callable, Dict, Optional
 from urllib.parse import urljoin
+from uuid import uuid4
 
 import sseclient
+from retry import retry
 
-from agent.events.receiver_factory import ReceiverFactory
+from agent.events.base_receiver import BaseReceiver
 from agent.utils.utils import get_mc_login_token
 
 logger = logging.getLogger(__name__)
 
 
-class SSEClientReceiverFactory(ReceiverFactory):
-    """
-    SSE Receiver Factory
-    """
-
-    def create_receiver(
-        self, base_url: str, agent_id: str, handler: Callable[[Dict], None]
-    ):
-        return SSEClientReceiver(base_url, agent_id, handler)
+class SSEConnectionFailed(Exception):
+    pass
 
 
-class SSEClientReceiver:
+class SSEClientReceiver(BaseReceiver):
     """
     Receiver that uses SSE (Server-sent events) to listen for events from the server and
     call the handler function when an event is received.
@@ -33,56 +27,86 @@ class SSEClientReceiver:
     def __init__(
         self,
         base_url: str,
-        agent_id: str,
-        handler: Callable[[Dict], None],
     ):
-        self._stopped = False
+        self._current_loop_id: Optional[str] = None
         self._base_url = base_url
-        self._agent_id = agent_id
         self._sse_client: Optional[sseclient.SSEClient] = None
-        self._event_handler: Optional[Callable[[Dict], None]] = handler
+        self._event_handler: Optional[Callable[[Dict], None]] = None
+        self._connected_handler: Optional[Callable[[], None]] = None
+        self._disconnected_handler: Optional[Callable[[], None]] = None
 
-    def start(self):
-        th = Thread(target=self._run_receiver)
+    def start(
+        self,
+        handler: Callable[[Dict], None],
+        connected_handler: Callable[[], None],
+        disconnected_handler: Callable[[], None],
+    ):
+        self._event_handler = handler
+        self._connected_handler = connected_handler
+        self._disconnected_handler = disconnected_handler
+
+        self._start_receiver_thread()
+
+    def _start_receiver_thread(self):
+        # current_loop_id is used to stop the current loop when a new one is started
+        # it might take some time to stop the current loop, so a single "running" flag is not
+        # enough
+        loop_id = str(uuid4())
+        self._current_loop_id = loop_id
+        th = Thread(target=self._run_receiver, args=(loop_id,))
         th.start()
 
     def stop(self):
-        self._event_handler = None
-        self._stopped = True
+        self._current_loop_id = None
 
-    def _run_receiver(self):
-        while not self._stopped:
-            try:
-                logger.info("Connecting SSE Client ...")
-                url = urljoin(
-                    self._base_url, f"/stream?channel=agents.input.{self._agent_id}"
-                )
-                headers = {
-                    "Accept": "text/event-stream",
-                    **get_mc_login_token(),
-                }
-                self._sse_client = sseclient.SSEClient(url, headers=headers)
-                for event in self._sse_client:
-                    if self._stopped:
-                        break
-                    event_data = event.data
-                    try:
-                        event = json.loads(event_data)
-                    except Exception as parse_ex:
-                        logger.exception(
-                            f"Failed to parse event: {parse_ex}, text: {event.data}"
-                        )
-                        continue
-                    try:
-                        if self._event_handler:
-                            self._event_handler(event)
-                    except Exception as handle_ex:
-                        logger.exception(
-                            f"Failed to process event: {handle_ex}, text: {event_data}"
-                        )
-            except Exception as ex:
-                logger.error(f"Connection failed: {ex}")
-                if not self._stopped:
-                    time.sleep(5)
-                    # TODO: exponential backoff
+    def restart(self):
+        self.stop()
+        self._start_receiver_thread()
+
+    def _run_receiver(self, loop_id: str):
+        while self._is_current_loop(loop_id):
+            self._connect_and_consume_events(loop_id)
+
         logger.info("SSE Client stopped")
+
+    def _is_current_loop(self, loop_id: str):
+        return self._current_loop_id == loop_id
+
+    @retry(
+        SSEConnectionFailed, delay=2, tries=-1, max_delay=240, backoff=2, logger=logger
+    )
+    def _connect_and_consume_events(self, loop_id: str):
+        try:
+            logger.info("Connecting SSE Client ...")
+            url = urljoin(self._base_url, f"/stream")
+            headers = {
+                "Accept": "text/event-stream",
+                **get_mc_login_token(),
+            }
+            self._sse_client = sseclient.SSEClient(url, headers=headers)
+            if self._connected_handler:
+                self._connected_handler()
+            for event in self._sse_client:
+                if not self._is_current_loop(loop_id):
+                    break
+                event_data = event.data
+                try:
+                    event = json.loads(event_data)
+                except Exception as parse_ex:
+                    logger.exception(
+                        f"Failed to parse event: {parse_ex}, text: {event.data}"
+                    )
+                    continue
+                try:
+                    if self._event_handler:
+                        self._event_handler(event)
+                except Exception as handle_ex:
+                    logger.exception(
+                        f"Failed to process event: {handle_ex}, text: {event_data}"
+                    )
+        except Exception as ex:
+            if self._is_current_loop(loop_id):
+                raise SSEConnectionFailed(str(ex)) from ex
+        finally:
+            if self._disconnected_handler:
+                self._disconnected_handler()

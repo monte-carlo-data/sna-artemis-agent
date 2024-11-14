@@ -1,8 +1,9 @@
 from unittest import TestCase
 from unittest.mock import create_autospec, patch, ANY
 
+from agent.events.base_receiver import BaseReceiver
 from agent.events.events_client import EventsClient
-from agent.events.receiver_factory import ReceiverFactory
+from agent.events.heartbeat_checker import HeartbeatChecker
 from agent.sna.queries_runner import QueriesRunner
 from agent.sna.results_publisher import ResultsPublisher
 from agent.sna.sf_query import SnowflakeQuery
@@ -34,7 +35,6 @@ _HEALTH_OPERATION = {
 
 class AppServiceTests(TestCase):
     def setUp(self):
-        self._mock_receiver_factory = create_autospec(ReceiverFactory)
         self._mock_events_client = create_autospec(EventsClient)
         self._mock_queries_runner = create_autospec(QueriesRunner)
         self._mock_results_publisher = create_autospec(ResultsPublisher)
@@ -57,16 +57,15 @@ class AppServiceTests(TestCase):
 
     def test_query_execution(self):
         events_client = EventsClient(
-            receiver_factory=self._mock_receiver_factory,
-            base_url="http://localhost",
-            agent_id="test-agent",
-            handler=lambda x: None,
+            receiver=create_autospec(BaseReceiver),
+            heartbeat_checker=create_autospec(HeartbeatChecker),
         )
         service = SnaService(
             queries_runner=self._mock_queries_runner,
             results_publisher=self._mock_results_publisher,
             events_client=events_client,
         )
+        service.start()
         events_client._event_received(_QUERY_OPERATION)
         self._mock_queries_runner.schedule.assert_called_once_with(
             SnowflakeQuery(
@@ -106,16 +105,15 @@ class AppServiceTests(TestCase):
 
     def test_health_operation(self):
         events_client = EventsClient(
-            receiver_factory=self._mock_receiver_factory,
-            base_url="http://localhost",
-            agent_id="test-agent",
-            handler=lambda x: None,
+            receiver=create_autospec(BaseReceiver),
+            heartbeat_checker=create_autospec(HeartbeatChecker),
         )
         service = SnaService(
             queries_runner=self._mock_queries_runner,
             results_publisher=self._mock_results_publisher,
             events_client=events_client,
         )
+        service.start()
         events_client._event_received(_HEALTH_OPERATION)
         self._mock_results_publisher.schedule_push_results.assert_called_once_with(
             "1234",

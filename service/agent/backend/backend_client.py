@@ -6,7 +6,7 @@ from urllib.parse import urljoin
 import requests
 
 from agent.utils.serde import AgentSerializer
-from agent.utils.utils import BACKEND_SERVICE_URL, AGENT_ID, get_mc_login_token
+from agent.utils.utils import BACKEND_SERVICE_URL, get_mc_login_token
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +29,6 @@ class BackendClient:
             )
             result_str = json.dumps(
                 {
-                    "agent_id": AGENT_ID,
                     "result": result,
                 },
                 cls=AgentSerializer,

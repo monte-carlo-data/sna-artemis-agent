@@ -16,6 +16,8 @@ charset-normalizer==3.4.0
     #   requests
 click==8.1.7
     # via flask
+decorator==5.1.1
+    # via retry2
 flask==3.0.3
     # via
     #   -r requirements.in
@@ -46,6 +48,8 @@ requests==2.32.3
     # via
     #   -c requirements-build.txt
     #   sseclient
+retry2==0.9.5
+    # via -r requirements.in
 six==1.16.0
     # via
     #   flask-sse
