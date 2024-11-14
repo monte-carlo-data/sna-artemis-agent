@@ -10,6 +10,7 @@ from agent.backend.backend_client import BackendClient
 from agent.events.events_client import EventsClient
 from agent.events.sse_client_receiver import SSEClientReceiver
 from agent.sna.logs_service import LogsService
+from agent.sna.metrics_service import MetricsService
 from agent.sna.operation_result import AgentOperationResult
 from agent.sna.operations_runner import Operation, OperationsRunner
 from agent.sna.queries_runner import QueriesRunner
@@ -153,18 +154,6 @@ class SnaService:
         result = SnowflakeClient.result_for_query_failed(operation_id, code, msg, state)
         self._schedule_push_results(operation_id, result)
 
-    @staticmethod
-    def fetch_metrics() -> List[str]:
-        """
-        Fetches metrics using Snowpark Monitoring Services:
-        https://docs.snowflake.com/en/developer-guide/snowpark-container-services/monitoring-services#accessing-compute-pool-metrics
-        """
-        response = requests.get(
-            "http://discover.monitor.mcd_agent_compute_pool.snowflakecomputing.internal:9001/metrics"
-        )
-        lines = response.text.splitlines()
-        return lines
-
     def _event_handler(self, event: Dict[str, Any]):
         """
         Invoked by events client when an event is received with an agent operation to run
@@ -269,7 +258,7 @@ class SnaService:
             self._schedule_push_results(
                 operation_id,
                 {
-                    ATTRIBUTE_NAME_RESULT: self.fetch_metrics(),
+                    ATTRIBUTE_NAME_RESULT: MetricsService.fetch_metrics(),
                     ATTRIBUTE_NAME_TRACE_ID: trace_id,
                 },
             )

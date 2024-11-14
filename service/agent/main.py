@@ -9,6 +9,7 @@ from flask import Flask
 from flask import make_response
 from flask import request
 
+from agent.sna.metrics_service import MetricsService
 from agent.sna.sna_service import SnaService
 from agent.utils.utils import enable_tcp_keep_alive, init_logging
 
@@ -143,7 +144,7 @@ def fetch_metrics():
     Intended to be used from the Streamlit application, this gets called through a
     Snowflake function.
     """
-    metrics = service.fetch_metrics()
+    metrics = MetricsService.fetch_metrics()
 
     output_rows = [[0, json.dumps(metrics)]]
     response = make_response({"data": output_rows})
