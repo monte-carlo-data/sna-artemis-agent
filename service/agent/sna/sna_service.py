@@ -2,9 +2,7 @@ import logging
 import uuid
 from dataclasses import dataclass
 from enum import Enum
-from typing import Dict, Tuple, Optional, Any, List, Callable
-
-import requests
+from typing import Dict, Tuple, Optional, Any, Callable
 
 from agent.backend.backend_client import BackendClient
 from agent.events.events_client import EventsClient
@@ -101,6 +99,7 @@ class SnaService:
                 path="/api/v1/agent/execute/storage",
                 matching_type=OperationMatchingType.STARTS_WITH,
                 method=self._execute_storage_operation,
+                schedule=True,
             ),
             OperationMapping(
                 path="/api/v1/test/health",
@@ -214,7 +213,7 @@ class SnaService:
 
     def _execute_storage_operation(self, operation_id: str, event: Dict[str, Any]):
         result = self._storage.execute_operation(decode_dictionary(event))
-        BackendClient.push_results(operation_id, result)
+        self._schedule_push_results(operation_id, result)
 
     def _execute_health(self, operation_id: str, event: Dict[str, Any]):
         trace_id = event.get(_ATTR_NAME_OPERATION, {}).get(

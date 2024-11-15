@@ -1,13 +1,17 @@
 import logging
 import os
+from contextlib import closing
 from typing import Dict, Any, Optional, Tuple, List
 
 from snowflake.connector import (
     connect as snowflake_connect,
     DatabaseError,
     ProgrammingError,
+    SnowflakeConnection,
 )
 from snowflake.connector.cursor import SnowflakeCursor
+from snowflake.sqlalchemy.snowdialect import SnowflakeDialect
+from sqlalchemy import QueuePool
 
 from agent.sna.sf_queries import (
     QUERY_EXECUTE_QUERY_WITH_HELPER,
@@ -21,7 +25,12 @@ from agent.utils.serde import (
     ATTRIBUTE_NAME_ERROR_ATTRS,
     ATTRIBUTE_NAME_ERROR_TYPE,
 )
-from agent.utils.utils import get_sf_login_token, LOCAL
+from agent.utils.utils import (
+    get_sf_login_token,
+    LOCAL,
+    CONNECTION_POOL_SIZE,
+    USE_CONNECTION_POOL,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +51,44 @@ _PROGRAMMING_ERRORS = [
     ERROR_QUERY_CANCELLED,
     ERROR_STATEMENT_TIMED_OUT,
 ]
+
+
+def _create_connection():
+    if os.getenv("SNOWFLAKE_HOST"):  # running in a Snowpark container
+        return snowflake_connect(
+            host=os.getenv("SNOWFLAKE_HOST"),
+            account=os.getenv("SNOWFLAKE_ACCOUNT"),
+            warehouse=WAREHOUSE_NAME,
+            token=get_sf_login_token(),
+            authenticator="oauth",
+            paramstyle="qmark",
+        )
+    else:  # running locally
+        return snowflake_connect(
+            account=os.getenv("SNOWFLAKE_ACCOUNT"),
+            warehouse=os.getenv("SNOWFLAKE_WAREHOUSE"),
+            paramstyle="qmark",
+            user=os.getenv("SNOWFLAKE_USER"),
+            private_key_file=os.getenv("SNOWFLAKE_PRIVATE_KEY_FILE"),
+            role=os.getenv("SNOWFLAKE_ROLE"),
+        )
+
+
+_connection_pool = (
+    QueuePool(
+        _create_connection,  # type: ignore
+        dialect=SnowflakeDialect(),
+        pool_size=CONNECTION_POOL_SIZE,
+        max_overflow=-1,
+        recycle=30 * 60,  # don't use connections older than 30 minutes
+        reset_on_return="rollback",
+        echo=True,
+        logging_name="pool",
+        pre_ping=True,  # test the connection before using it, it uses "SELECT 1" for Snowflake
+    )
+    if USE_CONNECTION_POOL
+    else None
+)
 
 
 class SnowflakeClient:
@@ -104,25 +151,13 @@ class SnowflakeClient:
         }
 
     @classmethod
-    def _connect(cls):
-        if os.getenv("SNOWFLAKE_HOST"):  # running in a Snowpark container
-            return snowflake_connect(
-                host=os.getenv("SNOWFLAKE_HOST"),
-                account=os.getenv("SNOWFLAKE_ACCOUNT"),
-                warehouse=WAREHOUSE_NAME,
-                token=get_sf_login_token(),
-                authenticator="oauth",
-                paramstyle="qmark",
-            )
-        else:  # running locally
-            return snowflake_connect(
-                account=os.getenv("SNOWFLAKE_ACCOUNT"),
-                warehouse=os.getenv("SNOWFLAKE_WAREHOUSE"),
-                paramstyle="qmark",
-                user=os.getenv("SNOWFLAKE_USER"),
-                private_key_file=os.getenv("SNOWFLAKE_PRIVATE_KEY_FILE"),
-                role=os.getenv("SNOWFLAKE_ROLE"),
-            )
+    def _connect(cls) -> SnowflakeConnection:
+        if _connection_pool:
+            # connections returned by SQLAlchemy's pool doesn't support context manager protocol
+            # so we wrap them with "closing" to support it
+            return closing(_connection_pool.connect())  # type: ignore
+        else:
+            return _create_connection()
 
     @classmethod
     def run_query(cls, query: SnowflakeQuery) -> Optional[Dict[str, Any]]:
