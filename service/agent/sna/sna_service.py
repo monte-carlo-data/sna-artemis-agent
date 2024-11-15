@@ -22,6 +22,7 @@ from agent.utils.serde import (
     ATTRIBUTE_NAME_TRACE_ID,
     decode_dictionary,
 )
+from agent.utils.settings import VERSION, BUILD_NUMBER
 from agent.utils.utils import BACKEND_SERVICE_URL
 
 logger = logging.getLogger(__name__)
@@ -130,6 +131,8 @@ class SnaService:
         self._ops_runner.start()
         self._results_publisher.start()
         self._events_client.start(handler=self._event_handler)
+
+        logger.info(f"SNA Service Started: {VERSION} ({BUILD_NUMBER})")
 
     def stop(self):
         self._queries_runner.stop()

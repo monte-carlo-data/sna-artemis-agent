@@ -59,11 +59,11 @@ class EventsClient:
         event_type = event.get(_ATTR_NAME_EVENT_TYPE)
         if event_type == _EVENT_TYPE_HEARTBEAT:
             self._heartbeat_checker.heartbeat_received()
-            log_message = f"heartbeat: {event.get('ts')}"
+            additional_message = ""
             if event.get(_ATTR_NAME_PUSH_METRICS, False) and self._event_handler:
-                log_message = f"{log_message}, push_metrics"
+                additional_message = "(push_metrics)"
                 self._event_handler({_ATTR_NAME_EVENT_TYPE: _EVENT_TYPE_PUSH_METRICS})
-            logger.info(log_message)
+            logger.info(f"heartbeat{additional_message}: {event.get('ts')}")
         elif event_type == _EVENT_TYPE_WELCOME:
             logger.info(f"{event_type}: agent_id={event.get(_ATTR_NAME_AGENT_ID)}")
         elif self._event_handler:
