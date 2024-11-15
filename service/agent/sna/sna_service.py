@@ -2,9 +2,7 @@ import logging
 import uuid
 from dataclasses import dataclass
 from enum import Enum
-from typing import Dict, Tuple, Optional, Any, List, Callable
-
-import requests
+from typing import Dict, Tuple, Optional, Any, Callable
 
 from agent.backend.backend_client import BackendClient
 from agent.events.events_client import EventsClient
@@ -41,6 +39,8 @@ _ATTR_NAME_EVENTS = "events"
 
 _ATTR_OPERATION_TYPE_SNOWFLAKE_QUERY = "snowflake_query"
 _ATTR_OPERATION_TYPE_SNOWFLAKE_TEST = "snowflake_connection_test"
+_ATTR_OPERATION_TYPE_PUSH_METRICS = "push_metrics"
+_PATH_PUSH_METRICS = "push_metrics"
 
 
 class OperationMatchingType(Enum):
@@ -101,6 +101,7 @@ class SnaService:
                 path="/api/v1/agent/execute/storage",
                 matching_type=OperationMatchingType.STARTS_WITH,
                 method=self._execute_storage_operation,
+                schedule=True,
             ),
             OperationMapping(
                 path="/api/v1/test/health",
@@ -109,12 +110,17 @@ class SnaService:
             ),
             OperationMapping(
                 path="/api/v1/snowflake/logs",
-                method=self._push_logs,
+                method=self._execute_get_logs,
                 schedule=True,
             ),
             OperationMapping(
                 path="/api/v1/snowflake/metrics",
-                method=self._push_metrics,
+                method=self._execute_get_metrics,
+                schedule=True,
+            ),
+            OperationMapping(
+                path=_PATH_PUSH_METRICS,
+                method=self._execute_push_metrics,
                 schedule=True,
             ),
         ]
@@ -167,6 +173,9 @@ class SnaService:
                     f"Received agent operation: {path}, operation_id: {operation_id}"
                 )
                 self._execute_operation(path, operation_id, event)
+        elif op_type := (event.get(_ATTR_NAME_OPERATION_TYPE)):
+            if op_type == _ATTR_OPERATION_TYPE_PUSH_METRICS:
+                self._push_metrics()
 
     def _execute_operation(self, path: str, operation_id: str, event: Dict[str, Any]):
         operation = event.get(_ATTR_NAME_OPERATION, {})
@@ -214,7 +223,7 @@ class SnaService:
 
     def _execute_storage_operation(self, operation_id: str, event: Dict[str, Any]):
         result = self._storage.execute_operation(decode_dictionary(event))
-        BackendClient.push_results(operation_id, result)
+        self._schedule_push_results(operation_id, result)
 
     def _execute_health(self, operation_id: str, event: Dict[str, Any]):
         trace_id = event.get(_ATTR_NAME_OPERATION, {}).get(
@@ -235,7 +244,7 @@ class SnaService:
                 f"No method mapped to operation path: {op.event.get(_ATTR_NAME_PATH)}"
             )
 
-    def _push_logs(self, operation_id: str, event: Dict[str, Any]):
+    def _execute_get_logs(self, operation_id: str, event: Dict[str, Any]):
         operation = event.get(_ATTR_NAME_OPERATION, {})
         trace_id = operation.get(_ATTR_NAME_TRACE_ID, operation_id)
         limit = operation.get(_ATTR_NAME_LIMIT) or 1000
@@ -254,7 +263,7 @@ class SnaService:
                 operation_id, SnowflakeClient.result_for_exception(ex)
             )
 
-    def _push_metrics(self, operation_id: str, event: Dict[str, Any]):
+    def _execute_get_metrics(self, operation_id: str, event: Dict[str, Any]):
         operation = event.get(_ATTR_NAME_OPERATION, {})
         trace_id = operation.get(_ATTR_NAME_TRACE_ID, operation_id)
         try:
@@ -269,6 +278,18 @@ class SnaService:
             self._schedule_push_results(
                 operation_id, SnowflakeClient.result_for_exception(ex)
             )
+
+    def _push_metrics(self):
+        self._schedule_operation(
+            _PATH_PUSH_METRICS, {_ATTR_NAME_PATH: _PATH_PUSH_METRICS}
+        )
+
+    def _execute_push_metrics(self, operation_id: str, event: Dict[str, Any]):
+        payload = {
+            "format": "prometheus",
+            "metrics": MetricsService.fetch_metrics(),
+        }
+        BackendClient.execute_operation("/api/v1/agent/metrics", "POST", payload)
 
     @classmethod
     def _get_query_from_event(cls, event: Dict) -> Tuple[Optional[str], Optional[int]]:
