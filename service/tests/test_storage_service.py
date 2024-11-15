@@ -1,7 +1,7 @@
 import base64
 import contextlib
 from copy import deepcopy
-from typing import Optional
+from typing import Optional, Dict, Any
 from unittest import TestCase
 from unittest.mock import create_autospec, patch, Mock, mock_open
 
@@ -78,7 +78,7 @@ class StorageServiceTests(TestCase):
 
     @patch.object(SnowflakeClient, "run_query_and_fetch_all")
     @patch.object(StageReaderWriter, "_temp_location")
-    @patch.object(BackendClient, "push_results")
+    @patch.object(SnaService, "_schedule_push_results")
     def test_write(
         self,
         mock_push_results: Mock,
@@ -93,14 +93,14 @@ class StorageServiceTests(TestCase):
 
         mock_temp_location.side_effect = _mock_temp_location
 
-        self._events_client._event_received(_WRITE_OPERATION)
+        self._execute_storage_operation(_WRITE_OPERATION)
         expected_query = "PUT file:///tmp/test.json @test.test_stage/mcd/test/ AUTO_COMPRESS=FALSE OVERWRITE=TRUE"
         mock_run_query.assert_called_once_with(expected_query)
         mock_push_results.assert_called_once_with("1234", {ATTRIBUTE_NAME_RESULT: {}})
 
     @patch.object(SnowflakeClient, "run_query_and_fetch_all")
     @patch.object(StageReaderWriter, "_temp_directory")
-    @patch.object(BackendClient, "push_results")
+    @patch.object(SnaService, "_schedule_push_results")
     @patch("os.remove")
     def test_read(
         self,
@@ -119,7 +119,7 @@ class StorageServiceTests(TestCase):
         mock_temp_directory.side_effect = _mock_temp_directory
 
         with patch("builtins.open", mock_read_data):
-            self._events_client._event_received(_READ_OPERATION)
+            self._execute_storage_operation(_READ_OPERATION)
         expected_query = "GET @test.test_stage/mcd/test/test.json file:///tmp"
         mock_run_query.assert_called_once_with(expected_query)
         mock_read_data.assert_called_once_with("/tmp/test.json", "rb")
@@ -137,7 +137,7 @@ class StorageServiceTests(TestCase):
         )
 
     @patch.object(SnowflakeClient, "run_query_and_fetch_all")
-    @patch.object(BackendClient, "push_results")
+    @patch.object(SnaService, "_schedule_push_results")
     def test_generate_pre_signed_url(
         self,
         mock_push_results: Mock,
@@ -146,7 +146,7 @@ class StorageServiceTests(TestCase):
         url = "https://test.com"
         mock_run_query.return_value = [[url]], []
 
-        self._events_client._event_received(_GENERATE_PRE_SIGNED_OPERATION)
+        self._execute_storage_operation(_GENERATE_PRE_SIGNED_OPERATION)
         expected_query = "CALL mcd_agent.core.execute_query(?)"
         expected_query_param = (
             "CALL GET_PRESIGNED_URL(@test.test_stage, 'mcd/test/test.json', 300.0)"
@@ -156,19 +156,22 @@ class StorageServiceTests(TestCase):
             "1234", {ATTRIBUTE_NAME_RESULT: "https://test.com"}
         )
 
-    @patch.object(BackendClient, "push_results")
+    @patch.object(SnaService, "_schedule_push_results")
     def test_is_bucket_private(self, mock_push_results: Mock):
-        self._events_client._event_received(_IS_BUCKET_PRIVATE_OPERATION)
+        self._execute_storage_operation(_IS_BUCKET_PRIVATE_OPERATION)
         mock_push_results.assert_called_once_with("1234", {ATTRIBUTE_NAME_RESULT: True})
 
-    @patch.object(BackendClient, "push_results")
+    @patch.object(SnaService, "_schedule_push_results")
     def test_invalid_operation(self, mock_push_results: Mock):
         operation = deepcopy(_IS_BUCKET_PRIVATE_OPERATION)
         operation["operation"]["type"] = "invalid"
-        self._events_client._event_received(operation)
+        self._execute_storage_operation(operation)
         mock_push_results.assert_called_once_with(
             "1234",
             {
                 ATTRIBUTE_NAME_ERROR: "Invalid operation type: invalid",
             },
         )
+
+    def _execute_storage_operation(self, event: Dict[str, Any]):
+        self._service._execute_storage_operation(event["operation_id"], event)
