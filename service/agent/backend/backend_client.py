@@ -52,8 +52,15 @@ class BackendClient:
         )
         logger.info(f"Sent query results to backend, response: {response.status_code}")
 
-    @staticmethod
+    @classmethod
     def execute_operation(
+        cls, path: str, method: str = "GET", body: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        return cls._execute_operation_with_retries(path, method, body)
+
+    @staticmethod
+    @retry(tries=3, delay=1, backoff=2)
+    def _execute_operation_with_retries(
         path: str, method: str = "GET", body: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """

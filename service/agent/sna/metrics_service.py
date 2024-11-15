@@ -5,6 +5,8 @@ from typing import List
 import requests
 from requests import HTTPError
 
+from agent.utils.utils import LOCAL
+
 logger = logging.getLogger(__name__)
 
 
@@ -18,6 +20,9 @@ class MetricsService:
         name: discover.monitor.<COMPUTE_POOL_NAME>.snowflakecomputing.internal, and then
         request metrics for each IP address from http://<IP_ADDRESS>:9001/metrics.
         """
+        if LOCAL:
+            return ['metric_1{host="abc.com",resource="cpu"} 1', "metric_2 2"]
+
         discover_host_name = (
             "discover.monitor.mcd_agent_compute_pool.snowflakecomputing.internal"
         )

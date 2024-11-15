@@ -4,6 +4,14 @@ from typing import Dict, Callable, Optional
 from agent.events.base_receiver import BaseReceiver
 from agent.events.heartbeat_checker import HeartbeatChecker
 
+_ATTR_NAME_EVENT_TYPE = "type"
+_ATTR_NAME_AGENT_ID = "agent_id"
+_ATTR_NAME_PUSH_METRICS = "push_metrics"
+
+_EVENT_TYPE_HEARTBEAT = "heartbeat"
+_EVENT_TYPE_WELCOME = "welcome"
+_EVENT_TYPE_PUSH_METRICS = "push_metrics"
+
 logger = logging.getLogger(__name__)
 
 
@@ -48,12 +56,16 @@ class EventsClient:
         self._receiver.restart()
 
     def _event_received(self, event: Dict):
-        event_type = event.get("type")
-        if event_type == "heartbeat":
-            logger.info(f"heartbeat: {event.get('ts')}")
+        event_type = event.get(_ATTR_NAME_EVENT_TYPE)
+        if event_type == _EVENT_TYPE_HEARTBEAT:
             self._heartbeat_checker.heartbeat_received()
-        elif event_type == "welcome":
-            logger.info(f"{event_type}: agent_id={event.get('agent_id')}")
+            log_message = f"heartbeat: {event.get('ts')}"
+            if event.get(_ATTR_NAME_PUSH_METRICS, False) and self._event_handler:
+                log_message = f"{log_message}, push_metrics"
+                self._event_handler({_ATTR_NAME_EVENT_TYPE: _EVENT_TYPE_PUSH_METRICS})
+            logger.info(log_message)
+        elif event_type == _EVENT_TYPE_WELCOME:
+            logger.info(f"{event_type}: agent_id={event.get(_ATTR_NAME_AGENT_ID)}")
         elif self._event_handler:
             self._event_handler(event)
 
