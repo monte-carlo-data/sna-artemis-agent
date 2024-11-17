@@ -132,7 +132,7 @@ class SnaService:
         self._results_publisher.start()
         self._events_client.start(handler=self._event_handler)
 
-        logger.info(f"SNA Service Started: {VERSION} ({BUILD_NUMBER})")
+        logger.info(f"SNA Service Started: v{VERSION} (build #{BUILD_NUMBER})")
 
     def stop(self):
         self._queries_runner.stop()
