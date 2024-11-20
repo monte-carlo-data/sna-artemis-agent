@@ -8,7 +8,7 @@ from typing import Optional, List, Dict
 
 _CHECK_INTERVAL = 10  # check every 10 seconds if there's an ACK to send
 _DEFAULT_ACK_INTERVAL = (
-    50  # send the ack message if the task was not completed after this time
+    45  # send the ack message if the task was not completed after this time
 )
 logger = logging.getLogger(__name__)
 
