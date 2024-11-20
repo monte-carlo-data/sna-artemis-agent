@@ -8,6 +8,12 @@ from agent.backend.backend_client import BackendClient
 from agent.events.ack_sender import AckSender
 from agent.events.events_client import EventsClient
 from agent.events.sse_client_receiver import SSEClientReceiver
+from agent.sna.config.config_manager import (
+    ConfigurationManager,
+    CONFIG_OPS_RUNNER_THREAD_COUNT,
+    CONFIG_PUBLISHER_THREAD_COUNT,
+    CONFIG_QUERIES_RUNNER_THREAD_COUNT,
+)
 from agent.sna.logs_service import LogsService
 from agent.sna.metrics_service import MetricsService
 from agent.sna.operation_result import AgentOperationResult
@@ -82,12 +88,23 @@ class SnaService:
         storage_service: Optional[StorageService] = None,
         ack_sender: Optional[AckSender] = None,
     ):
-        self._queries_runner = queries_runner or QueriesRunner(handler=self._run_query)
+        self._queries_runner = queries_runner or QueriesRunner(
+            handler=self._run_query,
+            thread_count=ConfigurationManager.get_int_value(
+                CONFIG_QUERIES_RUNNER_THREAD_COUNT, 1
+            ),
+        )
         self._ops_runner = ops_runner or OperationsRunner(
-            handler=self._execute_scheduled_operation
+            handler=self._execute_scheduled_operation,
+            thread_count=ConfigurationManager.get_int_value(
+                CONFIG_OPS_RUNNER_THREAD_COUNT, 1
+            ),
         )
         self._results_publisher = results_publisher or ResultsPublisher(
-            handler=self._push_results
+            handler=self._push_results,
+            thread_count=ConfigurationManager.get_int_value(
+                CONFIG_PUBLISHER_THREAD_COUNT, 1
+            ),
         )
         self._ack_sender = ack_sender or AckSender()
         self._storage = storage_service or StorageService()

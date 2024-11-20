@@ -9,9 +9,13 @@ from flask import Flask
 from flask import make_response
 from flask import request
 
+from agent.utils.utils import enable_tcp_keep_alive, init_logging
+
+init_logging()
+logger = logging.getLogger(__name__)
+
 from agent.sna.metrics_service import MetricsService
 from agent.sna.sna_service import SnaService
-from agent.utils.utils import enable_tcp_keep_alive, init_logging
 
 SERVICE_HOST = os.getenv("SERVER_HOST", "0.0.0.0")
 SERVICE_PORT = os.getenv("SERVER_PORT") or "8081"
@@ -22,9 +26,6 @@ and the `SnaService` that will handle the communication with the MC backend.
 It defines a few HTTP endpoints that will be used to communicate with the `Streamlit` app
 and as UDF functions (as callbacks for query completion and failure).
 """
-
-init_logging()
-logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 service = SnaService()

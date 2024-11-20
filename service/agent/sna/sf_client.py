@@ -1,10 +1,8 @@
 import logging
-import os
 from contextlib import closing
 from typing import Dict, Any, Optional, Tuple, List
 
 from snowflake.connector import (
-    connect as snowflake_connect,
     DatabaseError,
     ProgrammingError,
     SnowflakeConnection,
@@ -13,6 +11,13 @@ from snowflake.connector.cursor import SnowflakeCursor
 from snowflake.sqlalchemy.snowdialect import SnowflakeDialect
 from sqlalchemy import QueuePool
 
+from agent.sna.config.config_manager import (
+    ConfigurationManager,
+    CONFIG_CONNECTION_POOL_SIZE,
+    CONFIG_USE_CONNECTION_POOL,
+    CONFIG_USE_SYNC_QUERIES,
+)
+from agent.sna.sf_connection import create_connection
 from agent.sna.sf_queries import (
     QUERY_EXECUTE_QUERY_WITH_HELPER,
     QUERY_SET_STATEMENT_TIMEOUT,
@@ -25,19 +30,14 @@ from agent.utils.serde import (
     ATTRIBUTE_NAME_ERROR_ATTRS,
     ATTRIBUTE_NAME_ERROR_TYPE,
 )
-from agent.utils.utils import (
-    get_sf_login_token,
-    LOCAL,
-    CONNECTION_POOL_SIZE,
-    USE_CONNECTION_POOL,
-)
+from agent.utils.utils import LOCAL
 
 logger = logging.getLogger(__name__)
 
-WAREHOUSE_NAME = "MCD_AGENT_WH"
-
 _SYNC_QUERIES = LOCAL
-_SNOWFLAKE_SYNC_QUERIES = False
+_SNOWFLAKE_SYNC_QUERIES = ConfigurationManager.get_bool_value(
+    CONFIG_USE_SYNC_QUERIES, False
+)
 
 ERROR_INSUFFICIENT_PRIVILEGES = 3001
 ERROR_SHARED_DATABASE_NO_LONGER_AVAILABLE = 3030
@@ -52,33 +52,21 @@ _PROGRAMMING_ERRORS = [
     ERROR_STATEMENT_TIMED_OUT,
 ]
 
-
-def _create_connection():
-    if os.getenv("SNOWFLAKE_HOST"):  # running in a Snowpark container
-        return snowflake_connect(
-            host=os.getenv("SNOWFLAKE_HOST"),
-            account=os.getenv("SNOWFLAKE_ACCOUNT"),
-            warehouse=WAREHOUSE_NAME,
-            token=get_sf_login_token(),
-            authenticator="oauth",
-            paramstyle="qmark",
-        )
-    else:  # running locally
-        return snowflake_connect(
-            account=os.getenv("SNOWFLAKE_ACCOUNT"),
-            warehouse=os.getenv("SNOWFLAKE_WAREHOUSE"),
-            paramstyle="qmark",
-            user=os.getenv("SNOWFLAKE_USER"),
-            private_key_file=os.getenv("SNOWFLAKE_PRIVATE_KEY_FILE"),
-            role=os.getenv("SNOWFLAKE_ROLE"),
-        )
-
+# We have the following threads opening Snowflake connections:
+# - a single thread running queries
+# - a single thread pushing results
+# - a single thread executing other operations, like storage, that uses a connection too
+# So, we maintain 3 open connections, we also set max_overflow to -1 to allow for "extra"
+# connections to be created if needed (they will be immediately closed after being used).
+_DEFAULT_CONNECTION_POOL_SIZE = 3
 
 _connection_pool = (
     QueuePool(
-        _create_connection,  # type: ignore
+        create_connection,  # type: ignore
         dialect=SnowflakeDialect(),
-        pool_size=CONNECTION_POOL_SIZE,
+        pool_size=ConfigurationManager.get_int_value(
+            CONFIG_CONNECTION_POOL_SIZE, _DEFAULT_CONNECTION_POOL_SIZE
+        ),
         max_overflow=-1,
         recycle=30 * 60,  # don't use connections older than 30 minutes
         reset_on_return="rollback",
@@ -86,7 +74,7 @@ _connection_pool = (
         logging_name="pool",
         pre_ping=True,  # test the connection before using it, it uses "SELECT 1" for Snowflake
     )
-    if USE_CONNECTION_POOL
+    if ConfigurationManager.get_bool_value(CONFIG_USE_CONNECTION_POOL, True)
     else None
 )
 
@@ -157,7 +145,7 @@ class SnowflakeClient:
             # so we wrap them with "closing" to support it
             return closing(_connection_pool.connect())  # type: ignore
         else:
-            return _create_connection()
+            return create_connection()
 
     @classmethod
     def run_query(cls, query: SnowflakeQuery) -> Optional[Dict[str, Any]]:
