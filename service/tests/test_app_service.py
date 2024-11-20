@@ -1,6 +1,7 @@
 from unittest import TestCase
 from unittest.mock import create_autospec, patch, ANY
 
+from agent.events.ack_sender import AckSender
 from agent.events.base_receiver import BaseReceiver
 from agent.events.events_client import EventsClient
 from agent.events.heartbeat_checker import HeartbeatChecker
@@ -40,11 +41,13 @@ class AppServiceTests(TestCase):
         self._mock_queries_runner = create_autospec(QueriesRunner)
         self._mock_ops_runner = create_autospec(OperationsRunner)
         self._mock_results_publisher = create_autospec(ResultsPublisher)
+        self._ack_sender = create_autospec(AckSender)
         self._service = SnaService(
             queries_runner=self._mock_queries_runner,
             ops_runner=self._mock_ops_runner,
             results_publisher=self._mock_results_publisher,
             events_client=self._mock_events_client,
+            ack_sender=self._ack_sender,
         )
 
     def test_service_start_stop(self):
@@ -68,6 +71,7 @@ class AppServiceTests(TestCase):
             ops_runner=self._mock_ops_runner,
             results_publisher=self._mock_results_publisher,
             events_client=events_client,
+            ack_sender=self._ack_sender,
         )
         service.start()
         events_client._event_received(_QUERY_OPERATION)
@@ -117,6 +121,7 @@ class AppServiceTests(TestCase):
             ops_runner=self._mock_ops_runner,
             results_publisher=self._mock_results_publisher,
             events_client=events_client,
+            ack_sender=self._ack_sender,
         )
         service.start()
         events_client._event_received(_HEALTH_OPERATION)

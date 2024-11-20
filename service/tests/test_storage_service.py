@@ -6,6 +6,7 @@ from unittest import TestCase
 from unittest.mock import create_autospec, patch, Mock, mock_open
 
 from agent.backend.backend_client import BackendClient
+from agent.events.ack_sender import AckSender
 from agent.events.base_receiver import BaseReceiver
 from agent.events.events_client import EventsClient
 from agent.events.heartbeat_checker import HeartbeatChecker
@@ -67,12 +68,14 @@ class StorageServiceTests(TestCase):
         )
         self._storage_client = StageReaderWriter(stage_name="test.test_stage")
         self._storage_service = StorageService(client=self._storage_client)
+        self._ack_sender = create_autospec(AckSender)
         self._service = SnaService(
             queries_runner=self._mock_queries_runner,
             ops_runner=self._mock_ops_runner,
             results_publisher=self._mock_results_publisher,
             events_client=self._events_client,
             storage_service=self._storage_service,
+            ack_sender=self._ack_sender,
         )
         self._service.start()
 
