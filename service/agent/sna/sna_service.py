@@ -22,6 +22,7 @@ from agent.utils.serde import (
     ATTRIBUTE_NAME_TRACE_ID,
     decode_dictionary,
 )
+from agent.utils.settings import VERSION, BUILD_NUMBER
 from agent.utils.utils import BACKEND_SERVICE_URL
 
 logger = logging.getLogger(__name__)
@@ -39,6 +40,8 @@ _ATTR_NAME_EVENTS = "events"
 
 _ATTR_OPERATION_TYPE_SNOWFLAKE_QUERY = "snowflake_query"
 _ATTR_OPERATION_TYPE_SNOWFLAKE_TEST = "snowflake_connection_test"
+_ATTR_OPERATION_TYPE_PUSH_METRICS = "push_metrics"
+_PATH_PUSH_METRICS = "push_metrics"
 
 
 class OperationMatchingType(Enum):
@@ -108,12 +111,17 @@ class SnaService:
             ),
             OperationMapping(
                 path="/api/v1/snowflake/logs",
-                method=self._push_logs,
+                method=self._execute_get_logs,
                 schedule=True,
             ),
             OperationMapping(
                 path="/api/v1/snowflake/metrics",
-                method=self._push_metrics,
+                method=self._execute_get_metrics,
+                schedule=True,
+            ),
+            OperationMapping(
+                path=_PATH_PUSH_METRICS,
+                method=self._execute_push_metrics,
                 schedule=True,
             ),
         ]
@@ -123,6 +131,8 @@ class SnaService:
         self._ops_runner.start()
         self._results_publisher.start()
         self._events_client.start(handler=self._event_handler)
+
+        logger.info(f"SNA Service Started: v{VERSION} (build #{BUILD_NUMBER})")
 
     def stop(self):
         self._queries_runner.stop()
@@ -166,6 +176,9 @@ class SnaService:
                     f"Received agent operation: {path}, operation_id: {operation_id}"
                 )
                 self._execute_operation(path, operation_id, event)
+        elif op_type := (event.get(_ATTR_NAME_OPERATION_TYPE)):
+            if op_type == _ATTR_OPERATION_TYPE_PUSH_METRICS:
+                self._push_metrics()
 
     def _execute_operation(self, path: str, operation_id: str, event: Dict[str, Any]):
         operation = event.get(_ATTR_NAME_OPERATION, {})
@@ -234,7 +247,7 @@ class SnaService:
                 f"No method mapped to operation path: {op.event.get(_ATTR_NAME_PATH)}"
             )
 
-    def _push_logs(self, operation_id: str, event: Dict[str, Any]):
+    def _execute_get_logs(self, operation_id: str, event: Dict[str, Any]):
         operation = event.get(_ATTR_NAME_OPERATION, {})
         trace_id = operation.get(_ATTR_NAME_TRACE_ID, operation_id)
         limit = operation.get(_ATTR_NAME_LIMIT) or 1000
@@ -253,7 +266,7 @@ class SnaService:
                 operation_id, SnowflakeClient.result_for_exception(ex)
             )
 
-    def _push_metrics(self, operation_id: str, event: Dict[str, Any]):
+    def _execute_get_metrics(self, operation_id: str, event: Dict[str, Any]):
         operation = event.get(_ATTR_NAME_OPERATION, {})
         trace_id = operation.get(_ATTR_NAME_TRACE_ID, operation_id)
         try:
@@ -268,6 +281,18 @@ class SnaService:
             self._schedule_push_results(
                 operation_id, SnowflakeClient.result_for_exception(ex)
             )
+
+    def _push_metrics(self):
+        self._schedule_operation(
+            _PATH_PUSH_METRICS, {_ATTR_NAME_PATH: _PATH_PUSH_METRICS}
+        )
+
+    def _execute_push_metrics(self, operation_id: str, event: Dict[str, Any]):
+        payload = {
+            "format": "prometheus",
+            "metrics": MetricsService.fetch_metrics(),
+        }
+        BackendClient.execute_operation("/api/v1/agent/metrics", "POST", payload)
 
     @classmethod
     def _get_query_from_event(cls, event: Dict) -> Tuple[Optional[str], Optional[int]]:
