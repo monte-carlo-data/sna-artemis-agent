@@ -3,5 +3,6 @@ flask==3.0.3
 flask-sse==1.0.0
 gunicorn==23.0.0
 retry2==0.9.5
+snowflake-sqlalchemy==1.6.1
 sseclient==0.0.27
 werkzeug==3.0.6

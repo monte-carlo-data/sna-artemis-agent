@@ -4,6 +4,7 @@ from typing import Dict, Any, Optional
 from urllib.parse import urljoin
 
 import requests
+from retry import retry
 
 from agent.utils.serde import AgentSerializer
 from agent.utils.utils import BACKEND_SERVICE_URL, get_mc_login_token
@@ -16,37 +17,40 @@ class BackendClient:
     Client used to interact with the MC Backend (Orchestrator) service.
     """
 
-    @staticmethod
-    def push_results(operation_id: str, result: Dict[str, Any]):
+    @classmethod
+    def push_results(cls, operation_id: str, result: Dict[str, Any]):
         """
         Pushes the result for a given operation, please note results are sent by a separate thread.
         See `ResultsPublisher` for more information.
         """
-        logger.info(f"Sending query results to backend")
         try:
-            results_url = urljoin(
-                BACKEND_SERVICE_URL, f"/api/v1/agent/operations/{operation_id}/result"
-            )
-            result_str = json.dumps(
-                {
-                    "result": result,
-                },
-                cls=AgentSerializer,
-            )
-            logger.info(f"Sending result to backend: {result_str[:500]}")
-            response = requests.post(
-                results_url,
-                data=result_str,
-                headers={
-                    "Content-Type": "application/json",
-                    **get_mc_login_token(),
-                },
-            )
-            logger.info(
-                f"Sent query results to backend, response: {response.status_code}"
-            )
+            cls._push_results_with_retries(operation_id, result)
         except Exception as ex:
             logger.error(f"Failed to push results to backend: {ex}")
+
+    @staticmethod
+    @retry(tries=3, delay=1, backoff=2)
+    def _push_results_with_retries(operation_id: str, result: Dict[str, Any]):
+        logger.info(f"Sending query results to backend")
+        results_url = urljoin(
+            BACKEND_SERVICE_URL, f"/api/v1/agent/operations/{operation_id}/result"
+        )
+        result_str = json.dumps(
+            {
+                "result": result,
+            },
+            cls=AgentSerializer,
+        )
+        logger.info(f"Sending result to backend: {result_str[:500]}")
+        response = requests.post(
+            results_url,
+            data=result_str,
+            headers={
+                "Content-Type": "application/json",
+                **get_mc_login_token(),
+            },
+        )
+        logger.info(f"Sent query results to backend, response: {response.status_code}")
 
     @staticmethod
     def execute_operation(
