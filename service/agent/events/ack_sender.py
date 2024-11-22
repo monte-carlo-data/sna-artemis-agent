@@ -63,35 +63,32 @@ class AckSender:
     def _run(self):
         logger.info("ACK sender started")
         while self._running:
-            to_ack_operations = []
-            with self._condition:
-                while not self._queue and self._running:
-                    self._condition.wait(_CHECK_INTERVAL)
-                if not self._running:
-                    break
-                now = time.time()
-                while self._queue and self._queue[0].scheduled_time <= now:
-                    operation = self._queue.pop(0)
-                    if self._mapping.pop(operation.operation_id, None):
-                        to_ack_operations.append(operation)
-                    else:
-                        logger.info(
-                            f"ACK skipped for completed operation: {operation.operation_id}"
-                        )
-
-            if not self._handler:
-                logger.error("No handler defined for ACK sender")
-                continue
-            for operation in to_ack_operations:
-                if operation.completed:
-                    logger.info(
-                        f"ACK skipped for completed operation: {operation.operation_id}"
-                    )
-                    continue
-                try:
-                    self._handler(operation.operation_id)
-                except Exception as ex:
-                    logger.exception(
-                        f"Failed to send ACK, operation: {operation.operation_id}: {ex}"
-                    )
+            self._run_once()
         logger.info("ACK sender stopped")
+
+    def _run_once(self):
+        to_ack_operations = []
+        with self._condition:
+            while not self._queue and self._running:
+                self._condition.wait(_CHECK_INTERVAL)
+            if not self._running:
+                return
+            now = time.time()
+            while self._queue and self._queue[0].scheduled_time <= now:
+                operation = self._queue.pop(0)
+                if self._mapping.pop(operation.operation_id, None):
+                    to_ack_operations.append(operation)
+
+        if not self._handler:
+            logger.error("No handler defined for ACK sender")
+            return
+        for operation in to_ack_operations:
+            if operation.completed:
+                continue
+            try:
+                logger.info(f"Sending ACK for operation: {operation.operation_id}")
+                self._handler(operation.operation_id)
+            except Exception as ex:
+                logger.exception(
+                    f"Failed to send ACK, operation: {operation.operation_id}: {ex}"
+                )
