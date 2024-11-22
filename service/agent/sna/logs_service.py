@@ -1,15 +1,17 @@
 from typing import List, Dict, Any, Tuple
 
-from agent.sna.sf_client import SnowflakeClient
+from agent.sna.queries_service import QueriesService
 
 
 class LogsService:
-    @classmethod
-    def get_logs(cls, limit: int) -> List[Dict[str, Any]]:
-        logs, _ = SnowflakeClient.run_query_and_fetch_all(
+    def __init__(self, queries_service: QueriesService):
+        self._queries_service = queries_service
+
+    def get_logs(self, limit: int) -> List[Dict[str, Any]]:
+        logs, _ = self._queries_service.run_query_and_fetch_all(
             "CALL mcd_agent.app_public.service_logs(?)", [limit]
         )
-        return cls._parse_logs(logs)
+        return self._parse_logs(logs)
 
     @classmethod
     def _parse_logs(cls, logs: List[Tuple]) -> List[Dict[str, Any]]:

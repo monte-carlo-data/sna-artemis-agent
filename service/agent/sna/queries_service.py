@@ -34,11 +34,6 @@ from agent.utils.utils import LOCAL
 
 logger = logging.getLogger(__name__)
 
-_SYNC_QUERIES = LOCAL
-_SNOWFLAKE_SYNC_QUERIES = ConfigurationManager.get_bool_value(
-    CONFIG_USE_SYNC_QUERIES, False
-)
-
 ERROR_INSUFFICIENT_PRIVILEGES = 3001
 ERROR_SHARED_DATABASE_NO_LONGER_AVAILABLE = 3030
 ERROR_OBJECT_DOES_NOT_EXIST = 2043
@@ -60,26 +55,8 @@ _PROGRAMMING_ERRORS = [
 # connections to be created if needed (they will be immediately closed after being used).
 _DEFAULT_CONNECTION_POOL_SIZE = 3
 
-_connection_pool = (
-    QueuePool(
-        create_connection,  # type: ignore
-        dialect=SnowflakeDialect(),
-        pool_size=ConfigurationManager.get_int_value(
-            CONFIG_CONNECTION_POOL_SIZE, _DEFAULT_CONNECTION_POOL_SIZE
-        ),
-        max_overflow=-1,
-        recycle=30 * 60,  # don't use connections older than 30 minutes
-        reset_on_return="rollback",
-        echo=True,
-        logging_name="pool",
-        pre_ping=True,  # test the connection before using it, it uses "SELECT 1" for Snowflake
-    )
-    if ConfigurationManager.get_bool_value(CONFIG_USE_CONNECTION_POOL, True)
-    else None
-)
 
-
-class SnowflakeClient:
+class QueriesService:
     """
     Takes care of executing queries in Snowflake, the queries are wrapped in a procedure that
     uses SF functions to notify the agent when the query is completed or failed.
@@ -88,16 +65,29 @@ class SnowflakeClient:
     available to applications).
     """
 
-    def __init__(self):
-        pass
+    def __init__(self, config_manager: ConfigurationManager):
+        self._config_manager = config_manager
+        self._direct_sync_queries = LOCAL
+        self._helper_sync_queries = config_manager.get_bool_value(
+            CONFIG_USE_SYNC_QUERIES, False
+        )
 
-    @classmethod
-    def result_for_query(cls, query_id: str) -> Dict[str, Any]:
-        with cls._connect() as conn:
+        self._connection_pool = (
+            self._create_connection_pool(
+                pool_size=self._config_manager.get_int_value(
+                    CONFIG_CONNECTION_POOL_SIZE, _DEFAULT_CONNECTION_POOL_SIZE
+                ),
+            )
+            if self._config_manager.get_bool_value(CONFIG_USE_CONNECTION_POOL, True)
+            else None
+        )
+
+    def result_for_query(self, query_id: str) -> Dict[str, Any]:
+        with self._connect() as conn:
             with conn.cursor() as cur:
                 conn.get_query_status_throw_if_error(query_id)
                 cur.get_results_from_sfqid(query_id)
-                return cls._result_for_cursor(cur)
+                return self._result_for_cursor(cur)
 
     @classmethod
     def result_for_query_failed(
@@ -116,13 +106,12 @@ class SnowflakeClient:
             ATTRIBUTE_NAME_ERROR_TYPE: error_type,
         }
 
-    @classmethod
     def run_query_and_fetch_all(
-        cls,
+        self,
         query: str,
         *args,  # type: ignore
     ) -> Tuple[List[Tuple], List[Tuple]]:
-        with cls._connect() as conn:
+        with self._connect() as conn:
             with conn.cursor() as cur:
                 cur.execute(query, *args)
                 return cur.fetchall(), cur.description  # type: ignore
@@ -138,33 +127,31 @@ class SnowflakeClient:
             # ATTRIBUTE_NAME_TRACE_ID: trace_id,
         }
 
-    @classmethod
-    def _connect(cls) -> SnowflakeConnection:
-        if _connection_pool:
+    def _connect(self) -> SnowflakeConnection:
+        if self._connection_pool:
             # connections returned by SQLAlchemy's pool doesn't support context manager protocol
             # so we wrap them with "closing" to support it
             return closing(_connection_pool.connect())  # type: ignore
         else:
             return create_connection()
 
-    @classmethod
-    def run_query(cls, query: SnowflakeQuery) -> Optional[Dict[str, Any]]:
+    def run_query(self, query: SnowflakeQuery) -> Optional[Dict[str, Any]]:
         timeout = query.timeout or 850
         operation_id = query.operation_id
         sql_query = query.query
-        with cls._connect() as conn:
+        with self._connect() as conn:
             with conn.cursor() as cur:
-                if _SYNC_QUERIES:
+                if self._direct_sync_queries:
                     cur.execute(sql_query)
                     logger.info(
                         f"Sync query executed: {operation_id} {sql_query}, id: {cur.sfqid}"
                     )
-                    return cls._result_for_cursor(cur)
-                elif _SNOWFLAKE_SYNC_QUERIES:
+                    return self._result_for_cursor(cur)
+                elif self._helper_sync_queries:
                     cur.execute(QUERY_SET_STATEMENT_TIMEOUT.format(timeout=timeout))
                     cur.execute(QUERY_EXECUTE_QUERY_WITH_HELPER_SYNC, [sql_query])
                     logger.info(f"Sync query executed: {operation_id} {sql_query}")
-                    return cls._result_for_cursor(cur)
+                    return self._result_for_cursor(cur)
                 else:
                     execute_query = QUERY_EXECUTE_QUERY_WITH_HELPER.format(
                         timeout=timeout
@@ -199,3 +186,18 @@ class SnowflakeClient:
                 result[ATTRIBUTE_NAME_ERROR_TYPE] = "DatabaseError"
 
         return result
+
+    @staticmethod
+    def _create_connection_pool(pool_size: int) -> Optional[QueuePool]:
+        return QueuePool(
+            create_connection,  # type: ignore
+            dialect=SnowflakeDialect(),
+            pool_size=pool_size,
+            max_overflow=-1,
+            recycle=30 * 60,  # don't use connections older than 30 minutes
+            reset_on_return="rollback",
+            echo=True,
+            logging_name="pool",
+            pre_ping=True,
+            # test the connection before using it, it uses "SELECT 1" for Snowflake
+        )

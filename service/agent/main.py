@@ -9,7 +9,10 @@ from flask import Flask
 from flask import make_response
 from flask import request
 
-from agent.utils.utils import enable_tcp_keep_alive, init_logging
+from agent.sna.config.config_manager import ConfigurationManager
+from agent.sna.config.db_config import DbConfig
+from agent.sna.config.local_config import LocalConfig
+from agent.utils.utils import enable_tcp_keep_alive, init_logging, LOCAL
 
 init_logging()
 logger = logging.getLogger(__name__)
@@ -19,6 +22,10 @@ from agent.sna.sna_service import SnaService
 
 SERVICE_HOST = os.getenv("SERVER_HOST", "0.0.0.0")
 SERVICE_PORT = os.getenv("SERVER_PORT") or "8081"
+USE_DB_PERSISTENCE = (
+    os.getenv("USE_DB_PERSISTENCE", "false" if LOCAL else "true").lower() == "true"
+)
+
 
 """
 This is the main entry point for the Agent service, it starts a Flask application
@@ -28,7 +35,11 @@ and as UDF functions (as callbacks for query completion and failure).
 """
 
 app = Flask(__name__)
-service = SnaService()
+service = SnaService(
+    config_manager=ConfigurationManager(
+        persistence=DbConfig() if USE_DB_PERSISTENCE else LocalConfig()
+    )
+)
 
 
 def handler(signum: int, frame: Any):

@@ -8,11 +8,12 @@ from uuid import uuid4
 
 from snowflake.connector import OperationalError
 
-from agent.sna.sf_client import SnowflakeClient
+from agent.sna.config.config_manager import ConfigurationManager, CONFIG_STAGE_NAME
+
+from agent.sna.queries_service import QueriesService
 from agent.storage.base_storage_client import BaseStorageClient
 from agent.utils.utils import LOCAL
 
-_DEFAULT_STAGE_NAME = os.getenv("STAGE_NAME", "mcd_agent.core.data_store")
 _DEFAULT_PREFIX = "mcd"
 _SNOWFLAKE_ERROR_FILE_NOT_FOUND = 253006
 
@@ -20,12 +21,20 @@ _SNOWFLAKE_ERROR_FILE_NOT_FOUND = 253006
 class StageReaderWriter(BaseStorageClient):
     def __init__(
         self,
+        config_manager: ConfigurationManager,
+        queries_service: QueriesService,
         stage_name: Optional[str] = None,
         prefix: Optional[str] = _DEFAULT_PREFIX,
         local: bool = LOCAL,
     ):
         super().__init__(prefix=prefix)
-        self._stage_name = stage_name or _DEFAULT_STAGE_NAME
+        self._queries_service = queries_service
+        self._stage_name = stage_name or os.getenv(
+            CONFIG_STAGE_NAME,
+            config_manager.get_str_value(
+                CONFIG_STAGE_NAME, "mcd_agent.core.data_store"
+            ),
+        )
         self._local = local
 
     @property
@@ -233,15 +242,15 @@ class StageReaderWriter(BaseStorageClient):
         finally:
             os.rmdir(tmp_location)
 
-    @staticmethod
     def _run_stage_query(
+        self,
         query: str,
         operation: str,
         key: str,
         *args,  # type: ignore
     ) -> Tuple[List[Tuple], List[Tuple]]:
         try:
-            return SnowflakeClient.run_query_and_fetch_all(query, *args)
+            return self._queries_service.run_query_and_fetch_all(query, *args)
         except OperationalError as err:
             if err.errno == _SNOWFLAKE_ERROR_FILE_NOT_FOUND:
                 raise BaseStorageClient.NotFoundError(f"File not found: {key}")

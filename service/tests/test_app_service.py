@@ -5,8 +5,11 @@ from agent.events.ack_sender import AckSender
 from agent.events.base_receiver import BaseReceiver
 from agent.events.events_client import EventsClient
 from agent.events.heartbeat_checker import HeartbeatChecker
+from agent.sna.config.config_manager import ConfigurationManager
+from agent.sna.config.local_config import LocalConfig
 from agent.sna.operations_runner import OperationsRunner, Operation
 from agent.sna.queries_runner import QueriesRunner
+from agent.sna.queries_service import QueriesService
 from agent.sna.results_publisher import ResultsPublisher
 from agent.sna.sf_query import SnowflakeQuery
 from agent.sna.sna_service import SnaService
@@ -42,12 +45,16 @@ class AppServiceTests(TestCase):
         self._mock_ops_runner = create_autospec(OperationsRunner)
         self._mock_results_publisher = create_autospec(ResultsPublisher)
         self._ack_sender = create_autospec(AckSender)
+        self._queries_service = create_autospec(QueriesService)
+        self._config_manager = ConfigurationManager(persistence=LocalConfig())
         self._service = SnaService(
             queries_runner=self._mock_queries_runner,
             ops_runner=self._mock_ops_runner,
             results_publisher=self._mock_results_publisher,
             events_client=self._mock_events_client,
             ack_sender=self._ack_sender,
+            queries_service=self._queries_service,
+            config_manager=self._config_manager,
         )
 
     def test_service_start_stop(self):
@@ -72,6 +79,8 @@ class AppServiceTests(TestCase):
             results_publisher=self._mock_results_publisher,
             events_client=events_client,
             ack_sender=self._ack_sender,
+            queries_service=self._queries_service,
+            config_manager=self._config_manager,
         )
         service.start()
         events_client._event_received(_QUERY_OPERATION)
@@ -122,6 +131,8 @@ class AppServiceTests(TestCase):
             results_publisher=self._mock_results_publisher,
             events_client=events_client,
             ack_sender=self._ack_sender,
+            queries_service=self._queries_service,
+            config_manager=self._config_manager,
         )
         service.start()
         events_client._event_received(_HEALTH_OPERATION)

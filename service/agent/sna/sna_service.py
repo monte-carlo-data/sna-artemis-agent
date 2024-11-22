@@ -19,8 +19,8 @@ from agent.sna.metrics_service import MetricsService
 from agent.sna.operation_result import AgentOperationResult
 from agent.sna.operations_runner import Operation, OperationsRunner
 from agent.sna.queries_runner import QueriesRunner
+from agent.sna.queries_service import QueriesService
 from agent.sna.results_publisher import ResultsPublisher
-from agent.sna.sf_client import SnowflakeClient
 from agent.sna.sf_query import SnowflakeQuery
 from agent.storage.storage_service import StorageService
 from agent.utils import utils
@@ -81,33 +81,44 @@ class SnaService:
 
     def __init__(
         self,
+        config_manager: ConfigurationManager,
         queries_runner: Optional[QueriesRunner] = None,
         ops_runner: Optional[OperationsRunner] = None,
         results_publisher: Optional[ResultsPublisher] = None,
         events_client: Optional[EventsClient] = None,
         storage_service: Optional[StorageService] = None,
         ack_sender: Optional[AckSender] = None,
+        queries_service: Optional[QueriesService] = None,
+        logs_service: Optional[LogsService] = None,
     ):
+        self._config_manager = config_manager
         self._queries_runner = queries_runner or QueriesRunner(
             handler=self._run_query,
-            thread_count=ConfigurationManager.get_int_value(
+            thread_count=config_manager.get_int_value(
                 CONFIG_QUERIES_RUNNER_THREAD_COUNT, 1
             ),
         )
         self._ops_runner = ops_runner or OperationsRunner(
             handler=self._execute_scheduled_operation,
-            thread_count=ConfigurationManager.get_int_value(
+            thread_count=config_manager.get_int_value(
                 CONFIG_OPS_RUNNER_THREAD_COUNT, 1
             ),
         )
         self._results_publisher = results_publisher or ResultsPublisher(
             handler=self._push_results,
-            thread_count=ConfigurationManager.get_int_value(
-                CONFIG_PUBLISHER_THREAD_COUNT, 1
-            ),
+            thread_count=config_manager.get_int_value(CONFIG_PUBLISHER_THREAD_COUNT, 1),
         )
         self._ack_sender = ack_sender or AckSender()
-        self._storage = storage_service or StorageService()
+        self._queries_service = queries_service or QueriesService(
+            config_manager=config_manager
+        )
+        self._logs_service = logs_service or LogsService(
+            queries_service=self._queries_service
+        )
+        self._storage = storage_service or StorageService(
+            config_manager=config_manager,
+            queries_service=self._queries_service,
+        )
 
         self._events_client = events_client or EventsClient(
             receiver=SSEClientReceiver(base_url=BACKEND_SERVICE_URL),
@@ -183,7 +194,7 @@ class SnaService:
         Invoked by the Snowflake stored procedure when a query execution failed
         """
         logger.info(f"Query failed: {operation_id}: {msg}")
-        result = SnowflakeClient.result_for_query_failed(operation_id, code, msg, state)
+        result = QueriesService.result_for_query_failed(operation_id, code, msg, state)
         self._schedule_push_results(operation_id, result)
 
     def _event_handler(self, event: Dict[str, Any]):
@@ -279,14 +290,14 @@ class SnaService:
                 operation_id,
                 {
                     ATTRIBUTE_NAME_RESULT: {
-                        _ATTR_NAME_EVENTS: LogsService.get_logs(limit),
+                        _ATTR_NAME_EVENTS: self._logs_service.get_logs(limit),
                     },
                     ATTRIBUTE_NAME_TRACE_ID: trace_id,
                 },
             )
         except Exception as ex:
             self._schedule_push_results(
-                operation_id, SnowflakeClient.result_for_exception(ex)
+                operation_id, QueriesService.result_for_exception(ex)
             )
 
     def _execute_get_metrics(self, operation_id: str, event: Dict[str, Any]):
@@ -302,7 +313,7 @@ class SnaService:
             )
         except Exception as ex:
             self._schedule_push_results(
-                operation_id, SnowflakeClient.result_for_exception(ex)
+                operation_id, QueriesService.result_for_exception(ex)
             )
 
     def _push_metrics(self):
@@ -342,7 +353,7 @@ class SnaService:
         Invoked by queries runner to run a query
         """
         try:
-            result = SnowflakeClient.run_query(query)
+            result = self._queries_service.run_query(query)
             # if there's no result, the query was executed asynchronously
             # we'll get the result through query_completed/query_failed callbacks
             if result:
@@ -350,7 +361,7 @@ class SnaService:
         except Exception as ex:
             logger.error(f"Query failed: {query.query}, error: {ex}")
             self._schedule_push_results(
-                query.operation_id, SnowflakeClient.result_for_exception(ex)
+                query.operation_id, QueriesService.result_for_exception(ex)
             )
 
     def _schedule_push_results_for_query(self, operation_id: str, query_id: str):
@@ -368,13 +379,12 @@ class SnaService:
         else:
             logger.error(f"Invalid result for operation: {result.operation_id}")
 
-    @staticmethod
-    def _push_results_for_query(operation_id: str, query_id: str):
+    def _push_results_for_query(self, operation_id: str, query_id: str):
         """
         Invoked by results publisher to push results for a query
         """
         try:
-            result = SnowflakeClient.result_for_query(query_id)
+            result = self._queries_service.result_for_query(query_id)
             BackendClient.push_results(operation_id, result)
         except Exception as ex:
             logger.error(f"Failed to push results for query: {query_id}, error: {ex}")
