@@ -6,7 +6,7 @@ from agent.sna.config.local_config import LocalConfig
 from agent.utils.utils import LOCAL
 
 _USE_DB_PERSISTENCE = (
-    os.getenv("USE_DB_PERSISTENCE", "true").lower() == "true" or not LOCAL
+    os.getenv("USE_DB_PERSISTENCE", "false" if LOCAL else "true").lower() == "true"
 )
 _config_persistence = DbConfig() if _USE_DB_PERSISTENCE else LocalConfig()
 

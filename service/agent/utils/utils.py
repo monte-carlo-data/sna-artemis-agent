@@ -14,7 +14,7 @@ BACKEND_SERVICE_URL = os.getenv(
     "BACKEND_SERVICE_URL",
     "http://mcd-orchestrator-test-nlb-9b478a23917fbdf9.elb.us-east-1.amazonaws.com",
 )
-LOCAL = os.getenv("ENV", "snowflake") == "local"
+LOCAL = os.getenv("SNOWFLAKE_HOST") is None  # not running in Snowpark containers
 DEBUG = os.getenv("DEBUG", "false").lower() == "true"
 
 _X_MCD_ID = "x-mcd-id"

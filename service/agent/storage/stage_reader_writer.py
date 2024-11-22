@@ -19,10 +19,14 @@ _SNOWFLAKE_ERROR_FILE_NOT_FOUND = 253006
 
 class StageReaderWriter(BaseStorageClient):
     def __init__(
-        self, stage_name: Optional[str] = None, prefix: Optional[str] = _DEFAULT_PREFIX
+        self,
+        stage_name: Optional[str] = None,
+        prefix: Optional[str] = _DEFAULT_PREFIX,
+        local: bool = LOCAL,
     ):
         super().__init__(prefix=prefix)
         self._stage_name = stage_name or _DEFAULT_STAGE_NAME
+        self._local = local
 
     @property
     def bucket_name(self) -> str:
@@ -156,7 +160,7 @@ class StageReaderWriter(BaseStorageClient):
             f"@{self._stage_name}, '{full_key}', {expiration.total_seconds()})"
         )
 
-        if LOCAL:
+        if self._local:
             data, _ = self._run_stage_query(pre_signed_url_query, "pre_signed_url", key)
         else:
             # for some reason, when running in the SNA, we need to request the pre-signed url

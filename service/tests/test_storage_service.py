@@ -66,7 +66,9 @@ class StorageServiceTests(TestCase):
             receiver=create_autospec(BaseReceiver),
             heartbeat_checker=create_autospec(HeartbeatChecker),
         )
-        self._storage_client = StageReaderWriter(stage_name="test.test_stage")
+        self._storage_client = StageReaderWriter(
+            stage_name="test.test_stage", local=False
+        )
         self._storage_service = StorageService(client=self._storage_client)
         self._ack_sender = create_autospec(AckSender)
         self._service = SnaService(

@@ -149,8 +149,8 @@ class AppServiceTests(TestCase):
                 url=BACKEND_SERVICE_URL + "/api/v1/test/ping?trace_id=1234",
                 json=None,
                 headers={
-                    "x-mcd-id": "no-token-id",
-                    "x-mcd-token": "no-token-secret",
+                    "x-mcd-id": "local-token-id",
+                    "x-mcd-token": "local-token-secret",
                 },
             )
             self.assertEqual(health_response, result)

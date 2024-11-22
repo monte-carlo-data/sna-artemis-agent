@@ -3,7 +3,8 @@ from unittest.mock import patch, create_autospec, Mock
 
 from requests import Response, HTTPError
 
-from agent.sna.metrics_service import MetricsService
+from agent.sna.metrics_service import MetricsService, SnowparkMetricsService
+from agent.utils import utils
 
 
 class MetricsServiceTests(TestCase):
@@ -19,7 +20,7 @@ class MetricsServiceTests(TestCase):
             create_autospec(Response, text="line1\nline2\n"),
             create_autospec(Response, text="line3\nline4\nline5\n"),
         ]
-        lines = MetricsService.fetch_metrics()
+        lines = SnowparkMetricsService.fetch_metrics()
         self.assertEqual(5, len(lines))
         self.assertEqual("line1", lines[0])
         self.assertEqual("line5", lines[4])
@@ -40,7 +41,7 @@ class MetricsServiceTests(TestCase):
             response_1,
             create_autospec(Response, text="line3\nline4\nline5\n"),
         ]
-        lines = MetricsService.fetch_metrics()
+        lines = SnowparkMetricsService.fetch_metrics()
         self.assertEqual(3, len(lines))
         self.assertEqual("line3", lines[0])
         self.assertEqual("line5", lines[2])
