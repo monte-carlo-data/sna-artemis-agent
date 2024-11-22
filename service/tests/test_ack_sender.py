@@ -34,14 +34,12 @@ class AckSenderTests(TestCase):
 
     @patch("time.time")
     def test_no_ack_for_completed_task(self, mock_time: Mock):
-        now = 100
-        mock_time.return_value = now
+        mock_time.return_value = 100
         self._ack_sender.schedule_ack("1234")
         self._ack_sender.operation_completed("1234")
 
         self._ack_sender._handler = Mock()
-        now = 120
-        mock_time.return_value = now
+        mock_time.return_value = 120
         self._ack_sender._running = True
         self._ack_sender._run_once()
         self._ack_sender._handler.assert_not_called()
