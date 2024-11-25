@@ -272,11 +272,16 @@ class SnaService:
         self._schedule_push_results(operation_id, result)
 
     def _execute_health(self, operation_id: str, event: Dict[str, Any]):
-        trace_id = event.get(_ATTR_NAME_OPERATION, {}).get(
-            _ATTR_NAME_TRACE_ID, operation_id
-        )
-        health_information = self.health_information(trace_id=trace_id)
-        self._schedule_push_results(operation_id, health_information)
+        try:
+            trace_id = event.get(_ATTR_NAME_OPERATION, {}).get(
+                _ATTR_NAME_TRACE_ID, operation_id
+            )
+            health_information = self.health_information(trace_id=trace_id)
+            self._schedule_push_results(operation_id, health_information)
+        except Exception as ex:
+            self._schedule_push_results(
+                operation_id, QueriesService.result_for_exception(ex)
+            )
 
     def _schedule_operation(self, operation_id: str, event: Dict[str, Any]):
         self._ops_runner.schedule(Operation(operation_id, event))
@@ -288,6 +293,12 @@ class SnaService:
         else:
             logger.error(
                 f"No method mapped to operation path: {op.event.get(_ATTR_NAME_PATH)}"
+            )
+            self._schedule_push_results(
+                op.operation_id,
+                QueriesService.result_for_error_message(
+                    f"Unsupported operation path: {op.event.get(_ATTR_NAME_PATH)}"
+                ),
             )
 
     def _execute_get_logs(self, operation_id: str, event: Dict[str, Any]):
@@ -343,11 +354,26 @@ class SnaService:
         It updates the configuration if there are parameters under operation and restarts the
         service.
         """
-        updates = event.get(_ATTR_NAME_OPERATION, {}).get(_ATTR_NAME_PARAMETERS, {})
-        if updates:
-            self._config_manager.set_values(updates)
-        self._restart_service()
-        self._execute_health(operation_id, event)
+        try:
+            operation = event.get(_ATTR_NAME_OPERATION, {})
+            updates = operation.get(_ATTR_NAME_PARAMETERS, {})
+            trace_id = operation.get(_ATTR_NAME_TRACE_ID, operation_id)
+            if updates:
+                self._config_manager.set_values(updates)
+            self._restart_service()
+            BackendClient.push_results(
+                operation_id,
+                {
+                    ATTRIBUTE_NAME_RESULT: {
+                        "updated": True,
+                    },
+                    ATTRIBUTE_NAME_TRACE_ID: trace_id,
+                },
+            )
+        except Exception as ex:
+            self._schedule_push_results(
+                operation_id, QueriesService.result_for_exception(ex)
+            )
 
     @classmethod
     def _get_query_from_event(cls, event: Dict) -> Tuple[Optional[str], Optional[int]]:
