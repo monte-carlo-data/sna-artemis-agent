@@ -294,6 +294,12 @@ class SnaService:
             logger.error(
                 f"No method mapped to operation path: {op.event.get(_ATTR_NAME_PATH)}"
             )
+            self._schedule_push_results(
+                op.operation_id,
+                QueriesService.result_for_error_message(
+                    f"Unsupported operation path: {op.event.get(_ATTR_NAME_PATH)}"
+                ),
+            )
 
     def _execute_get_logs(self, operation_id: str, event: Dict[str, Any]):
         operation = event.get(_ATTR_NAME_OPERATION, {})

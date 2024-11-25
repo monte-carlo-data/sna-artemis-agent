@@ -92,7 +92,7 @@ class QueriesService:
     @classmethod
     def result_for_query_failed(
         cls, operation_id: str, code: int, msg: str, state: str
-    ):
+    ) -> Dict[str, Any]:
         msg = cls._get_error_message(msg)
         logger.info(
             f"QUERY FAILED: op_id={operation_id}, code={code}, msg={msg}, state={state}"
@@ -104,6 +104,12 @@ class QueriesService:
             ATTRIBUTE_NAME_ERROR: msg,
             ATTRIBUTE_NAME_ERROR_ATTRS: {"errno": code, "sqlstate": state},
             ATTRIBUTE_NAME_ERROR_TYPE: error_type,
+        }
+
+    @staticmethod
+    def result_for_error_message(error_message: str) -> Dict[str, Any]:
+        return {
+            ATTRIBUTE_NAME_ERROR: error_message,
         }
 
     def run_query_and_fetch_all(
