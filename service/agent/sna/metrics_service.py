@@ -13,6 +13,14 @@ logger = logging.getLogger(__name__)
 class MetricsService:
     @staticmethod
     def fetch_metrics() -> List[str]:
+        if LOCAL:
+            return LocalMetricsService.fetch_metrics()
+        return SnowparkMetricsService.fetch_metrics()
+
+
+class SnowparkMetricsService:
+    @staticmethod
+    def fetch_metrics() -> List[str]:
         """
         Fetches metrics using Snowpark Monitoring Services:
         https://docs.snowflake.com/en/developer-guide/snowpark-container-services/monitoring-services#accessing-compute-pool-metrics
@@ -20,8 +28,6 @@ class MetricsService:
         name: discover.monitor.<COMPUTE_POOL_NAME>.snowflakecomputing.internal, and then
         request metrics for each IP address from http://<IP_ADDRESS>:9001/metrics.
         """
-        if LOCAL:
-            return ['metric_1{host="abc.com",resource="cpu"} 1', "metric_2 2"]
 
         discover_host_name = (
             "discover.monitor.mcd_agent_compute_pool.snowflakecomputing.internal"
@@ -40,3 +46,10 @@ class MetricsService:
             except HTTPError as exc:
                 logger.error(f"Failed to fetch metrics from {address}: {exc}")
         return lines
+
+
+class LocalMetricsService:
+    @staticmethod
+    def fetch_metrics() -> List[str]:
+        # used only for testing
+        return ['metric_1{host="abc.com",resource="cpu"} 1', "metric_2 2"]

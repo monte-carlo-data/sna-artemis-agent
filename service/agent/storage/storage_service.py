@@ -1,8 +1,10 @@
 import logging
 from collections.abc import Callable
 from datetime import timedelta
-from typing import Dict, Any, Optional, Union
+from typing import Dict, Any, Optional
 
+from agent.sna.config.config_manager import ConfigurationManager
+from agent.sna.queries_service import QueriesService
 from agent.storage.base_storage_client import BaseStorageClient
 from agent.storage.stage_reader_writer import StageReaderWriter
 from agent.utils.serde import (
@@ -23,8 +25,16 @@ class StorageService:
     the MC backend, by interacting with the storage client.
     """
 
-    def __init__(self, client: Optional[BaseStorageClient] = None):
-        self._client = client or StageReaderWriter()
+    def __init__(
+        self,
+        config_manager: ConfigurationManager,
+        queries_service: QueriesService,
+        client: Optional[BaseStorageClient] = None,
+    ):
+        self._client = client or StageReaderWriter(
+            queries_service=queries_service,
+            config_manager=config_manager,
+        )
         self._mapping: Dict[str, Callable[[Dict[str, Any]], Any]] = {
             "storage_read": self._read,
             "storage_read_json": self._read_json,

@@ -5,14 +5,16 @@ from typing import Optional, Dict, Any
 from unittest import TestCase
 from unittest.mock import create_autospec, patch, Mock, mock_open
 
-from agent.backend.backend_client import BackendClient
+from agent.events.ack_sender import AckSender
 from agent.events.base_receiver import BaseReceiver
 from agent.events.events_client import EventsClient
 from agent.events.heartbeat_checker import HeartbeatChecker
+from agent.sna.config.config_manager import ConfigurationManager
+from agent.sna.config.local_config import LocalConfig
 from agent.sna.operations_runner import OperationsRunner
 from agent.sna.queries_runner import QueriesRunner
+from agent.sna.queries_service import QueriesService
 from agent.sna.results_publisher import ResultsPublisher
-from agent.sna.sf_client import SnowflakeClient
 from agent.sna.sna_service import SnaService
 from agent.storage.stage_reader_writer import StageReaderWriter
 from agent.storage.storage_service import StorageService
@@ -65,27 +67,40 @@ class StorageServiceTests(TestCase):
             receiver=create_autospec(BaseReceiver),
             heartbeat_checker=create_autospec(HeartbeatChecker),
         )
-        self._storage_client = StageReaderWriter(stage_name="test.test_stage")
-        self._storage_service = StorageService(client=self._storage_client)
+        self._queries_service = create_autospec(QueriesService)
+        self._config_manager = ConfigurationManager(persistence=LocalConfig())
+        self._storage_client = StageReaderWriter(
+            stage_name="test.test_stage",
+            local=False,
+            queries_service=self._queries_service,
+            config_manager=self._config_manager,
+        )
+        self._storage_service = StorageService(
+            client=self._storage_client,
+            queries_service=self._queries_service,
+            config_manager=self._config_manager,
+        )
+        self._ack_sender = create_autospec(AckSender)
         self._service = SnaService(
             queries_runner=self._mock_queries_runner,
             ops_runner=self._mock_ops_runner,
             results_publisher=self._mock_results_publisher,
             events_client=self._events_client,
             storage_service=self._storage_service,
+            ack_sender=self._ack_sender,
+            queries_service=self._queries_service,
+            config_manager=self._config_manager,
         )
         self._service.start()
 
-    @patch.object(SnowflakeClient, "run_query_and_fetch_all")
     @patch.object(StageReaderWriter, "_temp_location")
     @patch.object(SnaService, "_schedule_push_results")
     def test_write(
         self,
         mock_push_results: Mock,
         mock_temp_location: Mock,
-        mock_run_query: Mock,
     ):
-        mock_run_query.return_value = [], []
+        self._queries_service.run_query_and_fetch_all.return_value = [], []
 
         @contextlib.contextmanager
         def _mock_temp_location(file_name: str, contents: Optional[bytes] = None):
@@ -95,10 +110,11 @@ class StorageServiceTests(TestCase):
 
         self._execute_storage_operation(_WRITE_OPERATION)
         expected_query = "PUT file:///tmp/test.json @test.test_stage/mcd/test/ AUTO_COMPRESS=FALSE OVERWRITE=TRUE"
-        mock_run_query.assert_called_once_with(expected_query)
+        self._queries_service.run_query_and_fetch_all.assert_called_once_with(
+            expected_query
+        )
         mock_push_results.assert_called_once_with("1234", {ATTRIBUTE_NAME_RESULT: {}})
 
-    @patch.object(SnowflakeClient, "run_query_and_fetch_all")
     @patch.object(StageReaderWriter, "_temp_directory")
     @patch.object(SnaService, "_schedule_push_results")
     @patch("os.remove")
@@ -107,9 +123,8 @@ class StorageServiceTests(TestCase):
         mock_remove: Mock,
         mock_push_results: Mock,
         mock_temp_directory: Mock,
-        mock_run_query: Mock,
     ):
-        mock_run_query.return_value = [], []
+        self._queries_service.run_query_and_fetch_all.return_value = [], []
 
         @contextlib.contextmanager
         def _mock_temp_directory():
@@ -121,7 +136,9 @@ class StorageServiceTests(TestCase):
         with patch("builtins.open", mock_read_data):
             self._execute_storage_operation(_READ_OPERATION)
         expected_query = "GET @test.test_stage/mcd/test/test.json file:///tmp"
-        mock_run_query.assert_called_once_with(expected_query)
+        self._queries_service.run_query_and_fetch_all.assert_called_once_with(
+            expected_query
+        )
         mock_read_data.assert_called_once_with("/tmp/test.json", "rb")
         mock_remove.assert_called_once_with("/tmp/test.json")
         mock_push_results.assert_called_once_with(
@@ -136,22 +153,22 @@ class StorageServiceTests(TestCase):
             },
         )
 
-    @patch.object(SnowflakeClient, "run_query_and_fetch_all")
     @patch.object(SnaService, "_schedule_push_results")
     def test_generate_pre_signed_url(
         self,
         mock_push_results: Mock,
-        mock_run_query: Mock,
     ):
         url = "https://test.com"
-        mock_run_query.return_value = [[url]], []
+        self._queries_service.run_query_and_fetch_all.return_value = [[url]], []
 
         self._execute_storage_operation(_GENERATE_PRE_SIGNED_OPERATION)
         expected_query = "CALL mcd_agent.core.execute_query(?)"
         expected_query_param = (
             "CALL GET_PRESIGNED_URL(@test.test_stage, 'mcd/test/test.json', 300.0)"
         )
-        mock_run_query.assert_called_once_with(expected_query, [expected_query_param])
+        self._queries_service.run_query_and_fetch_all.assert_called_once_with(
+            expected_query, [expected_query_param]
+        )
         mock_push_results.assert_called_once_with(
             "1234", {ATTRIBUTE_NAME_RESULT: "https://test.com"}
         )

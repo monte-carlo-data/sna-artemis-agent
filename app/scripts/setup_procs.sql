@@ -36,13 +36,12 @@ BEGIN
        || ' AUTO_RESUME = true';
    EXECUTE IMMEDIATE :create_pool_sql;
 
+   ALTER SERVICE IF EXISTS core.mcd_agent_service FROM spec='service/mcd_agent_spec.yaml';
+
    CREATE SERVICE IF NOT EXISTS core.mcd_agent_service
       IN COMPUTE POOL identifier(:pool_name)
       EXTERNAL_ACCESS_INTEGRATIONS=(reference('monte_carlo_external_access'))
       FROM spec='service/mcd_agent_spec.yaml';
-
-   ALTER SERVICE IF EXISTS core.mcd_agent_service SET EXTERNAL_ACCESS_INTEGRATIONS=(reference('monte_carlo_external_access'));
-   ALTER SERVICE IF EXISTS core.mcd_agent_service FROM spec='service/mcd_agent_spec.yaml';
 
    -- UDF functions used from the Streamlit application
    CREATE OR REPLACE FUNCTION core.fetch_metrics ()

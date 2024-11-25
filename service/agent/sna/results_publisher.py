@@ -11,13 +11,19 @@ logger = logging.getLogger(__name__)
 class ResultsPublisher(QueueAsyncProcessor[AgentOperationResult]):
     """
     This class is responsible for processing results to be sent to the backend.
-    Currently, it uses a queue and a single thread to publish them, the handler
+    Currently, it uses a queue and a the given number of threads to publish them, the handler
     is used to send the results.
     """
 
-    def __init__(self, handler: Callable[[AgentOperationResult], None]):
+    def __init__(
+        self, handler: Callable[[AgentOperationResult], None], thread_count: int = 1
+    ):
         self._results_handler = handler
-        super().__init__(name="ResultsPublisher", handler=self._handler_wrapper)
+        super().__init__(
+            name="ResultsPublisher",
+            handler=self._handler_wrapper,
+            thread_count=thread_count,
+        )
 
     def schedule_push_query_results(self, operation_id: str, query_id: str):
         self.schedule(
@@ -30,11 +36,9 @@ class ResultsPublisher(QueueAsyncProcessor[AgentOperationResult]):
     def _handler_wrapper(self, result: AgentOperationResult):
         if result.query_id:
             logger.info(
-                f"Running results push: {result.operation_id}, query_id: {result.query_id}"
+                f"Running results push, operation: {result.operation_id}, query_id: {result.query_id}"
             )
         else:
             result_str = json.dumps(result.result)[:100]
-            logger.info(
-                f"Running results push: {result.operation_id}, result: {result_str}"
-            )
+            logger.info(f"Running results push, operation: {result.operation_id}")
         self._results_handler(result)
