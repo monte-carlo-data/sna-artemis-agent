@@ -131,7 +131,7 @@ class QueriesService:
         if self._connection_pool:
             # connections returned by SQLAlchemy's pool doesn't support context manager protocol
             # so we wrap them with "closing" to support it
-            return closing(_connection_pool.connect())  # type: ignore
+            return closing(self._connection_pool.connect())  # type: ignore
         else:
             return create_connection()
 
