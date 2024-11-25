@@ -39,6 +39,5 @@ class ResultsPublisher(QueueAsyncProcessor[AgentOperationResult]):
                 f"Running results push, operation: {result.operation_id}, query_id: {result.query_id}"
             )
         else:
-            result_str = json.dumps(result.result)[:100]
             logger.info(f"Running results push, operation: {result.operation_id}")
         self._results_handler(result)
