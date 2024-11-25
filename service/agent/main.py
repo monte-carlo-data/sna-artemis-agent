@@ -22,8 +22,9 @@ from agent.sna.sna_service import SnaService
 
 SERVICE_HOST = os.getenv("SERVER_HOST", "0.0.0.0")
 SERVICE_PORT = os.getenv("SERVER_PORT") or "8081"
-USE_DB_PERSISTENCE = (
-    os.getenv("USE_DB_PERSISTENCE", "false" if LOCAL else "true").lower() == "true"
+USE_DB_CONFIG_PERSISTENCE = (
+    os.getenv("USE_DB_CONFIG_PERSISTENCE", "false" if LOCAL else "true").lower()
+    == "true"
 )
 
 
@@ -37,7 +38,7 @@ and as UDF functions (as callbacks for query completion and failure).
 app = Flask(__name__)
 service = SnaService(
     config_manager=ConfigurationManager(
-        persistence=DbConfig() if USE_DB_PERSISTENCE else LocalConfig()
+        persistence=DbConfig() if USE_DB_CONFIG_PERSISTENCE else LocalConfig()
     )
 )
 

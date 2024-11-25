@@ -36,6 +36,7 @@ class DbConfig(ConfigurationPersistence):
 
     @staticmethod
     def _load_values_from_db():
+        logger.info(f"Loading configuration from DB table: {_CONFIG_TABLE_NAME}")
         with create_connection() as conn:
             with conn.cursor() as cursor:
                 cursor.execute(QUERY_LOAD_CONFIG.format(table=_CONFIG_TABLE_NAME))
