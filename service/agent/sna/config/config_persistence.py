@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Optional
+from typing import Optional, Dict
 
 
 class ConfigurationPersistence(ABC):
@@ -9,4 +9,8 @@ class ConfigurationPersistence(ABC):
 
     @abstractmethod
     def set_value(self, key: str, value: str):
+        raise NotImplementedError()
+
+    @abstractmethod
+    def get_all_values(self) -> Dict[str, str]:
         raise NotImplementedError()

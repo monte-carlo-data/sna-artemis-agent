@@ -11,8 +11,8 @@ from snowflake.connector.cursor import SnowflakeCursor
 from snowflake.sqlalchemy.snowdialect import SnowflakeDialect
 from sqlalchemy import QueuePool
 
-from agent.sna.config.config_manager import (
-    ConfigurationManager,
+from agent.sna.config.config_manager import ConfigurationManager
+from agent.sna.config.config_keys import (
     CONFIG_CONNECTION_POOL_SIZE,
     CONFIG_USE_CONNECTION_POOL,
     CONFIG_USE_SYNC_QUERIES,

@@ -8,7 +8,8 @@ from uuid import uuid4
 
 from snowflake.connector import OperationalError
 
-from agent.sna.config.config_manager import ConfigurationManager, CONFIG_STAGE_NAME
+from agent.sna.config.config_manager import ConfigurationManager
+from agent.sna.config.config_keys import CONFIG_STAGE_NAME
 
 from agent.sna.queries_service import QueriesService
 from agent.storage.base_storage_client import BaseStorageClient

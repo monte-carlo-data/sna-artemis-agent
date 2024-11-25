@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import Optional
+from typing import Optional, Dict
 
 from agent.sna.config.config_persistence import ConfigurationPersistence
 from agent.sna.sf_connection import create_connection
@@ -30,6 +30,9 @@ class DbConfig(ConfigurationPersistence):
                 cursor.execute(query, (key, value, key, value))
                 conn.commit()
         self._values = self._load_values_from_db()
+
+    def get_all_values(self) -> Dict[str, str]:
+        return self._values
 
     @staticmethod
     def _load_values_from_db():

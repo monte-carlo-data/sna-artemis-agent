@@ -2,14 +2,6 @@ from typing import Dict, Optional
 
 from agent.sna.config.config_persistence import ConfigurationPersistence
 
-CONFIG_USE_CONNECTION_POOL = "USE_CONNECTION_POOL"
-CONFIG_CONNECTION_POOL_SIZE = "CONNECTION_POOL_SIZE"
-CONFIG_QUERIES_RUNNER_THREAD_COUNT = "QUERIES_RUNNER_THREAD_COUNT"
-CONFIG_OPS_RUNNER_THREAD_COUNT = "OPS_RUNNER_THREAD_COUNT"
-CONFIG_PUBLISHER_THREAD_COUNT = "PUBLISHER_THREAD_COUNT"
-CONFIG_USE_SYNC_QUERIES = "USE_SYNC_QUERIES"
-CONFIG_STAGE_NAME = "STAGE_NAME"
-
 
 class ConfigurationManager:
     def __init__(self, persistence: ConfigurationPersistence):
@@ -29,6 +21,9 @@ class ConfigurationManager:
             return value.lower() == "true"
         else:
             return default_value
+
+    def get_all_values(self):
+        return self._persistence.get_all_values()
 
     def _get_value(self, key: str) -> Optional[str]:
         return self._persistence.get_value(key)

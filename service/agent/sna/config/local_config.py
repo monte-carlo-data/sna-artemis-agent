@@ -1,5 +1,5 @@
 import os
-from typing import Optional
+from typing import Optional, Dict
 
 from agent.sna.config.config_persistence import ConfigurationPersistence
 
@@ -14,3 +14,10 @@ class LocalConfig(ConfigurationPersistence):
         raise NotImplementedError(
             "You cannot update config settings in a local environment, update env vars instead"
         )
+
+    def get_all_values(self) -> Dict[str, str]:
+        return {
+            key: value
+            for key, value in os.environ.items()
+            if key.startswith(_SNA_ENV_PREFIX)
+        }

@@ -8,8 +8,8 @@ from agent.backend.backend_client import BackendClient
 from agent.events.ack_sender import AckSender
 from agent.events.events_client import EventsClient
 from agent.events.sse_client_receiver import SSEClientReceiver
-from agent.sna.config.config_manager import (
-    ConfigurationManager,
+from agent.sna.config.config_manager import ConfigurationManager
+from agent.sna.config.config_keys import (
     CONFIG_OPS_RUNNER_THREAD_COUNT,
     CONFIG_PUBLISHER_THREAD_COUNT,
     CONFIG_QUERIES_RUNNER_THREAD_COUNT,
@@ -44,6 +44,8 @@ _ATTR_NAME_LIMIT = "limit"
 _ATTR_NAME_QUERY = "query"
 _ATTR_NAME_TIMEOUT = "timeout"
 _ATTR_NAME_EVENTS = "events"
+_ATTR_NAME_UPDATES = "updates"
+_ATTR_NAME_CONFIG = "config"
 
 _ATTR_OPERATION_TYPE_SNOWFLAKE_QUERY = "snowflake_query"
 _ATTR_OPERATION_TYPE_SNOWFLAKE_TEST = "snowflake_connection_test"
@@ -153,6 +155,16 @@ class SnaService:
             OperationMapping(
                 path=_PATH_PUSH_METRICS,
                 method=self._execute_push_metrics,
+                schedule=True,
+            ),
+            OperationMapping(
+                path="/api/v1/snowflake/config",
+                method=self._execute_get_config,
+                schedule=True,
+            ),
+            OperationMapping(
+                path="/api/v1/snowflake/config/update",
+                method=self._execute_update_config,
                 schedule=True,
             ),
         ]
@@ -327,6 +339,22 @@ class SnaService:
             "metrics": MetricsService.fetch_metrics(),
         }
         BackendClient.execute_operation("/api/v1/agent/metrics", "POST", payload)
+
+    def _execute_get_config(self, operation_id: str, event: Dict[str, Any]):
+        config = self._config_manager.get_all_values()
+        self._schedule_push_results(
+            operation_id,
+            {
+                ATTRIBUTE_NAME_RESULT: {
+                    _ATTR_NAME_CONFIG: config,
+                },
+            },
+        )
+
+    def _execute_update_config(self, operation_id: str, event: Dict[str, Any]):
+        updates = event.get(_ATTR_NAME_OPERATION, {}).get(_ATTR_NAME_UPDATES, {})
+        self._config_manager.set_values(updates)
+        self._execute_get_config(operation_id, {})
 
     @classmethod
     def _get_query_from_event(cls, event: Dict) -> Tuple[Optional[str], Optional[int]]:

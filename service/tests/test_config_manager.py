@@ -38,6 +38,20 @@ class ConfigManagerTests(TestCase):
         self.assertEqual(123, self._config_manager.get_int_value("key", 123))
         self.assertTrue(self._config_manager.get_bool_value("key", True))
 
+    def test_set_values(self):
+        self._config_manager.set_values(
+            {
+                "key1": "value1",
+                "key2": "value2",
+            }
+        )
+        self._persistence.set_value.assert_has_calls(
+            [
+                call("key1", "value1"),
+                call("key2", "value2"),
+            ]
+        )
+
     @patch("agent.sna.config.db_config.create_connection")
     def test_db_persistence(self, mock_create_connection: Mock):
         data = [
