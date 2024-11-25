@@ -135,6 +135,12 @@ class QueriesService:
         else:
             return create_connection()
 
+    def run_query_async(self, query: str) -> Optional[str]:
+        with self._connect() as conn:
+            with conn.cursor() as cur:
+                cur.execute_async(query)
+                return cur.sfqid
+
     def run_query(self, query: SnowflakeQuery) -> Optional[Dict[str, Any]]:
         timeout = query.timeout or 850
         operation_id = query.operation_id

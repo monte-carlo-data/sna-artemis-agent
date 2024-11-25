@@ -21,6 +21,7 @@ from agent.sna.operations_runner import Operation, OperationsRunner
 from agent.sna.queries_runner import QueriesRunner
 from agent.sna.queries_service import QueriesService
 from agent.sna.results_publisher import ResultsPublisher
+from agent.sna.sf_queries import QUERY_RESTART_SERVICE
 from agent.sna.sf_query import SnowflakeQuery
 from agent.storage.storage_service import StorageService
 from agent.utils import utils
@@ -44,7 +45,7 @@ _ATTR_NAME_LIMIT = "limit"
 _ATTR_NAME_QUERY = "query"
 _ATTR_NAME_TIMEOUT = "timeout"
 _ATTR_NAME_EVENTS = "events"
-_ATTR_NAME_UPDATES = "updates"
+_ATTR_NAME_PARAMETERS = "parameters"
 _ATTR_NAME_CONFIG = "config"
 
 _ATTR_OPERATION_TYPE_SNOWFLAKE_QUERY = "snowflake_query"
@@ -158,13 +159,8 @@ class SnaService:
                 schedule=True,
             ),
             OperationMapping(
-                path="/api/v1/snowflake/config",
-                method=self._execute_get_config,
-                schedule=True,
-            ),
-            OperationMapping(
-                path="/api/v1/snowflake/config/update",
-                method=self._execute_update_config,
+                path="/api/v1/upgrade",
+                method=self._execute_upgrade,
                 schedule=True,
             ),
         ]
@@ -185,9 +181,10 @@ class SnaService:
         self._events_client.stop()
         self._ack_sender.stop()
 
-    @classmethod
-    def health_information(cls, trace_id: Optional[str] = None) -> Dict[str, Any]:
-        return utils.health_information(trace_id)
+    def health_information(self, trace_id: Optional[str] = None) -> Dict[str, Any]:
+        health_info = utils.health_information(trace_id)
+        health_info[_ATTR_NAME_PARAMETERS] = self._config_manager.get_all_values()
+        return health_info
 
     def run_reachability_test(self, trace_id: Optional[str] = None) -> Dict[str, Any]:
         trace_id = trace_id or str(uuid.uuid4())
@@ -340,21 +337,17 @@ class SnaService:
         }
         BackendClient.execute_operation("/api/v1/agent/metrics", "POST", payload)
 
-    def _execute_get_config(self, operation_id: str, event: Dict[str, Any]):
-        config = self._config_manager.get_all_values()
-        self._schedule_push_results(
-            operation_id,
-            {
-                ATTRIBUTE_NAME_RESULT: {
-                    _ATTR_NAME_CONFIG: config,
-                },
-            },
-        )
-
-    def _execute_update_config(self, operation_id: str, event: Dict[str, Any]):
-        updates = event.get(_ATTR_NAME_OPERATION, {}).get(_ATTR_NAME_UPDATES, {})
-        self._config_manager.set_values(updates)
-        self._execute_get_config(operation_id, {})
+    def _execute_upgrade(self, operation_id: str, event: Dict[str, Any]):
+        """
+        Compatible with /api/v1/upgrade operation from other platforms.
+        It updates the configuration if there are parameters under operation and restarts the
+        service.
+        """
+        updates = event.get(_ATTR_NAME_OPERATION, {}).get(_ATTR_NAME_PARAMETERS, {})
+        if updates:
+            self._config_manager.set_values(updates)
+        self._restart_service()
+        self._execute_health(operation_id, event)
 
     @classmethod
     def _get_query_from_event(cls, event: Dict) -> Tuple[Optional[str], Optional[int]]:
@@ -416,3 +409,7 @@ class SnaService:
             BackendClient.push_results(operation_id, result)
         except Exception as ex:
             logger.error(f"Failed to push results for query: {query_id}, error: {ex}")
+
+    def _restart_service(self):
+        query_id = self._queries_service.run_query_async(QUERY_RESTART_SERVICE)
+        logger.info(f"Restarted service, query ID: {query_id}")
