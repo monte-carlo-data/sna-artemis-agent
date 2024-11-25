@@ -355,11 +355,21 @@ class SnaService:
         service.
         """
         try:
-            updates = event.get(_ATTR_NAME_OPERATION, {}).get(_ATTR_NAME_PARAMETERS, {})
+            operation = event.get(_ATTR_NAME_OPERATION, {})
+            updates = operation.get(_ATTR_NAME_PARAMETERS, {})
+            trace_id = operation.get(_ATTR_NAME_TRACE_ID, operation_id)
             if updates:
                 self._config_manager.set_values(updates)
             self._restart_service()
-            self._execute_health(operation_id, event)
+            BackendClient.push_results(
+                operation_id,
+                {
+                    ATTRIBUTE_NAME_RESULT: {
+                        "updated": True,
+                    },
+                    ATTRIBUTE_NAME_TRACE_ID: trace_id,
+                },
+            )
         except Exception as ex:
             self._schedule_push_results(
                 operation_id, QueriesService.result_for_exception(ex)
