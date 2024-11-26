@@ -1,3 +1,6 @@
+import gzip
+import json
+from copy import deepcopy
 from unittest import TestCase
 from unittest.mock import create_autospec, patch, ANY
 
@@ -7,17 +10,20 @@ from agent.events.events_client import EventsClient
 from agent.events.heartbeat_checker import HeartbeatChecker
 from agent.sna.config.config_manager import ConfigurationManager
 from agent.sna.config.config_persistence import ConfigurationPersistence
-from agent.sna.config.local_config import LocalConfig
+from agent.sna.operation_result import OperationAttributes, AgentOperationResult
 from agent.sna.operations_runner import OperationsRunner, Operation
 from agent.sna.queries_runner import QueriesRunner
 from agent.sna.queries_service import QueriesService
 from agent.sna.results_publisher import ResultsPublisher
 from agent.sna.sf_query import SnowflakeQuery
 from agent.sna.sna_service import SnaService
+from agent.storage.storage_service import StorageService
 from agent.utils.serde import (
     ATTRIBUTE_NAME_ERROR,
     ATTRIBUTE_NAME_ERROR_ATTRS,
     ATTRIBUTE_NAME_ERROR_TYPE,
+    ATTRIBUTE_NAME_RESULT,
+    ATTRIBUTE_NAME_TRACE_ID,
 )
 from agent.utils.utils import BACKEND_SERVICE_URL
 
@@ -26,6 +32,9 @@ _QUERY_OPERATION = {
     "operation": {
         "type": "snowflake_query",
         "query": "SELECT * FROM table",
+        "trace_id": "5432",
+        "compress_response_file": False,
+        "response_size_limit_bytes": 100000,
     },
     "path": "/api/v1/agent/execute/snowflake/query",
 }
@@ -88,41 +97,147 @@ class AppServiceTests(TestCase):
         )
         service.start()
         events_client._event_received(_QUERY_OPERATION)
+        operation_attrs = OperationAttributes(
+            operation_id="1234",
+            trace_id="5432",
+            compress_response_file=False,
+            response_size_limit_bytes=100000,
+        )
         self._mock_queries_runner.schedule.assert_called_once_with(
             SnowflakeQuery(
-                operation_id=ANY,
+                operation_id="1234",
                 query="SELECT * FROM table",
                 timeout=ANY,
+                operation_attrs=operation_attrs,
             )
         )
 
-        service.query_completed("1234", "5678")
+        service.query_completed(operation_attrs.to_json(), "5678")
         self._mock_results_publisher.schedule_push_query_results.assert_called_once_with(
-            "1234", "5678"
+            "1234", "5678", operation_attrs
         )
 
         # test query failed flow
-        service.query_failed("1234", 1678, "error msg", "error state")
+        service.query_failed(
+            operation_attrs.to_json(), 1678, "error msg", "error state"
+        )
         self._mock_results_publisher.schedule_push_results.assert_called_once_with(
-            "1234",
-            {
+            operation_id="1234",
+            result={
                 ATTRIBUTE_NAME_ERROR: "error msg",
                 ATTRIBUTE_NAME_ERROR_ATTRS: {"errno": 1678, "sqlstate": "error state"},
                 ATTRIBUTE_NAME_ERROR_TYPE: "DatabaseError",
             },
+            operation_attrs=operation_attrs,
         )
 
         # test query failed with programming error
         self._mock_results_publisher.reset_mock()
-        service.query_failed("1234", 2043, "error msg", "error state")
+        service.query_failed(
+            operation_attrs.to_json(), 2043, "error msg", "error state"
+        )
         self._mock_results_publisher.schedule_push_results.assert_called_once_with(
-            "1234",
-            {
+            operation_id="1234",
+            result={
                 ATTRIBUTE_NAME_ERROR: "error msg",
                 ATTRIBUTE_NAME_ERROR_ATTRS: {"errno": 2043, "sqlstate": "error state"},
                 ATTRIBUTE_NAME_ERROR_TYPE: "ProgrammingError",
             },
+            operation_attrs=operation_attrs,
         )
+
+    def test_query_execution_pre_signed_url(self):
+        events_client = EventsClient(
+            receiver=create_autospec(BaseReceiver),
+            heartbeat_checker=create_autospec(HeartbeatChecker),
+        )
+        storage = create_autospec(StorageService)
+        service = SnaService(
+            queries_runner=self._mock_queries_runner,
+            ops_runner=self._mock_ops_runner,
+            results_publisher=self._mock_results_publisher,
+            events_client=events_client,
+            ack_sender=self._ack_sender,
+            queries_service=self._queries_service,
+            config_manager=self._config_manager,
+            storage_service=storage,
+        )
+        service.start()
+        query_operation = deepcopy(_QUERY_OPERATION)
+        query_operation["operation"]["response_size_limit_bytes"] = 1
+        events_client._event_received(query_operation)
+        operation_attrs = OperationAttributes(
+            operation_id="1234",
+            trace_id="5432",
+            compress_response_file=False,
+            response_size_limit_bytes=1,
+        )
+        self._mock_queries_runner.schedule.assert_called_once_with(
+            SnowflakeQuery(
+                operation_id="1234",
+                query="SELECT * FROM table",
+                timeout=ANY,
+                operation_attrs=operation_attrs,
+            )
+        )
+
+        service.query_completed(operation_attrs.to_json(), "5678")
+        self._mock_results_publisher.schedule_push_query_results.assert_called_once_with(
+            "1234", "5678", operation_attrs
+        )
+        large_result = {
+            ATTRIBUTE_NAME_RESULT: {
+                "big_result": True,
+            }
+        }
+        storage.generate_presigned_url.return_value = "http://presigned.url"
+        self._config_persistence.get_value.return_value = None
+        service._push_results(
+            AgentOperationResult(
+                operation_id="1234",
+                result=deepcopy(large_result),
+                operation_attrs=operation_attrs,
+            ),
+        )
+        storage.write.assert_called_once_with(
+            key="responses/5432",
+            obj_to_write=json.dumps(
+                {
+                    **large_result,
+                    ATTRIBUTE_NAME_TRACE_ID: "5432",
+                }
+            ),
+        )
+        storage.generate_presigned_url.assert_called_once_with("responses/5432", 3600)
+
+        # test compression now
+        storage.reset_mock()
+
+        operation_attrs = OperationAttributes(
+            operation_id="1234",
+            trace_id="5432",
+            compress_response_file=True,
+            response_size_limit_bytes=1,
+        )
+        service._push_results(
+            AgentOperationResult(
+                operation_id="1234",
+                result=deepcopy(large_result),
+                operation_attrs=operation_attrs,
+            ),
+        )
+        storage.write.assert_called_once_with(
+            key="responses/5432",
+            obj_to_write=gzip.compress(
+                json.dumps(
+                    {
+                        **large_result,
+                        ATTRIBUTE_NAME_TRACE_ID: "5432",
+                    }
+                ).encode()
+            ),
+        )
+        storage.generate_presigned_url.assert_called_once_with("responses/5432", 3600)
 
     def test_health_operation(self):
         events_client = EventsClient(
@@ -159,8 +274,9 @@ class AppServiceTests(TestCase):
             health_info["parameters"], {"setting_1": "value_1", "setting_2": "value_2"}
         )
         self._mock_results_publisher.schedule_push_results.assert_called_once_with(
-            "1234",
-            health_info,
+            operation_id="1234",
+            result=health_info,
+            operation_attrs=None,
         )
 
     def test_reachability_test(self):

@@ -64,13 +64,13 @@ BEGIN
 
   -- UDF functions used from the async query executed by the agent, used to indicate
   -- completion or failure of the executed queries.
-  CREATE OR REPLACE FUNCTION core.query_completed(OP_ID VARCHAR, QUERY_ID VARCHAR)
+  CREATE OR REPLACE FUNCTION core.query_completed(OP_JSON VARCHAR, QUERY_ID VARCHAR)
       RETURNS varchar
       SERVICE=core.mcd_agent_service
       ENDPOINT='mcd-agent-endpoint'
       AS '/api/v1/agent/execute/snowflake/query_completed';
 
-  CREATE OR REPLACE FUNCTION core.query_failed(OP_ID VARCHAR, CODE INT, MSG VARCHAR, ST VARCHAR)
+  CREATE OR REPLACE FUNCTION core.query_failed(OP_JSON VARCHAR, CODE INT, MSG VARCHAR, ST VARCHAR)
       RETURNS varchar
       SERVICE=core.mcd_agent_service
       ENDPOINT='mcd-agent-endpoint'

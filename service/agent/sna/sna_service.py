@@ -16,10 +16,11 @@ from agent.sna.config.config_keys import (
 )
 from agent.sna.logs_service import LogsService
 from agent.sna.metrics_service import MetricsService
-from agent.sna.operation_result import AgentOperationResult
+from agent.sna.operation_result import AgentOperationResult, OperationAttributes
 from agent.sna.operations_runner import Operation, OperationsRunner
 from agent.sna.queries_runner import QueriesRunner
 from agent.sna.queries_service import QueriesService
+from agent.sna.results_processor import ResultsProcessor
 from agent.sna.results_publisher import ResultsPublisher
 from agent.sna.sf_queries import QUERY_RESTART_SERVICE
 from agent.sna.sf_query import SnowflakeQuery
@@ -40,18 +41,26 @@ _ATTR_NAME_OPERATION_ID = "operation_id"
 _ATTR_NAME_OPERATION_TYPE = "type"
 _ATTR_NAME_PATH = "path"
 _ATTR_NAME_TRACE_ID = "trace_id"
-_ATTR_NAME_SIZE_EXCEEDED = "__mcd_size_exceeded__"
 _ATTR_NAME_LIMIT = "limit"
 _ATTR_NAME_QUERY = "query"
 _ATTR_NAME_TIMEOUT = "timeout"
+_ATTR_NAME_COMPRESS_RESPONSE_FILE = "compress_response_file"
+_ATTR_NAME_RESPONSE_SIZE_LIMIT_BYTES = "response_size_limit_bytes"
 _ATTR_NAME_EVENTS = "events"
 _ATTR_NAME_PARAMETERS = "parameters"
 _ATTR_NAME_CONFIG = "config"
+
+_ATTR_NAME_SIZE_EXCEEDED = "__mcd_size_exceeded__"
 
 _ATTR_OPERATION_TYPE_SNOWFLAKE_QUERY = "snowflake_query"
 _ATTR_OPERATION_TYPE_SNOWFLAKE_TEST = "snowflake_connection_test"
 _ATTR_OPERATION_TYPE_PUSH_METRICS = "push_metrics"
 _PATH_PUSH_METRICS = "push_metrics"
+
+_DEFAULT_COMPRESS_RESPONSE_FILE = True
+_DEFAULT_RESPONSE_SIZE_LIMIT_BYTES = (
+    5000000  # 5Mb, the same default value we have on the DC side
+)
 
 
 class OperationMatchingType(Enum):
@@ -122,6 +131,10 @@ class SnaService:
             config_manager=config_manager,
             queries_service=self._queries_service,
         )
+        self._results_processor = ResultsProcessor(
+            config_manager=self._config_manager,
+            storage=self._storage,
+        )
 
         self._events_client = events_client or EventsClient(
             receiver=SSEClientReceiver(base_url=BACKEND_SERVICE_URL),
@@ -191,20 +204,30 @@ class SnaService:
         logger.info(f"Running reachability test, trace_id: {trace_id}")
         return BackendClient.execute_operation(f"/api/v1/test/ping?trace_id={trace_id}")
 
-    def query_completed(self, operation_id: str, query_id: str):
+    def query_completed(self, operation_json: str, query_id: str):
         """
         Invoked by the Snowflake stored procedure when a query execution is completed
         """
+        operation_attributes = OperationAttributes.from_json(operation_json)
+        operation_id = operation_attributes.operation_id
         logger.info(f"Query completed: {operation_id}, query_id: {query_id}")
-        self._schedule_push_results_for_query(operation_id, query_id)
+        self._schedule_push_results_for_query(
+            operation_id, query_id, operation_attributes
+        )
 
-    def query_failed(self, operation_id: str, code: int, msg: str, state: str):
+    def query_failed(self, operation_json: str, code: int, msg: str, state: str):
         """
         Invoked by the Snowflake stored procedure when a query execution failed
         """
+        operation_attributes = OperationAttributes.from_json(operation_json)
+        operation_id = operation_attributes.operation_id
         logger.info(f"Query failed: {operation_id}: {msg}")
         result = QueriesService.result_for_query_failed(operation_id, code, msg, state)
-        self._schedule_push_results(operation_id, result)
+        self._schedule_push_results(
+            operation_id=operation_id,
+            result=result,
+            operation_attrs=operation_attributes,
+        )
 
     def _event_handler(self, event: Dict[str, Any]):
         """
@@ -253,9 +276,9 @@ class SnaService:
         return None, False
 
     def _execute_snowflake_operation(self, operation_id: str, event: Dict[str, Any]):
-        query, timeout = self._get_query_from_event(event)
-        if query:
-            self._schedule_query(operation_id, query, timeout)
+        query, timeout, operation_attrs = self._get_query_from_event(event)
+        if query and operation_attrs:
+            self._schedule_query(operation_id, query, timeout, operation_attrs)
         else:  # connection test
             self._schedule_push_results(
                 operation_id,
@@ -376,18 +399,50 @@ class SnaService:
             )
 
     @classmethod
-    def _get_query_from_event(cls, event: Dict) -> Tuple[Optional[str], Optional[int]]:
+    def _get_query_from_event(
+        cls,
+        event: Dict,
+    ) -> Tuple[Optional[str], Optional[int], Optional[OperationAttributes]]:
         operation = event.get(_ATTR_NAME_OPERATION, {})
         operation_type = operation.get(_ATTR_NAME_OPERATION_TYPE)
-        if operation_type == _ATTR_OPERATION_TYPE_SNOWFLAKE_QUERY:
-            return operation.get(_ATTR_NAME_QUERY), operation.get(_ATTR_NAME_TIMEOUT)
+        operation_id = event.get(_ATTR_NAME_OPERATION_ID)
+        if operation_id and operation_type == _ATTR_OPERATION_TYPE_SNOWFLAKE_QUERY:
+            return (
+                operation.get(_ATTR_NAME_QUERY),
+                operation.get(_ATTR_NAME_TIMEOUT),
+                OperationAttributes(
+                    operation_id=operation_id,
+                    compress_response_file=operation.get(
+                        _ATTR_NAME_COMPRESS_RESPONSE_FILE,
+                        _DEFAULT_COMPRESS_RESPONSE_FILE,
+                    ),
+                    response_size_limit_bytes=operation.get(
+                        _ATTR_NAME_RESPONSE_SIZE_LIMIT_BYTES,
+                        _DEFAULT_RESPONSE_SIZE_LIMIT_BYTES,
+                    ),
+                    trace_id=operation.get(_ATTR_NAME_TRACE_ID) or str(uuid.uuid4()),
+                ),
+            )
         elif operation_type == _ATTR_OPERATION_TYPE_SNOWFLAKE_TEST:
-            return None, None
+            return None, None, None
         else:
             raise ValueError(f"Invalid operation type: {operation_type}")
 
-    def _schedule_query(self, operation_id: str, query: str, timeout: Optional[int]):
-        self._queries_runner.schedule(SnowflakeQuery(operation_id, query, timeout))
+    def _schedule_query(
+        self,
+        operation_id: str,
+        query: str,
+        timeout: Optional[int],
+        operation_attrs: OperationAttributes,
+    ):
+        self._queries_runner.schedule(
+            SnowflakeQuery(
+                operation_id=operation_id,
+                query=query,
+                timeout=timeout,
+                operation_attrs=operation_attrs,
+            )
+        )
 
     def _send_ack(self, operation_id: str):
         logger.info(f"Sending ACK for operation={operation_id}")
@@ -404,38 +459,76 @@ class SnaService:
             # if there's no result, the query was executed asynchronously
             # we'll get the result through query_completed/query_failed callbacks
             if result:
-                self._schedule_push_results(query.operation_id, result)
+                self._schedule_push_results(
+                    operation_id=query.operation_id,
+                    result=result,
+                    operation_attrs=query.operation_attrs,
+                )
         except Exception as ex:
             logger.error(f"Query failed: {query.query}, error: {ex}")
             self._schedule_push_results(
                 query.operation_id, QueriesService.result_for_exception(ex)
             )
 
-    def _schedule_push_results_for_query(self, operation_id: str, query_id: str):
-        self._results_publisher.schedule_push_query_results(operation_id, query_id)
+    def _schedule_push_results_for_query(
+        self,
+        operation_id: str,
+        query_id: str,
+        operation_attrs: OperationAttributes,
+    ):
+        self._results_publisher.schedule_push_query_results(
+            operation_id, query_id, operation_attrs
+        )
 
-    def _schedule_push_results(self, operation_id: str, result: Dict[str, Any]):
-        self._results_publisher.schedule_push_results(operation_id, result)
+    def _schedule_push_results(
+        self,
+        operation_id: str,
+        result: Dict[str, Any],
+        operation_attrs: Optional[OperationAttributes] = None,
+    ):
+        self._results_publisher.schedule_push_results(
+            operation_id=operation_id,
+            result=result,
+            operation_attrs=operation_attrs,
+        )
 
     def _push_results(self, result: AgentOperationResult):
         self._ack_sender.operation_completed(result.operation_id)
-        if result.query_id:
-            self._push_results_for_query(result.operation_id, result.query_id)
+        if result.query_id and result.operation_attrs is not None:
+            self._push_results_for_query(
+                result.operation_id, result.query_id, result.operation_attrs
+            )
         elif result.result is not None:
-            BackendClient.push_results(result.operation_id, result.result)
+            self._push_backend_results(
+                result.operation_id, result.result, result.operation_attrs
+            )
         else:
             logger.error(f"Invalid result for operation: {result.operation_id}")
 
-    def _push_results_for_query(self, operation_id: str, query_id: str):
+    def _push_results_for_query(
+        self, operation_id: str, query_id: str, operation_attrs: OperationAttributes
+    ):
         """
         Invoked by results publisher to push results for a query
         """
         try:
             result = self._queries_service.result_for_query(query_id)
-            BackendClient.push_results(operation_id, result)
+            self._push_backend_results(operation_id, result, operation_attrs)
         except Exception as ex:
             logger.error(f"Failed to push results for query: {query_id}, error: {ex}")
 
     def _restart_service(self):
         query_id = self._queries_service.run_query_async(QUERY_RESTART_SERVICE)
         logger.info(f"Restarted service, query ID: {query_id}")
+
+    def _push_backend_results(
+        self,
+        operation_id: str,
+        result: Dict[str, Any],
+        operation_attrs: Optional[OperationAttributes],
+    ):
+        if operation_attrs:
+            if not _ATTR_NAME_TRACE_ID in result:
+                result[ATTRIBUTE_NAME_TRACE_ID] = operation_attrs.trace_id
+            result = self._results_processor.process_result(result, operation_attrs)
+        BackendClient.push_results(operation_id, result)

@@ -1,5 +1,7 @@
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, Dict, Any
+
+from agent.sna.operation_result import OperationAttributes
 
 
 @dataclass
@@ -11,3 +13,4 @@ class SnowflakeQuery:
     operation_id: str
     query: str
     timeout: Optional[int]
+    operation_attrs: OperationAttributes

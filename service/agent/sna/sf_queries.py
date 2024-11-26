@@ -1,5 +1,5 @@
 QUERY_EXECUTE_QUERY_WITH_HELPER = """
-WITH RUN_QUERY AS PROCEDURE(op_id VARCHAR, query STRING)
+WITH RUN_QUERY AS PROCEDURE(op_json VARCHAR, query STRING)
     RETURNS VARCHAR
     LANGUAGE SQL
     AS
@@ -9,10 +9,10 @@ WITH RUN_QUERY AS PROCEDURE(op_id VARCHAR, query STRING)
             ALTER SESSION SET STATEMENT_TIMEOUT_IN_SECONDS={timeout};
             CALL mcd_agent.core.execute_helper_query(:query);
             SELECT * FROM TABLE(RESULT_SCAN(:SQLID));
-            SELECT mcd_agent.core.query_completed(:op_id, :SQLID);
+            SELECT mcd_agent.core.query_completed(:op_json, :SQLID);
         EXCEPTION
             WHEN OTHER THEN BEGIN
-                SELECT mcd_agent.core.query_failed(:op_id, :sqlcode, :sqlerrm, :sqlstate);
+                SELECT mcd_agent.core.query_failed(:op_json, :sqlcode, :sqlerrm, :sqlstate);
             END;
         END;
     END;
