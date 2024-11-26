@@ -20,6 +20,11 @@ _DEFAULT_PRE_SIGNED_URL_RESPONSE_EXPIRATION_SECONDS = 60 * 60 * 1  # 1 hour
 
 
 class ResultsProcessor:
+    """
+    Takes care of uploading the response to the internal stage (and compress it) if needed, based
+    on the settings received in the operation attributes.
+    """
+
     def __init__(self, config_manager: ConfigurationManager, storage: StorageService):
         self._storage = storage
         self._config_manager = config_manager
