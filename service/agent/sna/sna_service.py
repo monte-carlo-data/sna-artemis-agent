@@ -59,7 +59,7 @@ _PATH_PUSH_METRICS = "push_metrics"
 
 _DEFAULT_COMPRESS_RESPONSE_FILE = True
 _DEFAULT_RESPONSE_SIZE_LIMIT_BYTES = (
-    5000000  # 5Mb, the same default value we have on the DC side
+    20000000  # 20Mb, the same default value we have on the DC side for Snowflake agents
 )
 
 
