@@ -52,7 +52,7 @@ class ResultsProcessor:
             result[_ATTR_NAME_RESULT_COMPRESSED] = compressed
             del result[ATTRIBUTE_NAME_RESULT]
             logger.info(
-                f"{'Compressed result' if compressed else 'Result'} uploaded to {url} for operation: {operation_attrs.operation_id}"
+                f"{'Compressed result' if compressed else 'Result'} uploaded, operation: {operation_attrs.operation_id}"
             )
         return result
 

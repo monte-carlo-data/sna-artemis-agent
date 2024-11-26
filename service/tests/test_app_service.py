@@ -201,14 +201,17 @@ class AppServiceTests(TestCase):
         )
         storage.write.assert_called_once_with(
             key="responses/5432",
-            obj_to_write=json.dumps(
-                {
-                    **large_result,
-                    ATTRIBUTE_NAME_TRACE_ID: "5432",
-                }
-            ),
+            obj_to_write=ANY,
         )
+        saved_data = storage.write.call_args[1]["obj_to_write"]
         storage.generate_presigned_url.assert_called_once_with("responses/5432", 3600)
+        self.assertEqual(
+            {
+                **large_result,
+                ATTRIBUTE_NAME_TRACE_ID: "5432",
+            },
+            json.loads(saved_data),
+        )
 
         # test compression now
         storage.reset_mock()
@@ -228,14 +231,16 @@ class AppServiceTests(TestCase):
         )
         storage.write.assert_called_once_with(
             key="responses/5432",
-            obj_to_write=gzip.compress(
-                json.dumps(
-                    {
-                        **large_result,
-                        ATTRIBUTE_NAME_TRACE_ID: "5432",
-                    }
-                ).encode()
-            ),
+            obj_to_write=ANY,
+        )
+        compressed_data = storage.write.call_args[1]["obj_to_write"]
+        saved_dict = json.loads(gzip.decompress(compressed_data).decode())
+        self.assertEqual(
+            {
+                **large_result,
+                ATTRIBUTE_NAME_TRACE_ID: "5432",
+            },
+            saved_dict,
         )
         storage.generate_presigned_url.assert_called_once_with("responses/5432", 3600)
 
