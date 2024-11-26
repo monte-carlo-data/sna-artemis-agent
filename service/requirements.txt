@@ -32,6 +32,8 @@ cryptography==43.0.3
     #   -c requirements-build.txt
     #   pyopenssl
     #   snowflake-connector-python
+dataclasses-json==0.6.7
+    # via -r requirements.in
 decorator==5.1.1
     # via retry2
 filelock==3.16.1
@@ -59,10 +61,15 @@ markupsafe==3.0.2
     # via
     #   jinja2
     #   werkzeug
+marshmallow==3.23.1
+    # via dataclasses-json
+mypy-extensions==1.0.0
+    # via typing-inspect
 packaging==24.1
     # via
     #   -c requirements-build.txt
     #   gunicorn
+    #   marshmallow
     #   snowflake-connector-python
 platformdirs==4.3.6
     # via
@@ -120,6 +127,9 @@ typing-extensions==4.12.2
     #   -c requirements-build.txt
     #   snowflake-connector-python
     #   sqlalchemy
+    #   typing-inspect
+typing-inspect==0.9.0
+    # via dataclasses-json
 urllib3==2.2.3
     # via
     #   -c requirements-build.txt
