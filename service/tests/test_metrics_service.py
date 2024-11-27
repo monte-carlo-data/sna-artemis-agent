@@ -8,7 +8,9 @@ from agent.events.ack_sender import AckSender
 from agent.events.base_receiver import BaseReceiver
 from agent.events.events_client import EventsClient
 from agent.events.heartbeat_checker import HeartbeatChecker
-from agent.sna.metrics_service import MetricsService
+from agent.sna.config.config_manager import ConfigurationManager
+from agent.sna.config.local_config import LocalConfig
+from agent.sna.metrics_service import MetricsService, SnowparkMetricsService
 from agent.sna.operations_runner import OperationsRunner, Operation
 from agent.sna.queries_runner import QueriesRunner
 from agent.sna.results_publisher import ResultsPublisher
@@ -28,11 +30,13 @@ class MetricsServiceTests(TestCase):
         self._mock_queries_runner = create_autospec(QueriesRunner)
         self._mock_ops_runner = create_autospec(OperationsRunner)
         self._mock_results_publisher = create_autospec(ResultsPublisher)
+        self._config_manager = ConfigurationManager(persistence=LocalConfig())
         self._service = SnaService(
             queries_runner=self._mock_queries_runner,
             ops_runner=self._mock_ops_runner,
             results_publisher=self._mock_results_publisher,
             events_client=self._events_client,
+            config_manager=self._config_manager,
             ack_sender=create_autospec(AckSender),
         )
         self._service.start()
@@ -49,7 +53,7 @@ class MetricsServiceTests(TestCase):
             create_autospec(Response, text="line1\nline2\n"),
             create_autospec(Response, text="line3\nline4\nline5\n"),
         ]
-        lines = MetricsService.fetch_metrics()
+        lines = SnowparkMetricsService.fetch_metrics()
         self.assertEqual(5, len(lines))
         self.assertEqual("line1", lines[0])
         self.assertEqual("line5", lines[4])
@@ -70,7 +74,7 @@ class MetricsServiceTests(TestCase):
             response_1,
             create_autospec(Response, text="line3\nline4\nline5\n"),
         ]
-        lines = MetricsService.fetch_metrics()
+        lines = SnowparkMetricsService.fetch_metrics()
         self.assertEqual(3, len(lines))
         self.assertEqual("line3", lines[0])
         self.assertEqual("line5", lines[2])

@@ -5,8 +5,12 @@ from agent.events.ack_sender import AckSender
 from agent.events.base_receiver import BaseReceiver
 from agent.events.events_client import EventsClient
 from agent.events.heartbeat_checker import HeartbeatChecker
+from agent.sna.config.config_manager import ConfigurationManager
+from agent.sna.config.config_persistence import ConfigurationPersistence
+from agent.sna.config.local_config import LocalConfig
 from agent.sna.operations_runner import OperationsRunner, Operation
 from agent.sna.queries_runner import QueriesRunner
+from agent.sna.queries_service import QueriesService
 from agent.sna.results_publisher import ResultsPublisher
 from agent.sna.sf_query import SnowflakeQuery
 from agent.sna.sna_service import SnaService
@@ -42,12 +46,19 @@ class AppServiceTests(TestCase):
         self._mock_ops_runner = create_autospec(OperationsRunner)
         self._mock_results_publisher = create_autospec(ResultsPublisher)
         self._ack_sender = create_autospec(AckSender)
+        self._queries_service = create_autospec(QueriesService)
+        self._config_persistence = create_autospec(ConfigurationPersistence)
+        self._config_manager = ConfigurationManager(
+            persistence=self._config_persistence
+        )
         self._service = SnaService(
             queries_runner=self._mock_queries_runner,
             ops_runner=self._mock_ops_runner,
             results_publisher=self._mock_results_publisher,
             events_client=self._mock_events_client,
             ack_sender=self._ack_sender,
+            queries_service=self._queries_service,
+            config_manager=self._config_manager,
         )
 
     def test_service_start_stop(self):
@@ -72,6 +83,8 @@ class AppServiceTests(TestCase):
             results_publisher=self._mock_results_publisher,
             events_client=events_client,
             ack_sender=self._ack_sender,
+            queries_service=self._queries_service,
+            config_manager=self._config_manager,
         )
         service.start()
         events_client._event_received(_QUERY_OPERATION)
@@ -116,12 +129,18 @@ class AppServiceTests(TestCase):
             receiver=create_autospec(BaseReceiver),
             heartbeat_checker=create_autospec(HeartbeatChecker),
         )
+        self._config_persistence.get_all_values.return_value = {
+            "setting_1": "value_1",
+            "setting_2": "value_2",
+        }
         service = SnaService(
             queries_runner=self._mock_queries_runner,
             ops_runner=self._mock_ops_runner,
             results_publisher=self._mock_results_publisher,
             events_client=events_client,
             ack_sender=self._ack_sender,
+            queries_service=self._queries_service,
+            config_manager=self._config_manager,
         )
         service.start()
         events_client._event_received(_HEALTH_OPERATION)
@@ -133,9 +152,15 @@ class AppServiceTests(TestCase):
 
         # now simulate the operations runner executed the operation
         self._service._execute_scheduled_operation(operation)
+        health_info = service.health_information(
+            _HEALTH_OPERATION["operation"]["trace_id"]
+        )
+        self.assertEqual(
+            health_info["parameters"], {"setting_1": "value_1", "setting_2": "value_2"}
+        )
         self._mock_results_publisher.schedule_push_results.assert_called_once_with(
             "1234",
-            service.health_information(_HEALTH_OPERATION["operation"]["trace_id"]),
+            health_info,
         )
 
     def test_reachability_test(self):
@@ -149,8 +174,8 @@ class AppServiceTests(TestCase):
                 url=BACKEND_SERVICE_URL + "/api/v1/test/ping?trace_id=1234",
                 json=None,
                 headers={
-                    "x-mcd-id": "no-token-id",
-                    "x-mcd-token": "no-token-secret",
+                    "x-mcd-id": "local-token-id",
+                    "x-mcd-token": "local-token-secret",
                 },
             )
             self.assertEqual(health_response, result)

@@ -14,17 +14,8 @@ BACKEND_SERVICE_URL = os.getenv(
     "BACKEND_SERVICE_URL",
     "http://mcd-orchestrator-test-nlb-9b478a23917fbdf9.elb.us-east-1.amazonaws.com",
 )
-LOCAL = os.getenv("ENV", "snowflake") == "local"
+LOCAL = os.getenv("SNOWFLAKE_HOST") is None  # not running in Snowpark containers
 DEBUG = os.getenv("DEBUG", "false").lower() == "true"
-
-USE_CONNECTION_POOL = os.getenv("USE_CONNECTION_POOL", "true").lower() == "true"
-# We have the following threads opening Snowflake connections:
-# - a single thread running queries
-# - a single thread pushing results
-# - a single thread executing other operations, like storage, that uses a connection too
-# So, we maintain 3 open connections, we also set max_overflow to -1 to allow for "extra"
-# connections to be created if needed (they will be immediately closed after being used).
-CONNECTION_POOL_SIZE = int(os.getenv("CONNECTION_POOL_SIZE", "3"))
 
 _X_MCD_ID = "x-mcd-id"
 _X_MCD_TOKEN = "x-mcd-token"

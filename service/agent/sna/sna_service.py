@@ -5,16 +5,25 @@ from enum import Enum
 from typing import Dict, Tuple, Optional, Any, Callable
 
 from agent.backend.backend_client import BackendClient
-from agent.events.ack_sender import AckSender
+from agent.events.ack_sender import AckSender, DEFAULT_ACK_INTERVAL_SECONDS
 from agent.events.events_client import EventsClient
 from agent.events.sse_client_receiver import SSEClientReceiver
+from agent.sna.config.config_manager import ConfigurationManager
+from agent.sna.config.config_keys import (
+    CONFIG_OPS_RUNNER_THREAD_COUNT,
+    CONFIG_PUBLISHER_THREAD_COUNT,
+    CONFIG_QUERIES_RUNNER_THREAD_COUNT,
+    CONFIG_IS_REMOTE_UPGRADABLE,
+    CONFIG_ACK_INTERVAL_SECONDS,
+)
 from agent.sna.logs_service import LogsService
 from agent.sna.metrics_service import MetricsService
 from agent.sna.operation_result import AgentOperationResult
 from agent.sna.operations_runner import Operation, OperationsRunner
 from agent.sna.queries_runner import QueriesRunner
+from agent.sna.queries_service import QueriesService
 from agent.sna.results_publisher import ResultsPublisher
-from agent.sna.sf_client import SnowflakeClient
+from agent.sna.sf_queries import QUERY_RESTART_SERVICE
 from agent.sna.sf_query import SnowflakeQuery
 from agent.storage.storage_service import StorageService
 from agent.utils import utils
@@ -38,11 +47,16 @@ _ATTR_NAME_LIMIT = "limit"
 _ATTR_NAME_QUERY = "query"
 _ATTR_NAME_TIMEOUT = "timeout"
 _ATTR_NAME_EVENTS = "events"
+_ATTR_NAME_PARAMETERS = "parameters"
+_ATTR_NAME_CONFIG = "config"
+_ATTR_NAME_ENV = "env"
 
 _ATTR_OPERATION_TYPE_SNOWFLAKE_QUERY = "snowflake_query"
 _ATTR_OPERATION_TYPE_SNOWFLAKE_TEST = "snowflake_connection_test"
 _ATTR_OPERATION_TYPE_PUSH_METRICS = "push_metrics"
 _PATH_PUSH_METRICS = "push_metrics"
+
+_ENV_NAME_IS_REMOTE_UPGRADABLE = "MCD_AGENT_IS_REMOTE_UPGRADABLE"
 
 
 class OperationMatchingType(Enum):
@@ -56,6 +70,10 @@ class OperationMapping:
     method: Callable[[str, Dict[str, Any]], None]
     schedule: bool = False
     matching_type: OperationMatchingType = OperationMatchingType.EQUALS
+
+
+class SnowflakeAgentError(Exception):
+    pass
 
 
 class SnaService:
@@ -75,22 +93,48 @@ class SnaService:
 
     def __init__(
         self,
+        config_manager: ConfigurationManager,
         queries_runner: Optional[QueriesRunner] = None,
         ops_runner: Optional[OperationsRunner] = None,
         results_publisher: Optional[ResultsPublisher] = None,
         events_client: Optional[EventsClient] = None,
         storage_service: Optional[StorageService] = None,
         ack_sender: Optional[AckSender] = None,
+        queries_service: Optional[QueriesService] = None,
+        logs_service: Optional[LogsService] = None,
     ):
-        self._queries_runner = queries_runner or QueriesRunner(handler=self._run_query)
+        self._config_manager = config_manager
+        self._queries_runner = queries_runner or QueriesRunner(
+            handler=self._run_query,
+            thread_count=config_manager.get_int_value(
+                CONFIG_QUERIES_RUNNER_THREAD_COUNT, 1
+            ),
+        )
         self._ops_runner = ops_runner or OperationsRunner(
-            handler=self._execute_scheduled_operation
+            handler=self._execute_scheduled_operation,
+            thread_count=config_manager.get_int_value(
+                CONFIG_OPS_RUNNER_THREAD_COUNT, 1
+            ),
         )
         self._results_publisher = results_publisher or ResultsPublisher(
-            handler=self._push_results
+            handler=self._push_results,
+            thread_count=config_manager.get_int_value(CONFIG_PUBLISHER_THREAD_COUNT, 1),
         )
-        self._ack_sender = ack_sender or AckSender()
-        self._storage = storage_service or StorageService()
+        self._ack_sender = ack_sender or AckSender(
+            interval_seconds=config_manager.get_int_value(
+                CONFIG_ACK_INTERVAL_SECONDS, DEFAULT_ACK_INTERVAL_SECONDS
+            )
+        )
+        self._queries_service = queries_service or QueriesService(
+            config_manager=config_manager
+        )
+        self._logs_service = logs_service or LogsService(
+            queries_service=self._queries_service
+        )
+        self._storage = storage_service or StorageService(
+            config_manager=config_manager,
+            queries_service=self._queries_service,
+        )
 
         self._events_client = events_client or EventsClient(
             receiver=SSEClientReceiver(base_url=BACKEND_SERVICE_URL),
@@ -127,6 +171,11 @@ class SnaService:
                 method=self._execute_push_metrics,
                 schedule=True,
             ),
+            OperationMapping(
+                path="/api/v1/upgrade",
+                method=self._execute_upgrade,
+                schedule=True,
+            ),
         ]
 
     def start(self):
@@ -145,9 +194,16 @@ class SnaService:
         self._events_client.stop()
         self._ack_sender.stop()
 
-    @classmethod
-    def health_information(cls, trace_id: Optional[str] = None) -> Dict[str, Any]:
-        return utils.health_information(trace_id)
+    def health_information(self, trace_id: Optional[str] = None) -> Dict[str, Any]:
+        health_info = utils.health_information(trace_id)
+        health_info[_ATTR_NAME_PARAMETERS] = self._config_manager.get_all_values()
+        # update env to include the same env var other agent platforms use to report if they are remote upgradable
+        health_info[_ATTR_NAME_ENV][_ENV_NAME_IS_REMOTE_UPGRADABLE] = (
+            "true"
+            if self._config_manager.get_bool_value(CONFIG_IS_REMOTE_UPGRADABLE, True)
+            else "false"
+        )
+        return health_info
 
     def run_reachability_test(self, trace_id: Optional[str] = None) -> Dict[str, Any]:
         trace_id = trace_id or str(uuid.uuid4())
@@ -166,7 +222,7 @@ class SnaService:
         Invoked by the Snowflake stored procedure when a query execution failed
         """
         logger.info(f"Query failed: {operation_id}: {msg}")
-        result = SnowflakeClient.result_for_query_failed(operation_id, code, msg, state)
+        result = QueriesService.result_for_query_failed(operation_id, code, msg, state)
         self._schedule_push_results(operation_id, result)
 
     def _event_handler(self, event: Dict[str, Any]):
@@ -235,11 +291,16 @@ class SnaService:
         self._schedule_push_results(operation_id, result)
 
     def _execute_health(self, operation_id: str, event: Dict[str, Any]):
-        trace_id = event.get(_ATTR_NAME_OPERATION, {}).get(
-            _ATTR_NAME_TRACE_ID, operation_id
-        )
-        health_information = self.health_information(trace_id=trace_id)
-        self._schedule_push_results(operation_id, health_information)
+        try:
+            trace_id = event.get(_ATTR_NAME_OPERATION, {}).get(
+                _ATTR_NAME_TRACE_ID, operation_id
+            )
+            health_information = self.health_information(trace_id=trace_id)
+            self._schedule_push_results(operation_id, health_information)
+        except Exception as ex:
+            self._schedule_push_results(
+                operation_id, QueriesService.result_for_exception(ex)
+            )
 
     def _schedule_operation(self, operation_id: str, event: Dict[str, Any]):
         self._ops_runner.schedule(Operation(operation_id, event))
@@ -252,6 +313,12 @@ class SnaService:
             logger.error(
                 f"No method mapped to operation path: {op.event.get(_ATTR_NAME_PATH)}"
             )
+            self._schedule_push_results(
+                op.operation_id,
+                QueriesService.result_for_error_message(
+                    f"Unsupported operation path: {op.event.get(_ATTR_NAME_PATH)}"
+                ),
+            )
 
     def _execute_get_logs(self, operation_id: str, event: Dict[str, Any]):
         operation = event.get(_ATTR_NAME_OPERATION, {})
@@ -262,14 +329,14 @@ class SnaService:
                 operation_id,
                 {
                     ATTRIBUTE_NAME_RESULT: {
-                        _ATTR_NAME_EVENTS: LogsService.get_logs(limit),
+                        _ATTR_NAME_EVENTS: self._logs_service.get_logs(limit),
                     },
                     ATTRIBUTE_NAME_TRACE_ID: trace_id,
                 },
             )
         except Exception as ex:
             self._schedule_push_results(
-                operation_id, SnowflakeClient.result_for_exception(ex)
+                operation_id, QueriesService.result_for_exception(ex)
             )
 
     def _execute_get_metrics(self, operation_id: str, event: Dict[str, Any]):
@@ -285,7 +352,7 @@ class SnaService:
             )
         except Exception as ex:
             self._schedule_push_results(
-                operation_id, SnowflakeClient.result_for_exception(ex)
+                operation_id, QueriesService.result_for_exception(ex)
             )
 
     def _push_metrics(self):
@@ -299,6 +366,37 @@ class SnaService:
             "metrics": MetricsService.fetch_metrics(),
         }
         BackendClient.execute_operation("/api/v1/agent/metrics", "POST", payload)
+
+    def _execute_upgrade(self, operation_id: str, event: Dict[str, Any]):
+        """
+        Compatible with /api/v1/upgrade operation from other platforms.
+        It updates the configuration if there are parameters under operation and restarts the
+        service.
+        """
+        try:
+            if not self._config_manager.get_bool_value(
+                CONFIG_IS_REMOTE_UPGRADABLE, True
+            ):
+                raise SnowflakeAgentError("Remote upgrades are disabled")
+            operation = event.get(_ATTR_NAME_OPERATION, {})
+            updates = operation.get(_ATTR_NAME_PARAMETERS, {})
+            trace_id = operation.get(_ATTR_NAME_TRACE_ID, operation_id)
+            if updates:
+                self._config_manager.set_values(updates)
+            self._restart_service()
+            BackendClient.push_results(
+                operation_id,
+                {
+                    ATTRIBUTE_NAME_RESULT: {
+                        "updated": True,
+                    },
+                    ATTRIBUTE_NAME_TRACE_ID: trace_id,
+                },
+            )
+        except Exception as ex:
+            self._schedule_push_results(
+                operation_id, QueriesService.result_for_exception(ex)
+            )
 
     @classmethod
     def _get_query_from_event(cls, event: Dict) -> Tuple[Optional[str], Optional[int]]:
@@ -325,7 +423,7 @@ class SnaService:
         Invoked by queries runner to run a query
         """
         try:
-            result = SnowflakeClient.run_query(query)
+            result = self._queries_service.run_query(query)
             # if there's no result, the query was executed asynchronously
             # we'll get the result through query_completed/query_failed callbacks
             if result:
@@ -333,7 +431,7 @@ class SnaService:
         except Exception as ex:
             logger.error(f"Query failed: {query.query}, error: {ex}")
             self._schedule_push_results(
-                query.operation_id, SnowflakeClient.result_for_exception(ex)
+                query.operation_id, QueriesService.result_for_exception(ex)
             )
 
     def _schedule_push_results_for_query(self, operation_id: str, query_id: str):
@@ -351,13 +449,16 @@ class SnaService:
         else:
             logger.error(f"Invalid result for operation: {result.operation_id}")
 
-    @staticmethod
-    def _push_results_for_query(operation_id: str, query_id: str):
+    def _push_results_for_query(self, operation_id: str, query_id: str):
         """
         Invoked by results publisher to push results for a query
         """
         try:
-            result = SnowflakeClient.result_for_query(query_id)
+            result = self._queries_service.result_for_query(query_id)
             BackendClient.push_results(operation_id, result)
         except Exception as ex:
             logger.error(f"Failed to push results for query: {query_id}, error: {ex}")
+
+    def _restart_service(self):
+        query_id = self._queries_service.run_query_async(QUERY_RESTART_SERVICE)
+        logger.info(f"Restarted service, query ID: {query_id}")
