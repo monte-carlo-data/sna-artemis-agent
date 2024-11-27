@@ -15,3 +15,5 @@ CONFIG_USE_SYNC_QUERIES = "USE_SYNC_QUERIES"
 CONFIG_STAGE_NAME = "STAGE_NAME"
 # whether the agent accepts config changes remotely or not
 CONFIG_IS_REMOTE_UPGRADABLE = "IS_REMOTE_UPGRADABLE"
+# interval to send ACK messages in seconds
+CONFIG_ACK_INTERVAL_SECONDS = "ACK_INTERVAL_SECONDS"
