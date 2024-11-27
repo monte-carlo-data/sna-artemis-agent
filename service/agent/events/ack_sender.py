@@ -7,7 +7,7 @@ from threading import Condition, Thread
 from typing import Optional, List, Dict
 
 _CHECK_INTERVAL = 10  # check every 10 seconds if there's an ACK to send
-_DEFAULT_ACK_INTERVAL = (
+DEFAULT_ACK_INTERVAL_SECONDS = (
     45  # send the ack message if the task was not completed after this time
 )
 logger = logging.getLogger(__name__)
@@ -21,7 +21,7 @@ class PendingAckOperation:
 
 
 class AckSender:
-    def __init__(self, interval_seconds: int = _DEFAULT_ACK_INTERVAL):
+    def __init__(self, interval_seconds: int = DEFAULT_ACK_INTERVAL_SECONDS):
         """
         Sends ACK messages to the backend for received operations, after `interval_seconds`
         seconds, if the task was not completed before that time.
