@@ -30,11 +30,9 @@ class ResultsPublisher(QueueAsyncProcessor[AgentOperationResult]):
     def _handler_wrapper(self, result: AgentOperationResult):
         if result.query_id:
             logger.info(
-                f"Running results push: {result.operation_id}, query_id: {result.query_id}"
+                f"Running results push, operation: {result.operation_id}, query_id: {result.query_id}"
             )
         else:
             result_str = json.dumps(result.result)[:100]
-            logger.info(
-                f"Running results push: {result.operation_id}, result: {result_str}"
-            )
+            logger.info(f"Running results push, operation: {result.operation_id}")
         self._results_handler(result)

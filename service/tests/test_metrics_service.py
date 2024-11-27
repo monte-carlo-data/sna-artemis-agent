@@ -4,6 +4,7 @@ from unittest.mock import patch, create_autospec, Mock
 from requests import Response, HTTPError
 
 from agent.backend.backend_client import BackendClient
+from agent.events.ack_sender import AckSender
 from agent.events.base_receiver import BaseReceiver
 from agent.events.events_client import EventsClient
 from agent.events.heartbeat_checker import HeartbeatChecker
@@ -32,6 +33,7 @@ class MetricsServiceTests(TestCase):
             ops_runner=self._mock_ops_runner,
             results_publisher=self._mock_results_publisher,
             events_client=self._events_client,
+            ack_sender=create_autospec(AckSender),
         )
         self._service.start()
 

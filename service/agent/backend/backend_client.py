@@ -31,7 +31,7 @@ class BackendClient:
     @staticmethod
     @retry(tries=3, delay=1, backoff=2)
     def _push_results_with_retries(operation_id: str, result: Dict[str, Any]):
-        logger.info(f"Sending query results to backend")
+        logger.info(f"Sending query results to backend, operation_id: {operation_id}")
         results_url = urljoin(
             BACKEND_SERVICE_URL, f"/api/v1/agent/operations/{operation_id}/result"
         )
@@ -41,7 +41,6 @@ class BackendClient:
             },
             cls=AgentSerializer,
         )
-        logger.info(f"Sending result to backend: {result_str[:500]}")
         response = requests.post(
             results_url,
             data=result_str,
@@ -50,7 +49,9 @@ class BackendClient:
                 **get_mc_login_token(),
             },
         )
-        logger.info(f"Sent query results to backend, response: {response.status_code}")
+        logger.info(
+            f"Sent query results to backend, operation_id: {operation_id}, response: {response.status_code}"
+        )
 
     @classmethod
     def execute_operation(
