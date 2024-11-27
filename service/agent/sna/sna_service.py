@@ -13,6 +13,7 @@ from agent.sna.config.config_keys import (
     CONFIG_OPS_RUNNER_THREAD_COUNT,
     CONFIG_PUBLISHER_THREAD_COUNT,
     CONFIG_QUERIES_RUNNER_THREAD_COUNT,
+    CONFIG_IS_REMOTE_UPGRADABLE,
 )
 from agent.sna.logs_service import LogsService
 from agent.sna.metrics_service import MetricsService
@@ -49,6 +50,7 @@ _ATTR_NAME_RESPONSE_SIZE_LIMIT_BYTES = "response_size_limit_bytes"
 _ATTR_NAME_EVENTS = "events"
 _ATTR_NAME_PARAMETERS = "parameters"
 _ATTR_NAME_CONFIG = "config"
+_ATTR_NAME_ENV = "env"
 
 _ATTR_NAME_SIZE_EXCEEDED = "__mcd_size_exceeded__"
 
@@ -62,6 +64,8 @@ _DEFAULT_RESPONSE_SIZE_LIMIT_BYTES = (
     20000000  # 20Mb, the same default value we have on the DC side for Snowflake agents
 )
 
+_ENV_NAME_IS_REMOTE_UPGRADABLE = "MCD_AGENT_IS_REMOTE_UPGRADABLE"
+
 
 class OperationMatchingType(Enum):
     EQUALS = "equals"
@@ -74,6 +78,10 @@ class OperationMapping:
     method: Callable[[str, Dict[str, Any]], None]
     schedule: bool = False
     matching_type: OperationMatchingType = OperationMatchingType.EQUALS
+
+
+class SnowflakeAgentError(Exception):
+    pass
 
 
 class SnaService:
@@ -197,6 +205,12 @@ class SnaService:
     def health_information(self, trace_id: Optional[str] = None) -> Dict[str, Any]:
         health_info = utils.health_information(trace_id)
         health_info[_ATTR_NAME_PARAMETERS] = self._config_manager.get_all_values()
+        # update env to include the same env var other agent platforms use to report if they are remote upgradable
+        health_info[_ATTR_NAME_ENV][_ENV_NAME_IS_REMOTE_UPGRADABLE] = (
+            "true"
+            if self._config_manager.get_bool_value(CONFIG_IS_REMOTE_UPGRADABLE, True)
+            else "false"
+        )
         return health_info
 
     def run_reachability_test(self, trace_id: Optional[str] = None) -> Dict[str, Any]:
@@ -378,6 +392,10 @@ class SnaService:
         service.
         """
         try:
+            if not self._config_manager.get_bool_value(
+                CONFIG_IS_REMOTE_UPGRADABLE, True
+            ):
+                raise SnowflakeAgentError("Remote upgrades are disabled")
             operation = event.get(_ATTR_NAME_OPERATION, {})
             updates = operation.get(_ATTR_NAME_PARAMETERS, {})
             trace_id = operation.get(_ATTR_NAME_TRACE_ID, operation_id)
