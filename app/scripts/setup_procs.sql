@@ -1,6 +1,6 @@
 -- Stored procedure used to setup the application for the first time and also to update/restart the container service.
 -- This stored procedure will create the necessary resources for the application to run, including compute pool, warehouse and UDF functions.
-CREATE OR REPLACE PROCEDURE app_public.start_app(
+CREATE OR REPLACE PROCEDURE app_public.setup_app(
        min_nodes INT DEFAULT 2,
        max_nodes INT DEFAULT 2,
        family VARCHAR DEFAULT 'CPU_X64_XS',
@@ -79,7 +79,7 @@ BEGIN
   RETURN 'Service successfully created or updated';
 END;
 $$;
-GRANT USAGE ON PROCEDURE app_public.start_app(INT, INT, VARCHAR, VARCHAR, INT) TO APPLICATION ROLE app_admin;
+GRANT USAGE ON PROCEDURE app_public.setup_app(INT, INT, VARCHAR, VARCHAR, INT) TO APPLICATION ROLE app_admin;
 
 -- Stored procedure used to run queries using the reference defined in the manifest file,
 -- which uses the stored procedure defined in MCD_APP_HELPER.
@@ -146,6 +146,19 @@ BEGIN
 END;
 $$;
 GRANT USAGE ON PROCEDURE app_public.restart_service() TO APPLICATION ROLE app_admin;
+
+CREATE OR REPLACE PROCEDURE app_public.update_token(key_id VARCHAR, key_secret VARCHAR)
+RETURNS VARCHAR
+LANGUAGE SQL
+AS
+$$
+BEGIN
+    LET json_value VARCHAR := TO_JSON({'mcd_id': :key_id, 'mcd_token': :key_secret});
+    ALTER SECRET CORE.MCD_AGENT_TOKEN SET SECRET_STRING=:json_value;
+    RETURN 'Token updated';
+END;
+$$;
+GRANT USAGE ON PROCEDURE app_public.update_token(VARCHAR, VARCHAR) TO APPLICATION ROLE app_admin;
 
 -- Public stored procedures intended to be used from Snowsight for troubleshooting purposes.
 CREATE OR REPLACE PROCEDURE app_public.service_status()

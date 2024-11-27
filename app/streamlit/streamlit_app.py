@@ -43,13 +43,13 @@ def setup_connection():
         params=[json.dumps(key_json)],
     ).collect()
 
-    # restart the container
-    session.sql("CALL app_public.start_app();").collect()
+    # setup the app (if this is the first time it's called)
+    # for subsequent updates you might need to use `CALL app_public.restart_service();`
+    # to force the service to be restarted
+    session.sql("CALL app_public.setup_app();").collect()
 
     # show the updated status
-    st.success(
-        f"Token updated and container restarted, status: ({_get_container_status_text()})"
-    )
+    st.success(f"Token updated, status: ({_get_container_status_text()})")
 
 
 def reachability_test():
