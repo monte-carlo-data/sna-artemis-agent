@@ -5,7 +5,7 @@ from enum import Enum
 from typing import Dict, Tuple, Optional, Any, Callable
 
 from agent.backend.backend_client import BackendClient
-from agent.events.ack_sender import AckSender
+from agent.events.ack_sender import AckSender, DEFAULT_ACK_INTERVAL_SECONDS
 from agent.events.events_client import EventsClient
 from agent.events.sse_client_receiver import SSEClientReceiver
 from agent.sna.config.config_manager import ConfigurationManager
@@ -14,6 +14,7 @@ from agent.sna.config.config_keys import (
     CONFIG_PUBLISHER_THREAD_COUNT,
     CONFIG_QUERIES_RUNNER_THREAD_COUNT,
     CONFIG_IS_REMOTE_UPGRADABLE,
+    CONFIG_ACK_INTERVAL_SECONDS,
 )
 from agent.sna.logs_service import LogsService
 from agent.sna.metrics_service import MetricsService
@@ -128,7 +129,11 @@ class SnaService:
             handler=self._push_results,
             thread_count=config_manager.get_int_value(CONFIG_PUBLISHER_THREAD_COUNT, 1),
         )
-        self._ack_sender = ack_sender or AckSender()
+        self._ack_sender = ack_sender or AckSender(
+            interval_seconds=config_manager.get_int_value(
+                CONFIG_ACK_INTERVAL_SECONDS, DEFAULT_ACK_INTERVAL_SECONDS
+            )
+        )
         self._queries_service = queries_service or QueriesService(
             config_manager=config_manager
         )
