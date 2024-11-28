@@ -64,9 +64,9 @@ commands:
       - run:
           name: Replace Backend URL
           command: |
-            sed -i -e "s|<< parameters.backend_placeholder_host>>|${BACKEND_URL_HOST}|g" app/scripts/setup_procs.sql
+            sed -i -e "s|<< pipeline.parameters.backend_placeholder_host>>|${BACKEND_URL_HOST}|g" app/scripts/setup_procs.sql
             grep "host_ports" app/scripts/setup_procs.sql
-            sed -i -e "s|<< parameters.backend_placeholder_scheme >>://<< parameters.backend_placeholder_host >>|${BACKEND_URL_SCHEME}://${BACKEND_URL_HOST}|g" service/agent/utils/utils.py
+            sed -i -e "s|<< pipeline.parameters.backend_placeholder_scheme >>://<< pipeline.parameters.backend_placeholder_host >>|${BACKEND_URL_SCHEME}://${BACKEND_URL_HOST}|g" service/agent/utils/utils.py
             grep -2 "BACKEND_SERVICE_URL" service/agent/utils/utils.py
 
 jobs:
