@@ -103,6 +103,7 @@ jobs:
       - docker/check:
           use-docker-credentials-store: true
       - setup-snowflake-cli
+      - replace-backend-url
       - docker/build:
           step-name: Build service image
           path: service
@@ -140,7 +141,6 @@ jobs:
       image: ubuntu-2204:current
     steps:
       - checkout
-      - replace-backend-url
       - docker/build:
           path: service
           docker-context: service
@@ -172,8 +172,6 @@ workflows:
           filters:
             tags:
               only: /.*/
-          context:
-            - snowflake-app-dev
       - build-and-push-image:
           name: build-and-push-image-dev
           docker_hub_repository: prerelease-sna-agent
