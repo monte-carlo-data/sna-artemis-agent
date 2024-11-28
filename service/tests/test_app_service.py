@@ -2,7 +2,7 @@ import gzip
 import json
 from copy import deepcopy
 from unittest import TestCase
-from unittest.mock import create_autospec, patch, ANY
+from unittest.mock import create_autospec, patch, ANY, Mock
 
 from agent.events.ack_sender import AckSender
 from agent.events.base_receiver import BaseReceiver
@@ -81,7 +81,8 @@ class AppServiceTests(TestCase):
         self._mock_results_publisher.stop.assert_called_once()
         self._mock_events_client.stop.assert_called_once()
 
-    def test_query_execution(self):
+    @patch("requests.put")
+    def test_query_execution(self, mock_requests_put: Mock):
         events_client = EventsClient(
             receiver=create_autospec(BaseReceiver),
             heartbeat_checker=create_autospec(HeartbeatChecker),
@@ -116,6 +117,30 @@ class AppServiceTests(TestCase):
         self._mock_results_publisher.schedule_push_query_results.assert_called_once_with(
             "1234", "5678", operation_attrs
         )
+        # now simulate the publisher called its handler
+        query_result = {
+            ATTRIBUTE_NAME_RESULT: {
+                "all_results": [],
+                "description": [],
+                "rowcount": 0,
+            },
+        }
+        self._queries_service.result_for_query.return_value = query_result
+        service._push_results_for_query("1234", "5678", operation_attrs)
+        mock_requests_put.assert_called_once_with(
+            ANY,
+            data=ANY,
+            headers={
+                "Content-Type": "application/json",
+                "x-mcd-id": "local-token-id",
+                "x-mcd-token": "local-token-secret",
+            },
+        )
+        url = mock_requests_put.call_args[0][0]
+        self.assertTrue(url.endswith("/api/v1/agent/operations/1234/result"))
+        sent_data = mock_requests_put.call_args[1]["data"]
+        sent_dict = json.loads(sent_data)
+        self.assertEqual({"result": query_result}, sent_dict)
 
         # test query failed flow
         service.query_failed(
@@ -146,7 +171,8 @@ class AppServiceTests(TestCase):
             operation_attrs=operation_attrs,
         )
 
-    def test_query_execution_pre_signed_url(self):
+    @patch("requests.put")
+    def test_query_execution_pre_signed_url(self, mock_requests_put: Mock):
         events_client = EventsClient(
             receiver=create_autospec(BaseReceiver),
             heartbeat_checker=create_autospec(HeartbeatChecker),
@@ -212,6 +238,7 @@ class AppServiceTests(TestCase):
             },
             json.loads(saved_data),
         )
+        mock_requests_put.assert_called_once()
 
         # test compression now
         storage.reset_mock()
