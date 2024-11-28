@@ -155,6 +155,7 @@ jobs:
     steps:
       - checkout
       - setup-snowflake-cli
+      - replace-backend-url
       - run:
           name: Publish Snowflake app
           command: |
