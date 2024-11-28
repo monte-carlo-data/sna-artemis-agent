@@ -3,6 +3,14 @@ version: 2.1
 orbs:
   docker: circleci/docker@2.8.0
 
+parameters:
+  backend_placeholder_scheme:
+    type: string
+    default: "http"
+  backend_placeholder_host:
+    type: string
+    default: "mcd-orchestrator-test-nlb-9b478a23917fbdf9.elb.us-east-1.amazonaws.com:80"
+
 commands:
   verify-version-in-docker-image:
     parameters:
@@ -51,6 +59,15 @@ commands:
           snow connection test --temporary-connection
           snow spcs image-registry login --temporary-connection
         name: Setup Snowflake CLI
+  replace-backend-url:
+    steps:
+      - run:
+          name: Replace Backend URL
+          command: |
+            sed -i -e "s|<< pipeline.parameters.backend_placeholder_host>>|${BACKEND_URL_HOST}|g" app/scripts/setup_procs.sql
+            grep "host_ports" app/scripts/setup_procs.sql
+            sed -i -e "s|<< pipeline.parameters.backend_placeholder_scheme >>://<< pipeline.parameters.backend_placeholder_host >>|${BACKEND_URL_SCHEME}://${BACKEND_URL_HOST}|g" service/agent/utils/utils.py
+            grep -2 "BACKEND_SERVICE_URL" service/agent/utils/utils.py
 
 jobs:
   run-linter:
@@ -86,6 +103,7 @@ jobs:
       - docker/check:
           use-docker-credentials-store: true
       - setup-snowflake-cli
+      - replace-backend-url
       - docker/build:
           step-name: Build service image
           path: service
