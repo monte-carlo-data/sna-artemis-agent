@@ -25,5 +25,7 @@ class QueriesRunner(QueueAsyncProcessor[SnowflakeQuery]):
         )
 
     def _handler_wrapper(self, query: SnowflakeQuery):
-        logger.info(f"Running operation: {query.operation_id}, query: {query.query}")
+        logger.info(
+            f"Running operation: {query.operation_id}, query: {query.query[:500]}"
+        )
         self._queries_handler(query)
