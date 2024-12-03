@@ -12,7 +12,7 @@ from agent.utils.settings import VERSION, BUILD_NUMBER
 
 BACKEND_SERVICE_URL = os.getenv(
     "BACKEND_SERVICE_URL",
-    "http://mcd-orchestrator-test-nlb-9b478a23917fbdf9.elb.us-east-1.amazonaws.com:80",
+    "https://artemis.dev.getmontecarlo.com:443",
 )
 LOCAL = os.getenv("SNOWFLAKE_HOST") is None  # not running in Snowpark containers
 DEBUG = os.getenv("DEBUG", "false").lower() == "true"
