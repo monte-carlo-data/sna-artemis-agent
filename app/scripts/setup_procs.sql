@@ -191,7 +191,7 @@ AS $$
                 RETURN '{
                     "type": "CONFIGURATION",
                     "payload":{
-                      "host_ports": ["mcd-orchestrator-test-nlb-9b478a23917fbdf9.elb.us-east-1.amazonaws.com:80"]
+                      "host_ports": ["artemis.dev.getmontecarlo.com:443"]
                     }
                 }';
         END CASE;
