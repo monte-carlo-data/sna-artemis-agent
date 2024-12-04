@@ -124,7 +124,7 @@ class QueriesService:
 
     @staticmethod
     def _result_for_cursor(cursor: SnowflakeCursor) -> Dict[str, Any]:
-        return {
+        result = {
             ATTRIBUTE_NAME_RESULT: {
                 "all_results": cursor.fetchall(),
                 "description": cursor.description,
@@ -132,6 +132,7 @@ class QueriesService:
             },
             # ATTRIBUTE_NAME_TRACE_ID: trace_id,
         }
+        return result
 
     def _connect(self) -> SnowflakeConnection:
         if self._connection_pool:
@@ -165,10 +166,11 @@ class QueriesService:
                     logger.info(f"Sync query executed: {operation_id} {sql_query}")
                     return self._result_for_cursor(cur)
                 else:
+                    operation_json = query.operation_attrs.to_json()
                     execute_query = QUERY_EXECUTE_QUERY_WITH_HELPER.format(
                         timeout=timeout
                     )
-                    cur.execute_async(execute_query, [operation_id, sql_query])
+                    cur.execute_async(execute_query, [operation_json, sql_query])
                     logger.info(
                         f"Async query executed: {operation_id} {sql_query}, id: {cur.sfqid}"
                     )

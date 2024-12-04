@@ -1,7 +1,7 @@
 import logging
 from collections.abc import Callable
 from datetime import timedelta
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Union
 
 from agent.sna.config.config_manager import ConfigurationManager
 from agent.sna.queries_service import QueriesService
@@ -76,6 +76,21 @@ class StorageService:
                 ATTRIBUTE_NAME_ERROR: str(ex),
             }
         return result
+
+    def write(self, key: str, obj_to_write: Union[bytes, str]):
+        """
+        Saves the specified contents to the file at `key`.
+        """
+        self._client.write(key=key, obj_to_write=obj_to_write)
+
+    def generate_presigned_url(self, key: str, expiration_seconds: int) -> str:
+        """
+        Generates a pre-signed URL for the specified key.
+        """
+        return self._client.generate_presigned_url(
+            key=key,
+            expiration=timedelta(seconds=expiration_seconds),
+        )
 
     @staticmethod
     def _get_error_type(error: Exception) -> Optional[str]:

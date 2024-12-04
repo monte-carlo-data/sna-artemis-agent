@@ -13,6 +13,10 @@ CONFIG_PUBLISHER_THREAD_COUNT = "PUBLISHER_THREAD_COUNT"
 CONFIG_USE_SYNC_QUERIES = "USE_SYNC_QUERIES"
 # name of the stage to use to store files
 CONFIG_STAGE_NAME = "STAGE_NAME"
+# expiration seconds for pre-signed urls used for responses
+CONFIG_PRE_SIGNED_URL_RESPONSE_EXPIRATION_SECONDS = (
+    "PRE_SIGNED_URL_RESPONSE_EXPIRATION_SECONDS"
+)
 # whether the agent accepts config changes remotely or not
 CONFIG_IS_REMOTE_UPGRADABLE = "IS_REMOTE_UPGRADABLE"
 # interval to send ACK messages in seconds

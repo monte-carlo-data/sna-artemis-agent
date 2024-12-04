@@ -1,8 +1,8 @@
 import json
 import logging
-from typing import Tuple, Callable, Any, Dict
+from typing import Tuple, Callable, Any, Dict, Optional
 
-from agent.sna.operation_result import AgentOperationResult
+from agent.sna.operation_result import AgentOperationResult, OperationAttributes
 from agent.utils.queue_async_processor import QueueAsyncProcessor
 
 logger = logging.getLogger(__name__)
@@ -25,13 +25,30 @@ class ResultsPublisher(QueueAsyncProcessor[AgentOperationResult]):
             thread_count=thread_count,
         )
 
-    def schedule_push_query_results(self, operation_id: str, query_id: str):
+    def schedule_push_query_results(
+        self, operation_id: str, query_id: str, operation_attrs: OperationAttributes
+    ):
         self.schedule(
-            AgentOperationResult(operation_id=operation_id, query_id=query_id)
+            AgentOperationResult(
+                operation_id=operation_id,
+                query_id=query_id,
+                operation_attrs=operation_attrs,
+            )
         )
 
-    def schedule_push_results(self, operation_id: str, result: Dict[str, Any]):
-        self.schedule(AgentOperationResult(operation_id=operation_id, result=result))
+    def schedule_push_results(
+        self,
+        operation_id: str,
+        result: Dict[str, Any],
+        operation_attrs: Optional[OperationAttributes] = None,
+    ):
+        self.schedule(
+            AgentOperationResult(
+                operation_id=operation_id,
+                result=result,
+                operation_attrs=operation_attrs,
+            )
+        )
 
     def _handler_wrapper(self, result: AgentOperationResult):
         if result.query_id:
