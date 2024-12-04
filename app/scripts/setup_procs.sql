@@ -191,7 +191,7 @@ AS $$
                 RETURN '{
                     "type": "CONFIGURATION",
                     "payload":{
-                      "host_ports": ["artemis.dev.getmontecarlo.com:443"]
+                      "host_ports": ["artemis.getmontecarlo.com:443"]
                     }
                 }';
         END CASE;
