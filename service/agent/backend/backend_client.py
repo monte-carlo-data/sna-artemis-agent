@@ -41,7 +41,7 @@ class BackendClient:
             },
             cls=AgentSerializer,
         )
-        response = requests.post(
+        response = requests.put(
             results_url,
             data=result_str,
             headers={
