@@ -6,10 +6,10 @@ orbs:
 parameters:
   backend_placeholder_scheme:
     type: string
-    default: "http"
+    default: "https"
   backend_placeholder_host:
     type: string
-    default: "mcd-orchestrator-test-nlb-9b478a23917fbdf9.elb.us-east-1.amazonaws.com:80"
+    default: "artemis.getmontecarlo.com:443"
 
 commands:
   verify-version-in-docker-image:
