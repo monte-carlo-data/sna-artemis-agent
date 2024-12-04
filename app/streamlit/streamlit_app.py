@@ -97,7 +97,8 @@ def main():
     st.header("Monte Carlo Agent")
 
     st.write(
-        "Welcome to the Monte Carlo SNA Agent, see documentation [here](https://docs.getmontecarlo.com) for details."
+        "Welcome to the Monte Carlo SNA Agent, see documentation "
+        "[here](https://docs.getmontecarlo.com/docs/sna-agent-deployment) for details."
     )
     buttons_container = st.container(border=True)
     status_container = st.container()
