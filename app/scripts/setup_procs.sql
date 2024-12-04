@@ -43,19 +43,7 @@ BEGIN
       EXTERNAL_ACCESS_INTEGRATIONS=(reference('monte_carlo_external_access'))
       FROM spec='service/mcd_agent_spec.yaml';
 
-   -- UDF functions used from the Streamlit application
-   CREATE OR REPLACE FUNCTION core.fetch_metrics ()
-      RETURNS varchar
-      SERVICE=core.mcd_agent_service
-      ENDPOINT='mcd-agent-endpoint'
-      AS '/api/v1/test/metrics';
-
-   CREATE OR REPLACE FUNCTION core.health_check()
-      RETURNS varchar
-      SERVICE=core.mcd_agent_service
-      ENDPOINT='mcd-agent-endpoint'
-      AS '/api/v1/test/health';
-
+  -- UDF functions used from the Streamlit application
   CREATE OR REPLACE FUNCTION core.reachability_test()
       RETURNS varchar
       SERVICE=core.mcd_agent_service
