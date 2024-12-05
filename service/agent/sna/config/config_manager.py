@@ -7,6 +7,9 @@ class ConfigurationManager:
     def __init__(self, persistence: ConfigurationPersistence):
         self._persistence = persistence
 
+    def get_optional_str_value(self, key: str) -> Optional[str]:
+        return self._get_value(key)
+
     def get_str_value(self, key: str, default_value: str) -> str:
         return self._get_value(key) or default_value
 
