@@ -52,6 +52,7 @@ _ATTR_NAME_EVENTS = "events"
 _ATTR_NAME_PARAMETERS = "parameters"
 _ATTR_NAME_CONFIG = "config"
 _ATTR_NAME_ENV = "env"
+_ATTR_NAME_JOB_TYPE = "job_type"
 
 _ATTR_NAME_SIZE_EXCEEDED = "__mcd_size_exceeded__"
 
@@ -443,6 +444,7 @@ class SnaService:
                         _ATTR_NAME_RESPONSE_SIZE_LIMIT_BYTES,
                         _DEFAULT_RESPONSE_SIZE_LIMIT_BYTES,
                     ),
+                    job_type=operation.get(_ATTR_NAME_JOB_TYPE),
                     trace_id=operation.get(_ATTR_NAME_TRACE_ID) or str(uuid.uuid4()),
                 ),
             )
@@ -535,7 +537,7 @@ class SnaService:
         Invoked by results publisher to push results for a query
         """
         try:
-            result = self._queries_service.result_for_query(query_id)
+            result = self._queries_service.result_for_query(query_id, operation_attrs)
             self._push_backend_results(operation_id, result, operation_attrs)
         except Exception as ex:
             logger.error(f"Failed to push results for query: {query_id}, error: {ex}")

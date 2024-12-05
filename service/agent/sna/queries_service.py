@@ -1,7 +1,9 @@
 import logging
 from contextlib import closing
+from dataclasses import dataclass
 from typing import Dict, Any, Optional, Tuple, List
 
+from dataclasses_json import DataClassJsonMixin
 from snowflake.connector import (
     DatabaseError,
     ProgrammingError,
@@ -16,7 +18,11 @@ from agent.sna.config.config_keys import (
     CONFIG_CONNECTION_POOL_SIZE,
     CONFIG_USE_CONNECTION_POOL,
     CONFIG_USE_SYNC_QUERIES,
+    CONFIG_WAREHOUSE_NAME,
+    DEFAULT_WAREHOUSE_NAME,
+    CONFIG_JOB_TYPES,
 )
+from agent.sna.operation_result import OperationAttributes
 from agent.sna.sf_connection import create_connection
 from agent.sna.sf_queries import (
     QUERY_EXECUTE_QUERY_WITH_HELPER,
@@ -55,6 +61,20 @@ _PROGRAMMING_ERRORS = [
 # connections to be created if needed (they will be immediately closed after being used).
 _DEFAULT_CONNECTION_POOL_SIZE = 3
 
+_DEFAULT_CONNECTION_POOL_KEY = "default"
+
+
+@dataclass
+class JobTypeConfiguration(DataClassJsonMixin):
+    job_type: str
+    warehouse_name: str
+    pool_size: Optional[int] = None
+
+
+@dataclass
+class JobTypesConfiguration(DataClassJsonMixin):
+    job_types: List[JobTypeConfiguration]
+
 
 class QueriesService:
     """
@@ -72,18 +92,25 @@ class QueriesService:
             CONFIG_USE_SYNC_QUERIES, False
         )
 
-        self._connection_pool = (
-            self._create_connection_pool(
-                pool_size=self._config_manager.get_int_value(
-                    CONFIG_CONNECTION_POOL_SIZE, _DEFAULT_CONNECTION_POOL_SIZE
-                ),
-            )
+        self._connection_pools: Optional[Dict[str, QueuePool]] = (
+            {
+                _DEFAULT_CONNECTION_POOL_KEY: self._create_connection_pool(
+                    pool_size=self._config_manager.get_int_value(
+                        CONFIG_CONNECTION_POOL_SIZE, _DEFAULT_CONNECTION_POOL_SIZE
+                    ),
+                    warehouse_name=self._get_default_warehouse_name(),
+                )
+            }
             if self._config_manager.get_bool_value(CONFIG_USE_CONNECTION_POOL, True)
             else None
         )
+        if self._connection_pools:
+            self._create_job_types_connection_pools()
 
-    def result_for_query(self, query_id: str) -> Dict[str, Any]:
-        with self._connect() as conn:
+    def result_for_query(
+        self, query_id: str, operation_attrs: OperationAttributes
+    ) -> Dict[str, Any]:
+        with self._connect(operation_attrs.job_type) as conn:
             with conn.cursor() as cur:
                 conn.get_query_status_throw_if_error(query_id)
                 cur.get_results_from_sfqid(query_id)
@@ -134,13 +161,13 @@ class QueriesService:
         }
         return result
 
-    def _connect(self) -> SnowflakeConnection:
-        if self._connection_pool:
+    def _connect(self, job_type: Optional[str] = None) -> SnowflakeConnection:
+        if connection_pool := self._get_connection_pool(job_type):
             # connections returned by SQLAlchemy's pool doesn't support context manager protocol
             # so we wrap them with "closing" to support it
-            return closing(self._connection_pool.connect())  # type: ignore
+            return closing(connection_pool.connect())  # type: ignore
         else:
-            return create_connection()
+            return create_connection(self._get_default_warehouse_name())
 
     def run_query_async(self, query: str) -> Optional[str]:
         with self._connect() as conn:
@@ -152,7 +179,7 @@ class QueriesService:
         timeout = query.timeout or 850
         operation_id = query.operation_id
         sql_query = query.query
-        with self._connect() as conn:
+        with self._connect(query.operation_attrs.job_type) as conn:
             with conn.cursor() as cur:
                 if self._direct_sync_queries:
                     cur.execute(sql_query)
@@ -187,7 +214,7 @@ class QueriesService:
     @staticmethod
     def result_for_exception(ex: Exception) -> Dict:
         result: Dict[str, Any] = {
-            ATTRIBUTE_NAME_ERROR: str(ex),
+            ATTRIBUTE_NAME_ERROR: str(ex) or f"Unknown error: {type(ex).__name__}",
         }
         if isinstance(ex, DatabaseError):
             result[ATTRIBUTE_NAME_ERROR_ATTRS] = {
@@ -201,10 +228,19 @@ class QueriesService:
 
         return result
 
+    def _get_default_warehouse_name(self) -> str:
+        return self._config_manager.get_str_value(
+            CONFIG_WAREHOUSE_NAME, DEFAULT_WAREHOUSE_NAME
+        )
+
+    def _get_job_type_warehouse_name(self, job_type: str) -> Optional[str]:
+        config_key = f"{CONFIG_WAREHOUSE_NAME}_{job_type.upper()}"
+        return self._config_manager.get_optional_str_value(config_key)
+
     @staticmethod
-    def _create_connection_pool(pool_size: int) -> Optional[QueuePool]:
+    def _create_connection_pool(pool_size: int, warehouse_name: str) -> QueuePool:
         return QueuePool(
-            create_connection,  # type: ignore
+            lambda: create_connection(warehouse_name),  # type: ignore
             dialect=SnowflakeDialect(),
             pool_size=pool_size,
             max_overflow=-1,
@@ -215,3 +251,44 @@ class QueriesService:
             pre_ping=True,
             # test the connection before using it, it uses "SELECT 1" for Snowflake
         )
+
+    def _get_connection_pool(self, job_type: Optional[str]) -> Optional[QueuePool]:
+        if self._connection_pools:
+            connection_pool = self._connection_pools.get(job_type) if job_type else None
+            if connection_pool:
+                logger.info(f"Using custom connection pool for job type: {job_type}")
+                return connection_pool
+            else:
+                if job_type:
+                    logger.info(
+                        f"Using default connection pool for job type: {job_type}"
+                    )
+                return self._connection_pools[_DEFAULT_CONNECTION_POOL_KEY]
+        return None
+
+    def _create_job_types_connection_pools(self):
+        job_types_config_str = self._config_manager.get_optional_str_value(
+            CONFIG_JOB_TYPES
+        )
+        if not self._connection_pools or not job_types_config_str:
+            return
+        try:
+            job_types_config = JobTypesConfiguration.from_json(job_types_config_str)
+        except Exception as ex:
+            logger.error(f"Failed to parse Job types configuration: {ex}")
+            return
+
+        default_connection_pool_size = self._config_manager.get_int_value(
+            CONFIG_CONNECTION_POOL_SIZE, _DEFAULT_CONNECTION_POOL_SIZE
+        )
+        for job_type_config in job_types_config.job_types:
+            job_type = job_type_config.job_type
+            warehouse_name = job_type_config.warehouse_name
+            pool_size = job_type_config.pool_size or default_connection_pool_size
+            self._connection_pools[job_type] = self._create_connection_pool(
+                pool_size=pool_size,
+                warehouse_name=warehouse_name,
+            )
+            logger.info(
+                f"Created connection pool for job type: {job_type} with warehouse: {warehouse_name}, size: {pool_size}"
+            )
