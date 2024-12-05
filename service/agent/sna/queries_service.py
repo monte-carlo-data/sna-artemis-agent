@@ -254,13 +254,16 @@ class QueriesService:
 
     def _get_connection_pool(self, job_type: Optional[str]) -> Optional[QueuePool]:
         if self._connection_pools:
-            return (
-                self._connection_pools.get(
-                    job_type, self._connection_pools[_DEFAULT_CONNECTION_POOL_KEY]
-                )
-                if job_type
-                else self._connection_pools[_DEFAULT_CONNECTION_POOL_KEY]
-            )
+            connection_pool = self._connection_pools.get(job_type) if job_type else None
+            if connection_pool:
+                logger.info(f"Using custom connection pool for job type: {job_type}")
+                return connection_pool
+            else:
+                if job_type:
+                    logger.info(
+                        f"Using default connection pool for job type: {job_type}"
+                    )
+                return self._connection_pools[_DEFAULT_CONNECTION_POOL_KEY]
         return None
 
     def _create_job_types_connection_pools(self):
