@@ -1,0 +1,20 @@
+required_compute_pools:
+  - COMPUTE_POOL:
+      label: "Compute pool"
+      description: "A compute pool for computational tasks."
+      compatible_instance_families:
+        - CPU_X64_XS
+        - CPU_X64_S
+        - CPU_X64_M
+        - CPU_X64_L
+        - HIGHMEM_X64_S
+        - HIGHMEM_X64_M
+        - HIGHMEM_X64_L
+        - HIGHMEM_X64_SL
+connections:
+  - MONTE_CARLO:
+     label: "Monte Carlo"
+     description: "Monte Carlo platform connection"
+     required: true
+     endpoints:
+       - "artemis.getmontecarlo.com"
