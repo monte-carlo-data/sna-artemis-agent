@@ -21,3 +21,9 @@ CONFIG_PRE_SIGNED_URL_RESPONSE_EXPIRATION_SECONDS = (
 CONFIG_IS_REMOTE_UPGRADABLE = "IS_REMOTE_UPGRADABLE"
 # interval to send ACK messages in seconds
 CONFIG_ACK_INTERVAL_SECONDS = "ACK_INTERVAL_SECONDS"
+# name of the warehouse to use to execute queries
+CONFIG_WAREHOUSE_NAME = "WAREHOUSE_NAME"
+# JSON string with job types configuration mapping job types to warehouses and configuring pool size
+CONFIG_JOB_TYPES = "JOB_TYPES"
+
+DEFAULT_WAREHOUSE_NAME = "MCD_AGENT_WH"
