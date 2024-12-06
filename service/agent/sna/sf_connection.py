@@ -15,15 +15,11 @@ def create_connection(warehouse_name: str):
             paramstyle="qmark",
         )
     else:  # running locally
-        try:
-            return snowflake_connect(
-                account=os.getenv("SNOWFLAKE_ACCOUNT"),
-                warehouse=warehouse_name,
-                paramstyle="qmark",
-                user=os.getenv("SNOWFLAKE_USER"),
-                private_key_file=os.getenv("SNOWFLAKE_PRIVATE_KEY_FILE"),
-                role=os.getenv("SNOWFLAKE_ROLE"),
-            )
-        except Exception as ex:
-            print(ex)
-            raise
+        return snowflake_connect(
+            account=os.getenv("SNOWFLAKE_ACCOUNT"),
+            warehouse=warehouse_name,
+            paramstyle="qmark",
+            user=os.getenv("SNOWFLAKE_USER"),
+            private_key_file=os.getenv("SNOWFLAKE_PRIVATE_KEY_FILE"),
+            role=os.getenv("SNOWFLAKE_ROLE"),
+        )
