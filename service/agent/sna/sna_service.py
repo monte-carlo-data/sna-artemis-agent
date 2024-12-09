@@ -52,7 +52,7 @@ _ATTR_NAME_EVENTS = "events"
 _ATTR_NAME_PARAMETERS = "parameters"
 _ATTR_NAME_CONFIG = "config"
 _ATTR_NAME_ENV = "env"
-_ATTR_NAME_KEY_ID = "key_id"
+_ATTR_NAME_KEY_ID = "authentication_key_id"
 _ATTR_NAME_JOB_TYPE = "job_type"
 
 _ATTR_NAME_SIZE_EXCEEDED = "__mcd_size_exceeded__"
