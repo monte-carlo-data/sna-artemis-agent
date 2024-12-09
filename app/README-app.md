@@ -1,6 +1,6 @@
 # Monte Carlo Data Collector - Snowflake Artemis Agent - Streamlit application
 
-Monte Carlo's [SNA agent](https://docs.getmontecarlo.com/docs/sna-agent-deployment).
+Monte Carlo's [SNA agent](https://hub.docker.com/r/montecarlodata/sna-agent).
 See [here](https://docs.getmontecarlo.com/docs/platform-architecture) for architecture details and alternative deployment options.
 
 ## Permissions
@@ -65,11 +65,10 @@ You'll need to execute [this script](https://raw.githubusercontent.com/monte-car
     - `MCD_AGENT_EXECUTE_QUERY` stored procedure used to execute queries on behalf of `MCD_AGENT_ROLE`.
     - This stored procedure is used to avoid a limitation with Snowflake Applications (not being able to grant `FUTURE GRANTS` to them).
     - Accessing future objects and retain existing permissions on re-created objects is critical for Monte Carlo’s observability features.
-    - For more information, see [FAQ for the Snowflake Agent](https://docs.getmontecarlo.com/docs/sna-agent-deployment#faqs).
 
 Additionally, the following objects will be created in the application's database:
 - `CORE.MCD_AGENT_TOKEN`: Secret object used to store the authentication token to Monte Carlo platform.
-- `CORE.DATA_STORE`: Internal stage used to store data when the response exceeds a given threshold or for some Monte Carlo features like data sampling.
+- `CORE.DATA_STORE`: Internal stage used to store data when the response exceeds a given threshold or for some Monte Carlo features like [data sampling](https://docs.getmontecarlo.com/docs/data-sampling).
 - `CORE.EXECUTE_HELPER_QUERY`: A stored procedure used to invoke the helper stored procedure using references.
 - `APP_PUBLIC.SUSPEND_SERVICE`, `APP_PUBLIC.RESUME_SERVICE`, `APP_PUBLIC.RESTART_SERVICE`: Stored procedures used to suspend, resume and restart the service.
 - `APP_PUBLIC.UPDATE_TOKEN`: Stored procedure used to update the token in the secret.
@@ -84,8 +83,13 @@ Additionally, the following objects will be created in the application's databas
   - `CORE.QUERY_COMPLETED`: Used to notify the container that an async query has completed successfully.
   - `CORE.QUERY_FAILED`: Used to notify the container that an async query has completed unsuccessfully. 
 
-Please note the source code for the application is public, so you can inspect the scripts used to the create all these objects here: https://github.com/monte-carlo-data/sna-artemis-agent
+Please note that the source code for the application is public, so you can inspect the scripts used to create all these objects here: https://github.com/monte-carlo-data/sna-artemis-agent.
 
+Furthermore, to learn more about the information Monte Carlo collects, please see here: https://docs.getmontecarlo.com/docs/security#information-monte-carlo-collects.
+
+FAQs on the SNA deployment and usage can be found here: https://docs.getmontecarlo.com/docs/sna-agent-deployment#faqs
+
+Other Monte Carlo docs can be found here: https://docs.getmontecarlo.com/
 - --
 
 ## Setup code
@@ -118,11 +122,13 @@ The only configuration required is the authentication credentials that will be u
   - Grant access to the external access integration.
   - Launch the application
 - Click "Update Token":
-  - Enter the Key ID and Secret you got from Monte Carlo and click on "Update Token".
+  - Enter the Key ID and Secret you got from Monte Carlo and click on "Update Token". To learn more about how to generate a Monte Carlo key, see here: https://docs.getmontecarlo.com/docs/sna-agent-deployment.
   - This will save the credentials in a Snowflake secret and start the Snowpark Container Service used by the application.
 - Click on "Container Status", it will take a few minutes for the container to be available.
 - Once the container status is "Ready", the agent is ready to be used.
 - You can use the "Reachability Test" button to check connectivity with Monte Carlo cloud services using the provided credentials.
+
+The docs found here demonstrates this process with screenshots and other details: https://docs.getmontecarlo.com/docs/sna-agent-deployment.
 
 ## Usage Snippets
 ### Restart the Service:
@@ -131,9 +137,14 @@ CALL MCD_AGENT.APP_PUBLIC.RESTART_SERVICE();
 ```
 
 ### Update the token
+You can update the token from the Streamlit UI, using the "Update Token" button.
+
+If you want to use SQL you can run this query:
 ```sql
 CALL MCD_AGENT.APP_PUBLIC.UPDATE_TOKEN('KEY_ID', 'KEY_SECRET');
 ```
+In both cases you need to [restart the service](#restart-the-service) for the new token to be used:
+
 
 ### Update the warehouse size
 ```sql
