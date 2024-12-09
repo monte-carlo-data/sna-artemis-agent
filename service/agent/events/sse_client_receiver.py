@@ -78,8 +78,8 @@ class SSEClientReceiver(BaseReceiver):
     def _connect_and_consume_events(self, loop_id: str):
         try:
             mc_login_token = get_mc_login_token()
-            token_key = mc_login_token.get(X_MCD_ID)
-            logger.info(f"Connecting SSE Client, using token key={token_key} ...")
+            token_id = mc_login_token.get(X_MCD_ID)
+            logger.info(f"Connecting SSE Client, using token ID={token_id} ...")
             url = urljoin(self._base_url, f"/stream")
             headers = {
                 "Accept": "text/event-stream",
