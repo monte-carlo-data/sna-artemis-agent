@@ -34,7 +34,7 @@ from agent.utils.serde import (
     decode_dictionary,
 )
 from agent.utils.settings import VERSION, BUILD_NUMBER
-from agent.utils.utils import BACKEND_SERVICE_URL
+from agent.utils.utils import BACKEND_SERVICE_URL, get_mc_login_token, X_MCD_ID
 
 logger = logging.getLogger(__name__)
 
@@ -52,6 +52,7 @@ _ATTR_NAME_EVENTS = "events"
 _ATTR_NAME_PARAMETERS = "parameters"
 _ATTR_NAME_CONFIG = "config"
 _ATTR_NAME_ENV = "env"
+_ATTR_NAME_KEY_ID = "key_id"
 _ATTR_NAME_JOB_TYPE = "job_type"
 
 _ATTR_NAME_SIZE_EXCEEDED = "__mcd_size_exceeded__"
@@ -217,6 +218,7 @@ class SnaService:
             if self._config_manager.get_bool_value(CONFIG_IS_REMOTE_UPGRADABLE, True)
             else "false"
         )
+        health_info[_ATTR_NAME_KEY_ID] = get_mc_login_token().get(X_MCD_ID)
         return health_info
 
     def run_reachability_test(self, trace_id: Optional[str] = None) -> Dict[str, Any]:
