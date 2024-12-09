@@ -4,9 +4,7 @@ Monte Carlo's [SNA agent](https://docs.getmontecarlo.com/docs/sna-agent-deployme
 See [here](https://docs.getmontecarlo.com/docs/platform-architecture) for architecture details and alternative deployment options.
 
 ## Permissions
-<!-- do not delete text--> In the setup guide, you'll be asked to grant additional privileges from your account.
-
-<!-- List out any additional global and object privileges requested in the setup code that are not listed in the manifest-->
+In the setup guide, you'll be asked to grant additional privileges from your account.
 
 ### Account level privileges
 
@@ -59,7 +57,7 @@ Read-only access to query future objects.
 
 ## Object creation
 
-<!-- do not delete text--> In the setup guide, you'll be asked to create the following object(s) in your account.
+In the setup guide, you'll be asked to create the following object(s) in your account.
 
 You'll need to execute [this script](https://raw.githubusercontent.com/monte-carlo-data/sna-artemis-agent/refs/heads/main/scripts/setup_app.sql), which will create the following objects:
 - `MCD_AGENT_ROLE`: role used to execute queries.
