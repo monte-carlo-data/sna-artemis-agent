@@ -9,7 +9,7 @@ import sseclient
 from retry import retry
 
 from agent.events.base_receiver import BaseReceiver
-from agent.utils.utils import get_mc_login_token
+from agent.utils.utils import get_mc_login_token, X_MCD_ID
 
 logger = logging.getLogger(__name__)
 
@@ -77,11 +77,13 @@ class SSEClientReceiver(BaseReceiver):
     )
     def _connect_and_consume_events(self, loop_id: str):
         try:
-            logger.info("Connecting SSE Client ...")
+            mc_login_token = get_mc_login_token()
+            token_key = mc_login_token.get(X_MCD_ID)
+            logger.info(f"Connecting SSE Client, using token key={token_key} ...")
             url = urljoin(self._base_url, f"/stream")
             headers = {
                 "Accept": "text/event-stream",
-                **get_mc_login_token(),
+                **mc_login_token,
             }
             self._sse_client = sseclient.SSEClient(url, headers=headers)
             if self._connected_handler:

@@ -17,7 +17,7 @@ BACKEND_SERVICE_URL = os.getenv(
 LOCAL = os.getenv("SNOWFLAKE_HOST") is None  # not running in Snowpark containers
 DEBUG = os.getenv("DEBUG", "false").lower() == "true"
 
-_X_MCD_ID = "x-mcd-id"
+X_MCD_ID = "x-mcd-id"
 _X_MCD_TOKEN = "x-mcd-token"
 _MCD_ID_ATTR = "mcd_id"
 _MCD_TOKEN_ATTR = "mcd_token"
@@ -47,12 +47,13 @@ def init_logging():
         level=logging.DEBUG if DEBUG else logging.INFO,
         format="[%(asctime)s] %(levelname)s:%(name)s: %(message)s",
     )
+    logging.getLogger("snowflake.connector.cursor").setLevel(logging.WARNING)
 
 
 def get_mc_login_token() -> Dict[str, str]:
     if LOCAL:
         return {
-            _X_MCD_ID: _LOCAL_TOKEN_ID,
+            X_MCD_ID: _LOCAL_TOKEN_ID,
             _X_MCD_TOKEN: _LOCAL_TOKEN_SECRET,
         }
     if os.path.exists(_SECRET_STRING_PATH):
@@ -62,7 +63,7 @@ def get_mc_login_token() -> Dict[str, str]:
             key_json = json.loads(key_str)
             if _MCD_ID_ATTR in key_json and _MCD_TOKEN_ATTR in key_json:
                 return {
-                    _X_MCD_ID: key_json[_MCD_ID_ATTR],
+                    X_MCD_ID: key_json[_MCD_ID_ATTR],
                     _X_MCD_TOKEN: key_json[_MCD_TOKEN_ATTR],
                 }
             else:
@@ -73,7 +74,7 @@ def get_mc_login_token() -> Dict[str, str]:
         logger.warning("No token file found")
 
     return {
-        _X_MCD_ID: _NO_TOKEN_ID,
+        X_MCD_ID: _NO_TOKEN_ID,
         _X_MCD_TOKEN: _NO_TOKEN_SECRET,
     }
 
