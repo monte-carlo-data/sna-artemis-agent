@@ -195,6 +195,7 @@ workflows:
             - snowflake-app-dev
           requires:
             - run-test-docker
+            - build-and-push-image-dev
           filters:
             branches:
               only:
@@ -231,6 +232,7 @@ workflows:
           name: publish-snowflake-app-prod
           requires:
             - run-test-docker
+            - build-and-push-image-prod
           context:
             - snowflake-app-prod
           filters: # run only for tags starting with v, don't run for branches
