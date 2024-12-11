@@ -9,7 +9,7 @@ class LogsService:
 
     def get_logs(self, limit: int) -> List[Dict[str, Any]]:
         logs, _ = self._queries_service.run_query_and_fetch_all(
-            "CALL mcd_agent.app_public.service_logs(?)", [limit]
+            "CALL APP_PUBLIC.SERVICE_LOGS(?)", [limit]
         )
         return self._parse_logs(logs)
 

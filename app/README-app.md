@@ -131,9 +131,10 @@ The only configuration required is the authentication credentials that will be u
 The docs found here demonstrates this process with screenshots and other details: https://docs.getmontecarlo.com/docs/sna-agent-deployment.
 
 ## Usage Snippets
+`<APP_NAME>` is the name of the application database (which matches the name of the application), for development environments this is `MCD_AGENT`.
 ### Restart the Service:
 ```sql
-CALL MCD_AGENT.APP_PUBLIC.RESTART_SERVICE();
+CALL <APP_NAME>.APP_PUBLIC.RESTART_SERVICE();
 ```
 
 ### Update the token
@@ -141,18 +142,18 @@ You can update the token from the Streamlit UI, using the "Update Token" button.
 
 If you want to use SQL you can run this query:
 ```sql
-CALL MCD_AGENT.APP_PUBLIC.UPDATE_TOKEN('KEY_ID', 'KEY_SECRET');
+CALL <APP_NAME>.APP_PUBLIC.UPDATE_TOKEN('KEY_ID', 'KEY_SECRET');
 ```
 In both cases you need to [restart the service](#restart-the-service) for the new token to be used:
 
 
 ### Update the warehouse size
 ```sql
-CALL MCD_AGENT.APP_PUBLIC.SETUP_APP(wh_size => 'small')
+CALL <APP_NAME>.APP_PUBLIC.SETUP_APP(wh_size => 'small')
 ```
 
 ### Get service logs
 ```sql
-CALL MCD_AGENT.APP_PUBLIC.SERVICE_LOGS(500);
+CALL <APP_NAME>.APP_PUBLIC.SERVICE_LOGS(500);
 ```
 
