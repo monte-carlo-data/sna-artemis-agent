@@ -1,11 +1,12 @@
 import logging
+import os
 import socket
 from typing import List
 
 import requests
 from requests import HTTPError
 
-from agent.utils.utils import LOCAL
+from agent.utils.utils import LOCAL, get_application_name
 
 logger = logging.getLogger(__name__)
 
@@ -29,10 +30,12 @@ class SnowparkMetricsService:
         request metrics for each IP address from http://<IP_ADDRESS>:9001/metrics.
         """
 
-        discover_host_name = (
-            "discover.monitor.mcd_agent_compute_pool.snowflakecomputing.internal"
-        )
-        lookup_result = socket.getaddrinfo(discover_host_name, 80)
+        discover_host_name = f"discover.monitor.{get_application_name()}_compute_pool.snowflakecomputing.internal"
+        try:
+            lookup_result = socket.getaddrinfo(discover_host_name, 80)
+        except Exception as ex:
+            logger.error(f"Failed to resolve {discover_host_name}: {ex}")
+            return []
         addresses = set([addr[4][0] for addr in lookup_result])
 
         logger.info(f"{discover_host_name} resolves to: {addresses}")
