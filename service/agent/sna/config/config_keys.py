@@ -25,5 +25,3 @@ CONFIG_ACK_INTERVAL_SECONDS = "ACK_INTERVAL_SECONDS"
 CONFIG_WAREHOUSE_NAME = "WAREHOUSE_NAME"
 # JSON string with job types configuration mapping job types to warehouses and configuring pool size
 CONFIG_JOB_TYPES = "JOB_TYPES"
-
-DEFAULT_WAREHOUSE_NAME = "MCD_AGENT_WH"

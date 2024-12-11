@@ -2,10 +2,10 @@ import logging
 import os
 from typing import Optional, Dict
 
-from agent.sna.config.config_keys import DEFAULT_WAREHOUSE_NAME
 from agent.sna.config.config_persistence import ConfigurationPersistence
 from agent.sna.sf_connection import create_connection
 from agent.sna.sf_queries import QUERY_LOAD_CONFIG, QUERY_UPDATE_CONFIG
+from agent.utils.utils import get_application_name
 
 _CONFIG_TABLE_NAME = os.getenv("CONFIG_TABLE_NAME", "CONFIG.APP_CONFIG")
 
@@ -45,4 +45,4 @@ class DbConfig(ConfigurationPersistence):
 
     @staticmethod
     def _get_config_warehouse_name() -> str:
-        return os.getenv("SNA_WAREHOUSE_NAME", DEFAULT_WAREHOUSE_NAME)
+        return os.getenv("SNA_WAREHOUSE_NAME", f"{get_application_name()}_WH")

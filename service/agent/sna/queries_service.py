@@ -1,4 +1,5 @@
 import logging
+import os
 from contextlib import closing
 from dataclasses import dataclass
 from typing import Dict, Any, Optional, Tuple, List
@@ -19,7 +20,6 @@ from agent.sna.config.config_keys import (
     CONFIG_USE_CONNECTION_POOL,
     CONFIG_USE_SYNC_QUERIES,
     CONFIG_WAREHOUSE_NAME,
-    DEFAULT_WAREHOUSE_NAME,
     CONFIG_JOB_TYPES,
 )
 from agent.sna.operation_result import OperationAttributes
@@ -36,7 +36,7 @@ from agent.utils.serde import (
     ATTRIBUTE_NAME_ERROR_ATTRS,
     ATTRIBUTE_NAME_ERROR_TYPE,
 )
-from agent.utils.utils import LOCAL
+from agent.utils.utils import LOCAL, get_application_name
 
 logger = logging.getLogger(__name__)
 
@@ -230,12 +230,8 @@ class QueriesService:
 
     def _get_default_warehouse_name(self) -> str:
         return self._config_manager.get_str_value(
-            CONFIG_WAREHOUSE_NAME, DEFAULT_WAREHOUSE_NAME
+            CONFIG_WAREHOUSE_NAME, f"{get_application_name()}_WH"
         )
-
-    def _get_job_type_warehouse_name(self, job_type: str) -> Optional[str]:
-        config_key = f"{CONFIG_WAREHOUSE_NAME}_{job_type.upper()}"
-        return self._config_manager.get_optional_str_value(config_key)
 
     @staticmethod
     def _create_connection_pool(pool_size: int, warehouse_name: str) -> QueuePool:
