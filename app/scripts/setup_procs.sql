@@ -128,8 +128,8 @@ LANGUAGE SQL
 AS
 $$
 BEGIN
-    ALTER SERVICE IF EXISTS core.mcd_agent_service SUSPEND;
-    ALTER SERVICE IF EXISTS core.mcd_agent_service RESUME;
+    ALTER SERVICE core.mcd_agent_service SUSPEND;
+    ALTER SERVICE core.mcd_agent_service RESUME;
     RETURN 'Service restarted';
 END;
 $$;
@@ -143,7 +143,6 @@ $$
 BEGIN
     LET json_value VARCHAR := TO_JSON({'mcd_id': :key_id, 'mcd_token': :key_secret});
     ALTER SECRET CORE.MCD_AGENT_TOKEN SET SECRET_STRING=:json_value;
-    CALL APP_PUBLIC.RESTART_SERVICE();
     RETURN 'Token updated';
 END;
 $$;
