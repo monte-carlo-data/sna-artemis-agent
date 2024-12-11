@@ -39,7 +39,7 @@ def setup_connection():
 
     # set the secret
     session.sql(
-        f"ALTER SECRET MCD_AGENT.CORE.MCD_AGENT_TOKEN SET SECRET_STRING=?;",
+        f"ALTER SECRET CORE.MCD_AGENT_TOKEN SET SECRET_STRING=?;",
         params=[json.dumps(key_json)],
     ).collect()
 

@@ -7,7 +7,7 @@ from agent.sna.config.config_persistence import ConfigurationPersistence
 from agent.sna.config.db_config import DbConfig
 
 _EXPECTED_UPDATE_QUERY = """
-MERGE INTO MCD_AGENT.CONFIG.APP_CONFIG C
+MERGE INTO CONFIG.APP_CONFIG C
 USING (SELECT ? AS key) S
 ON S.key=C.key 
 WHEN MATCHED THEN UPDATE SET value=? 
@@ -66,7 +66,7 @@ class ConfigManagerTests(TestCase):
 
         persistence = DbConfig()
         mock_cursor.execute.assert_called_once_with(
-            "SELECT key, value FROM MCD_AGENT.CONFIG.APP_CONFIG"
+            "SELECT key, value FROM CONFIG.APP_CONFIG"
         )
         self.assertIsNone(persistence.get_value("key"))
         self.assertEqual("value1", persistence.get_value("key1"))
@@ -77,6 +77,6 @@ class ConfigManagerTests(TestCase):
         mock_cursor.execute.assert_has_calls(
             [
                 call(_EXPECTED_UPDATE_QUERY, ("key", "value", "key", "value")),
-                call("SELECT key, value FROM MCD_AGENT.CONFIG.APP_CONFIG"),
+                call("SELECT key, value FROM CONFIG.APP_CONFIG"),
             ]
         )

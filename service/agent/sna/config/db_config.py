@@ -7,7 +7,7 @@ from agent.sna.config.config_persistence import ConfigurationPersistence
 from agent.sna.sf_connection import create_connection
 from agent.sna.sf_queries import QUERY_LOAD_CONFIG, QUERY_UPDATE_CONFIG
 
-_CONFIG_TABLE_NAME = os.getenv("CONFIG_TABLE_NAME", "MCD_AGENT.CONFIG.APP_CONFIG")
+_CONFIG_TABLE_NAME = os.getenv("CONFIG_TABLE_NAME", "CONFIG.APP_CONFIG")
 
 logger = logging.getLogger(__name__)
 

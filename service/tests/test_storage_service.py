@@ -162,7 +162,7 @@ class StorageServiceTests(TestCase):
         self._queries_service.run_query_and_fetch_all.return_value = [[url]], []
 
         self._execute_storage_operation(_GENERATE_PRE_SIGNED_OPERATION)
-        expected_query = "CALL mcd_agent.core.execute_query(?)"
+        expected_query = "CALL CORE.EXECUTE_QUERY(?)"
         expected_query_param = (
             "CALL GET_PRESIGNED_URL(@test.test_stage, 'mcd/test/test.json', 300.0)"
         )
