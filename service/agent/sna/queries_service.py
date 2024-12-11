@@ -36,7 +36,7 @@ from agent.utils.serde import (
     ATTRIBUTE_NAME_ERROR_ATTRS,
     ATTRIBUTE_NAME_ERROR_TYPE,
 )
-from agent.utils.utils import LOCAL
+from agent.utils.utils import LOCAL, get_application_name
 
 logger = logging.getLogger(__name__)
 
@@ -229,12 +229,9 @@ class QueriesService:
         return result
 
     def _get_default_warehouse_name(self) -> str:
-        wh_name = self._config_manager.get_optional_str_value(CONFIG_WAREHOUSE_NAME)
-        if not wh_name:
-            db_name = os.getenv("SNOWFLAKE_DATABASE", "MCD_AGENT")
-            wh_name = f"{db_name}_WH"
-        logger.info(f"Using warehouse: {wh_name}")
-        return wh_name
+        return self._config_manager.get_str_value(
+            CONFIG_WAREHOUSE_NAME, f"{get_application_name()}_WH"
+        )
 
     @staticmethod
     def _create_connection_pool(pool_size: int, warehouse_name: str) -> QueuePool:

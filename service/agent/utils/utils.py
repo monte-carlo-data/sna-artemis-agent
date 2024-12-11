@@ -103,6 +103,12 @@ def health_information(trace_id: Optional[str] = None) -> Dict[str, Any]:
     return health_info
 
 
+def get_application_name():
+    # in Snowpark, the application name matches the current database name
+    # for local execution, we use MCD_AGENT
+    return os.getenv("SNOWFLAKE_DATABASE", "MCD_AGENT")
+
+
 def _env_dictionary() -> Dict:
     env: Dict[str, Optional[str]] = {
         "PYTHON_SYS_VERSION": sys.version,
