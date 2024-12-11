@@ -9,6 +9,7 @@ def create_connection(warehouse_name: str):
         return snowflake_connect(
             host=os.getenv("SNOWFLAKE_HOST"),
             account=os.getenv("SNOWFLAKE_ACCOUNT"),
+            database=os.getenv("SNOWFLAKE_DATABASE"),
             warehouse=warehouse_name,
             token=get_sf_login_token(),
             authenticator="oauth",

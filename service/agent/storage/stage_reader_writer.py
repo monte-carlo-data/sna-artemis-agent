@@ -32,9 +32,7 @@ class StageReaderWriter(BaseStorageClient):
         self._queries_service = queries_service
         self._stage_name = stage_name or os.getenv(
             CONFIG_STAGE_NAME,
-            config_manager.get_str_value(
-                CONFIG_STAGE_NAME, "mcd_agent.core.data_store"
-            ),
+            config_manager.get_str_value(CONFIG_STAGE_NAME, "CORE.DATA_STORE"),
         )
         self._local = local
 
@@ -176,7 +174,7 @@ class StageReaderWriter(BaseStorageClient):
             # for some reason, when running in the SNA, we need to request the pre-signed url
             # using a store procedure, the url we get directly using GET_PRESIGNED_URL doesn't work.
             data, _ = self._run_stage_query(
-                "CALL mcd_agent.core.execute_query(?)",
+                "CALL CORE.EXECUTE_QUERY(?)",
                 "pre_signed_url",
                 key,
                 [pre_signed_url_query],
