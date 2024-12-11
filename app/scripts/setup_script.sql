@@ -14,9 +14,9 @@ GRANT USAGE ON SCHEMA app_admin TO APPLICATION ROLE app_admin;
 CREATE OR ALTER VERSIONED SCHEMA app_public;
 GRANT USAGE ON SCHEMA app_public TO APPLICATION ROLE app_user;
 
-EXECUTE IMMEDIATE FROM '/scripts/setup_procs.sql';
-EXECUTE IMMEDIATE FROM '/scripts/setup_ui.sql';
-EXECUTE IMMEDIATE FROM '/scripts/setup_secrets.sql';
-EXECUTE IMMEDIATE FROM '/scripts/setup_stage.sql';
-EXECUTE IMMEDIATE FROM '/scripts/setup_config.sql';
+EXECUTE IMMEDIATE FROM 'setup_procs.sql';
+EXECUTE IMMEDIATE FROM 'setup_ui.sql';
+EXECUTE IMMEDIATE FROM 'setup_secrets.sql';
+EXECUTE IMMEDIATE FROM 'setup_stage.sql';
+EXECUTE IMMEDIATE FROM 'setup_config.sql';
 
