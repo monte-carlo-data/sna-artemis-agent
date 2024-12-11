@@ -2,7 +2,6 @@ import logging
 import os
 from typing import Optional, Dict
 
-from agent.sna.config.config_keys import DEFAULT_WAREHOUSE_NAME
 from agent.sna.config.config_persistence import ConfigurationPersistence
 from agent.sna.sf_connection import create_connection
 from agent.sna.sf_queries import QUERY_LOAD_CONFIG, QUERY_UPDATE_CONFIG
@@ -45,4 +44,6 @@ class DbConfig(ConfigurationPersistence):
 
     @staticmethod
     def _get_config_warehouse_name() -> str:
-        return os.getenv("SNA_WAREHOUSE_NAME", DEFAULT_WAREHOUSE_NAME)
+        db_name = os.getenv("SNOWFLAKE_DATABASE", "MCD_AGENT")
+        default_wh_name = f"{db_name}_WH"
+        return os.getenv("SNA_WAREHOUSE_NAME", default_wh_name)
