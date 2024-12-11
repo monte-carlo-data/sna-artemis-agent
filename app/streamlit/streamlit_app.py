@@ -4,6 +4,7 @@ import streamlit as st
 
 import snowflake.permissions as permissions
 from snowflake.snowpark import Session
+from snowflake.snowpark.exceptions import SnowparkSQLException
 from snowflake.snowpark.context import get_active_session
 
 if not permissions.get_reference_associations("mcd_agent_helper_execute_query"):
@@ -14,7 +15,10 @@ def get_container_status():
     """
     Shows the container status
     """
-    st.info(_get_container_status_text())
+    try:
+        st.info(_get_container_status_text())
+    except SnowparkSQLException as e:
+        st.error(e.raw_message or e.message)
 
 
 def _get_container_status_text() -> str:
@@ -57,10 +61,13 @@ def reachability_test():
     Executes the `reachability_test` stored procedure and shows the result.
     """
     session: Session = get_active_session()
-    result = session.sql(
-        f"SELECT core.reachability_test();",
-    ).collect()
-    st.info(result[0][0])
+    try:
+        result = session.sql(
+            f"SELECT core.reachability_test();",
+        ).collect()
+        st.info(result[0][0])
+    except SnowparkSQLException as e:
+        st.error(e.raw_message or e.message)
 
 
 def logs_panel():
@@ -70,6 +77,9 @@ def logs_panel():
     session: Session = get_active_session()
     try:
         logs_table = session.sql("CALL app_public.service_logs(1000)").collect()
+    except SnowparkSQLException as e:
+        st.error(e.raw_message or e.message)
+        return
     except Exception:
         logs_table = []
     return st.dataframe(pd.DataFrame(reversed(logs_table)), width=1000, height=500)
