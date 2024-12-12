@@ -114,8 +114,6 @@ jobs:
           use-docker-credentials-store: true
       - setup-snowflake-cli
       - replace-backend-url
-      - replace-manifest-tag:
-          code_version: << parameters.code_version >>
       - docker/build:
           step-name: Build service image
           path: service
