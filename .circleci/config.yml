@@ -168,6 +168,8 @@ jobs:
       - checkout
       - setup-snowflake-cli
       - replace-backend-url
+      - replace-manifest-tag:
+          code_version: << parameters.code_version >>
       - run:
           name: Publish Snowflake app
           command: |
@@ -203,6 +205,7 @@ workflows:
                 - dev
       - publish-snowflake-app:
           name: publish-snowflake-app-dev
+          code_version: ${NEXT_VERSION}
           context:
             - snowflake-app-dev
           requires:
@@ -242,6 +245,7 @@ workflows:
               ignore: /.*/
       - publish-snowflake-app:
           name: publish-snowflake-app-prod
+          code_version: ${VERSION_TAG}
           requires:
             - run-test-docker
             - build-and-push-image-prod
