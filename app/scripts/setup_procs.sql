@@ -70,11 +70,13 @@ $$;
 GRANT USAGE ON PROCEDURE app_public.setup_app(INT, INT, VARCHAR, VARCHAR, INT) TO APPLICATION ROLE app_admin;
 
 CREATE OR REPLACE PROCEDURE core.version_init()
+RETURNS STRING
 LANGUAGE SQL
 AS
 $$
 BEGIN
     ALTER SERVICE IF EXISTS core.mcd_agent_service FROM spec='service/mcd_agent_spec.yaml';
+    RETURN 'Done';
 END;
 $$;
 
