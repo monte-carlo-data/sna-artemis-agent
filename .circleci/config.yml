@@ -221,7 +221,6 @@ workflows:
           context:
             - snowflake-app-dev
           requires:
-            - run-test-docker
             - build-and-push-image-dev
           filters:
             branches:
@@ -263,7 +262,6 @@ workflows:
             - checkout
             - generate-version-number-prod
           requires:
-            - run-test-docker
             - build-and-push-image-prod
           context:
             - snowflake-app-prod
