@@ -199,7 +199,7 @@ class QueriesService:
                     )
                     cur.execute_async(execute_query, [operation_json, sql_query])
                     logger.info(
-                        f"Async query executed: {operation_id} {sql_query}, id: {cur.sfqid}"
+                        f"Async query executed: {operation_id} {sql_query[:500]}, id: {cur.sfqid}"
                     )
                     return None
 
