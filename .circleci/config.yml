@@ -68,6 +68,16 @@ commands:
             grep "host_ports" app/scripts/setup_procs.sql
             sed -i -e "s|<< pipeline.parameters.backend_placeholder_scheme >>://<< pipeline.parameters.backend_placeholder_host >>|${BACKEND_URL_SCHEME}://${BACKEND_URL_HOST}|g" service/agent/utils/utils.py
             grep -2 "BACKEND_SERVICE_URL" service/agent/utils/utils.py
+  replace-manifest-tag:
+    parameters:
+      code_version:
+        type: string
+    steps:
+      - run:
+          name: Replace Backend URL
+          command: |
+            sed -i -e "s|:latest|:<< parameters.code_version >>|g" app/manifest.yml
+            grep -2 "images:" app/manifest.yml
 
 jobs:
   run-linter:
@@ -104,6 +114,8 @@ jobs:
           use-docker-credentials-store: true
       - setup-snowflake-cli
       - replace-backend-url
+      - replace-manifest-tag:
+          code_version: << parameters.code_version >>
       - docker/build:
           step-name: Build service image
           path: service
