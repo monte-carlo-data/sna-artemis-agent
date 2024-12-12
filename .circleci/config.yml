@@ -214,6 +214,7 @@ workflows:
           requires:
             - run-test-docker
             - build-and-push-image-dev
+            - generate-version-number-dev
           filters:
             branches:
               only:
@@ -252,6 +253,7 @@ workflows:
           requires:
             - run-test-docker
             - build-and-push-image-prod
+            - generate-version-number-prod
           context:
             - snowflake-app-prod
           filters: # run only for tags starting with v, don't run for branches
