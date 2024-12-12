@@ -74,7 +74,7 @@ commands:
         type: string
     steps:
       - run:
-          name: Replace Backend URL
+          name: Replace Manifest Tag
           command: |
             sed -i -e "s|:latest|:<< parameters.code_version >>|g" app/manifest.yml
             grep -2 "images:" app/manifest.yml
