@@ -209,6 +209,9 @@ workflows:
       - publish-snowflake-app:
           name: publish-snowflake-app-dev
           code_version: ${NEXT_VERSION}
+          pre-steps:
+            - checkout
+            - generate-version-number-dev
           context:
             - snowflake-app-dev
           requires:
@@ -249,6 +252,9 @@ workflows:
       - publish-snowflake-app:
           name: publish-snowflake-app-prod
           code_version: ${VERSION_TAG}
+          pre-steps:
+            - checkout
+            - generate-version-number-prod
           requires:
             - run-test-docker
             - build-and-push-image-prod
