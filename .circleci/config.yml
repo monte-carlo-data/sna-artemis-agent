@@ -82,7 +82,7 @@ commands:
           name: Replace Service Spec Tag
           command: |
             sed -i -e "s|:latest|:<< parameters.code_version >>|g" service/mcd_agent_spec.yaml
-            grep -2 "images:" service/mcd_agent_spec.yaml          
+            grep "image:" service/mcd_agent_spec.yaml          
 
 jobs:
   run-linter:
