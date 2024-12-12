@@ -202,6 +202,7 @@ workflows:
             - snowflake-app-dev
           requires:
             - run-test-docker
+            - run-linter
           filters:
             branches:
               only:
@@ -244,6 +245,7 @@ workflows:
             - snowflake-app-prod
           requires:
             - run-test-docker
+            - run-linter
           filters: # run only for tags starting with v, don't run for branches
             tags:
               only: /^v.*/
