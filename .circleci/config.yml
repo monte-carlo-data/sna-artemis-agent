@@ -226,17 +226,17 @@ workflows:
             branches:
               only:
                 - dev
-      - restart-snowflake-service:
-          name: restart-snowflake-service-dev
-          context:
-            - snowflake-app-dev
-          requires:
-            - build-and-push-image-dev
-            - publish-snowflake-app-dev
-          filters:
-            branches:
-              only:
-                - dev
+#      - restart-snowflake-service:
+#          name: restart-snowflake-service-dev
+#          context:
+#            - snowflake-app-dev
+#          requires:
+#            - build-and-push-image-dev
+#            - publish-snowflake-app-dev
+#          filters:
+#            branches:
+#              only:
+#                - dev
       - build-and-push-image:
           name: build-and-push-image-prod
           docker_hub_repository: sna-agent

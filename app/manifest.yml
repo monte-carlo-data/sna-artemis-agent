@@ -31,3 +31,6 @@ references:
         - USAGE
       object_type: PROCEDURE
       register_callback: app_admin.register_single_reference
+
+lifecycle_callback:
+  version_initializer: core.version_init
