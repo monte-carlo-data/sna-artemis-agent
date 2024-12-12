@@ -32,5 +32,5 @@ references:
       object_type: PROCEDURE
       register_callback: app_admin.register_single_reference
 
-lifecycle_callback:
+lifecycle_callbacks:
   version_initializer: core.version_init
