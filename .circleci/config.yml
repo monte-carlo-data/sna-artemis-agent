@@ -164,6 +164,9 @@ jobs:
   publish-snowflake-app:
     machine:
       image: ubuntu-2204:current
+    parameters:
+      code_version:
+        type: string
     steps:
       - checkout
       - setup-snowflake-cli
