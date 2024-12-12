@@ -69,6 +69,16 @@ END;
 $$;
 GRANT USAGE ON PROCEDURE app_public.setup_app(INT, INT, VARCHAR, VARCHAR, INT) TO APPLICATION ROLE app_admin;
 
+CREATE OR REPLACE PROCEDURE core.version_init()
+LANGUAGE SQL
+AS
+$$
+BEGIN
+    ALTER SERVICE IF EXISTS core.mcd_agent_service FROM spec='service/mcd_agent_spec.yaml';
+END;
+$$;
+
+
 -- Stored procedure used to run queries using the reference defined in the manifest file,
 -- which uses the stored procedure defined in MCD_APP_HELPER.
 CREATE OR REPLACE PROCEDURE core.execute_helper_query(query STRING)
