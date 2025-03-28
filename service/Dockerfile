@@ -7,6 +7,8 @@ ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 RUN apk add build-base gcc musl-dev python3-dev libffi-dev openssl-dev cargo pkgconfig
 
 COPY requirements-build.txt .
+# Upgrade pip inside the virtual environment VULN-510
+RUN pip install --no-cache-dir -U pip==25.0.0
 RUN pip install -r requirements-build.txt
 
 FROM python:3.12-alpine3.20 AS base
@@ -16,6 +18,7 @@ ENV VIRTUAL_ENV=/opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
 COPY requirements.txt .
+RUN pip install --no-cache-dir -U pip==25.0.0  # VULN-510
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY agent/ ./agent
@@ -27,6 +30,7 @@ RUN echo $code_version,$build_number > ./agent/utils/version
 FROM base AS tests
 
 COPY requirements-dev.txt .
+RUN pip install --no-cache-dir -U pip==25.0.0  # VULN-510
 RUN pip install --no-cache-dir -r requirements-dev.txt
 
 COPY tests/ ./tests
@@ -40,8 +44,8 @@ FROM python:3.12-alpine3.20 AS final
 # update openssl
 RUN apk update && apk add --no-cache openssl~3.3
 
-# upgrade global libraries to fix CVEs
-RUN pip install --no-cache-dir --upgrade pip==24.2 && \
+# upgrade global libraries to fix CVEs. Upgrade pip to fix VULN-510
+RUN pip install --no-cache-dir --upgrade pip==25.0.0 && \
     pip install --no-cache-dir --upgrade setuptools==75.1.0
 
 RUN adduser --disabled-password mcdagent
