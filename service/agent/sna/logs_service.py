@@ -1,6 +1,8 @@
+from datetime import datetime, timezone
 from typing import List, Dict, Any, Tuple
 
 from agent.sna.queries_service import QueriesService
+from agent.utils.utils import LOCAL
 
 
 class LogsService:
@@ -8,6 +10,14 @@ class LogsService:
         self._queries_service = queries_service
 
     def get_logs(self, limit: int) -> List[Dict[str, Any]]:
+        if LOCAL:
+            # In local mode, we don't have access to the database, so we return a dummy record
+            return [
+                {
+                    "timestamp": datetime.now(tz=timezone.utc).isoformat(),
+                    "message": "This is a dummy log message.",
+                }
+            ]
         logs, _ = self._queries_service.run_query_and_fetch_all(
             "CALL APP_PUBLIC.SERVICE_LOGS(?)", [limit]
         )

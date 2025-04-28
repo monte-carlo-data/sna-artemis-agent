@@ -15,6 +15,7 @@ from agent.sna.operations_runner import OperationsRunner, Operation
 from agent.sna.queries_runner import QueriesRunner
 from agent.sna.results_publisher import ResultsPublisher
 from agent.sna.sna_service import SnaService
+from agent.sna.timer_service import TimerService
 
 _REQUEST_METRICS_OPERATION = {
     "type": "push_metrics",
@@ -38,6 +39,7 @@ class MetricsServiceTests(TestCase):
             events_client=self._events_client,
             config_manager=self._config_manager,
             ack_sender=create_autospec(AckSender),
+            logs_sender=create_autospec(TimerService),
         )
         self._service.start()
 
