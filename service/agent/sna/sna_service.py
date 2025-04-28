@@ -15,6 +15,7 @@ from agent.sna.config.config_keys import (
     CONFIG_QUERIES_RUNNER_THREAD_COUNT,
     CONFIG_IS_REMOTE_UPGRADABLE,
     CONFIG_ACK_INTERVAL_SECONDS,
+    CONFIG_PUSH_LOGS_INTERVAL_SECONDS,
 )
 from agent.sna.logs_service import LogsService
 from agent.sna.metrics_service import MetricsService
@@ -26,6 +27,7 @@ from agent.sna.results_processor import ResultsProcessor
 from agent.sna.results_publisher import ResultsPublisher
 from agent.sna.sf_queries import QUERY_RESTART_SERVICE
 from agent.sna.sf_query import SnowflakeQuery
+from agent.sna.timer_service import TimerService
 from agent.storage.storage_service import StorageService
 from agent.utils import utils
 from agent.utils.serde import (
@@ -61,6 +63,7 @@ _ATTR_OPERATION_TYPE_SNOWFLAKE_QUERY = "snowflake_query"
 _ATTR_OPERATION_TYPE_SNOWFLAKE_TEST = "snowflake_connection_test"
 _ATTR_OPERATION_TYPE_PUSH_METRICS = "push_metrics"
 _PATH_PUSH_METRICS = "push_metrics"
+_PATH_PUSH_LOGS = "push_logs"
 
 _DEFAULT_COMPRESS_RESPONSE_FILE = True
 _DEFAULT_RESPONSE_SIZE_LIMIT_BYTES = (
@@ -113,6 +116,7 @@ class SnaService:
         ack_sender: Optional[AckSender] = None,
         queries_service: Optional[QueriesService] = None,
         logs_service: Optional[LogsService] = None,
+        logs_sender: Optional[TimerService] = None,
     ):
         self._config_manager = config_manager
         self._queries_runner = queries_runner or QueriesRunner(
@@ -141,6 +145,12 @@ class SnaService:
         )
         self._logs_service = logs_service or LogsService(
             queries_service=self._queries_service
+        )
+        self._logs_sender = logs_sender or TimerService(
+            name="Logs sender",
+            interval_seconds=config_manager.get_int_value(
+                CONFIG_PUSH_LOGS_INTERVAL_SECONDS, 300
+            ),
         )
         self._storage = storage_service or StorageService(
             config_manager=config_manager,
@@ -187,6 +197,11 @@ class SnaService:
                 schedule=True,
             ),
             OperationMapping(
+                path=_PATH_PUSH_LOGS,
+                method=self._execute_push_logs,
+                schedule=True,
+            ),
+            OperationMapping(
                 path="/api/v1/upgrade",
                 method=self._execute_upgrade,
                 schedule=True,
@@ -199,6 +214,7 @@ class SnaService:
         self._results_publisher.start()
         self._events_client.start(handler=self._event_handler)
         self._ack_sender.start(handler=self._send_ack)
+        self._logs_sender.start(handler=self._push_logs)
 
         logger.info(f"SNA Service Started: v{VERSION} (build #{BUILD_NUMBER})")
 
@@ -208,6 +224,7 @@ class SnaService:
         self._results_publisher.stop()
         self._events_client.stop()
         self._ack_sender.stop()
+        self._logs_sender.stop()
 
     def health_information(self, trace_id: Optional[str] = None) -> Dict[str, Any]:
         health_info = utils.health_information(trace_id)
@@ -392,6 +409,16 @@ class SnaService:
             "metrics": MetricsService.fetch_metrics(),
         }
         BackendClient.execute_operation("/api/v1/agent/metrics", "POST", payload)
+
+    def _push_logs(self):
+        self._schedule_operation(_PATH_PUSH_LOGS, {_ATTR_NAME_PATH: _PATH_PUSH_LOGS})
+
+    def _execute_push_logs(self, operation_id: str, event: Dict[str, Any]):
+        payload = {
+            "logs": self._logs_service.get_logs(int(event.get(_ATTR_NAME_LIMIT, 1000))),
+        }
+        logger.info(f"Pushing {len(payload['logs'])} logs")
+        BackendClient.execute_operation("/api/v1/agent/logs", "POST", payload)
 
     def _execute_upgrade(self, operation_id: str, event: Dict[str, Any]):
         """

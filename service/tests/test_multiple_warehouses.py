@@ -23,6 +23,7 @@ from agent.sna.queries_service import (
 from agent.sna.results_publisher import ResultsPublisher
 from agent.sna.sf_query import SnowflakeQuery
 from agent.sna.sna_service import SnaService
+from agent.sna.timer_service import TimerService
 
 _QUERY_LOGS_JOB_TYPES_CONFIG = JobTypesConfiguration(
     job_types=[
@@ -46,6 +47,7 @@ class MultiWarehouseTests(TestCase):
         self._mock_ops_runner = create_autospec(OperationsRunner)
         self._mock_results_publisher = create_autospec(ResultsPublisher)
         self._ack_sender = create_autospec(AckSender)
+        self._logs_sender = create_autospec(TimerService)
         self._config_persistence = create_autospec(ConfigurationPersistence)
         self._config_manager = ConfigurationManager(
             persistence=self._config_persistence
@@ -90,6 +92,7 @@ class MultiWarehouseTests(TestCase):
             ack_sender=self._ack_sender,
             queries_service=queries_service,
             config_manager=self._config_manager,
+            logs_sender=self._logs_sender,
         )
         service.start()
 

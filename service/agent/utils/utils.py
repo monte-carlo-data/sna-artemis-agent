@@ -12,7 +12,7 @@ from agent.utils.settings import VERSION, BUILD_NUMBER
 
 BACKEND_SERVICE_URL = os.getenv(
     "BACKEND_SERVICE_URL",
-    "https://artemis.getmontecarlo.com:443",
+    "https://artemis.dev.getmontecarlo.com:443",
 )
 LOCAL = os.getenv("SNOWFLAKE_HOST") is None  # not running in Snowpark containers
 DEBUG = os.getenv("DEBUG", "false").lower() == "true"
@@ -46,6 +46,7 @@ def init_logging():
         stream=sys.stdout,
         level=logging.DEBUG if DEBUG else logging.INFO,
         format="[%(asctime)s] %(levelname)s:%(name)s: %(message)s",
+        datefmt="%Y-%m-%dT%H:%M:%SZ",
     )
     logging.getLogger("snowflake.connector.cursor").setLevel(logging.WARNING)
 
