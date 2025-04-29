@@ -17,6 +17,7 @@ from agent.sna.queries_service import QueriesService
 from agent.sna.results_publisher import ResultsPublisher
 from agent.sna.sf_query import SnowflakeQuery
 from agent.sna.sna_service import SnaService
+from agent.sna.timer_service import TimerService
 from agent.storage.storage_service import StorageService
 from agent.utils.serde import (
     ATTRIBUTE_NAME_ERROR,
@@ -60,6 +61,7 @@ class AppServiceTests(TestCase):
         self._config_manager = ConfigurationManager(
             persistence=self._config_persistence
         )
+        self._logs_sender = create_autospec(TimerService)
         self._service = SnaService(
             queries_runner=self._mock_queries_runner,
             ops_runner=self._mock_ops_runner,
@@ -68,6 +70,7 @@ class AppServiceTests(TestCase):
             ack_sender=self._ack_sender,
             queries_service=self._queries_service,
             config_manager=self._config_manager,
+            logs_sender=self._logs_sender,
         )
 
     def test_service_start_stop(self):
@@ -95,6 +98,7 @@ class AppServiceTests(TestCase):
             ack_sender=self._ack_sender,
             queries_service=self._queries_service,
             config_manager=self._config_manager,
+            logs_sender=self._logs_sender,
         )
         service.start()
         events_client._event_received(_QUERY_OPERATION)
@@ -187,6 +191,7 @@ class AppServiceTests(TestCase):
             queries_service=self._queries_service,
             config_manager=self._config_manager,
             storage_service=storage,
+            logs_sender=self._logs_sender,
         )
         service.start()
         query_operation = deepcopy(_QUERY_OPERATION)
@@ -288,6 +293,7 @@ class AppServiceTests(TestCase):
             ack_sender=self._ack_sender,
             queries_service=self._queries_service,
             config_manager=self._config_manager,
+            logs_sender=self._logs_sender,
         )
         service.start()
         events_client._event_received(_HEALTH_OPERATION)

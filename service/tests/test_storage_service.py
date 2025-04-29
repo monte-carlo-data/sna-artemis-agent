@@ -16,6 +16,7 @@ from agent.sna.queries_runner import QueriesRunner
 from agent.sna.queries_service import QueriesService
 from agent.sna.results_publisher import ResultsPublisher
 from agent.sna.sna_service import SnaService
+from agent.sna.timer_service import TimerService
 from agent.storage.stage_reader_writer import StageReaderWriter
 from agent.storage.storage_service import StorageService
 from agent.utils.serde import (
@@ -81,6 +82,7 @@ class StorageServiceTests(TestCase):
             config_manager=self._config_manager,
         )
         self._ack_sender = create_autospec(AckSender)
+        self._logs_sender = create_autospec(TimerService)
         self._service = SnaService(
             queries_runner=self._mock_queries_runner,
             ops_runner=self._mock_ops_runner,
@@ -90,6 +92,7 @@ class StorageServiceTests(TestCase):
             ack_sender=self._ack_sender,
             queries_service=self._queries_service,
             config_manager=self._config_manager,
+            logs_sender=self._logs_sender,
         )
         self._service.start()
 

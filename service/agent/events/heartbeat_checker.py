@@ -49,7 +49,7 @@ class HeartbeatChecker:
         return self._current_loop_id == loop_id
 
     def _run_heartbeat_checker(self, loop_id: str):
-        logger.info("Heartbeat monitor started")
+        logger.info("Heartbeat monitor started %s", loop_id)
         while self._is_current_loop(loop_id):
             with self._condition:
                 self._condition.wait(timeout=self._inactivity_timeout_seconds / 2)
@@ -57,6 +57,6 @@ class HeartbeatChecker:
             if not self._is_current_loop(loop_id):
                 break
             if elapsed_time.total_seconds() > self._inactivity_timeout_seconds:
-                logger.error("Heartbeat timeout")
+                logger.error("Heartbeat timeout %s", loop_id)
                 self._handler()
-        logger.info("Heartbeat monitor stopped")
+        logger.info("Heartbeat monitor stopped, %s", loop_id)
