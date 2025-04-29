@@ -110,6 +110,10 @@ def get_application_name():
     return os.getenv("SNOWFLAKE_DATABASE", "MCD_AGENT")
 
 
+def get_query_for_logs(query: str) -> str:
+    return query[:500].replace("\n", " ")  # limit to 500 chars and remove new lines
+
+
 def _env_dictionary() -> Dict:
     env: Dict[str, Optional[str]] = {
         "PYTHON_SYS_VERSION": sys.version,

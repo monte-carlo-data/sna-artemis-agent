@@ -24,7 +24,6 @@ class LogsServiceTests(TestCase):
         )
 
         logs = self._service.get_logs(100)
-        print(logs)
         self.assertEqual(4, len(logs))
         self.assertEqual("2021-01-01 00:00:00", logs[0]["timestamp"])
         self.assertEqual("log line 1", logs[0]["message"])

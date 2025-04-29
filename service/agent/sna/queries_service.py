@@ -1,5 +1,4 @@
 import logging
-import os
 from contextlib import closing
 from dataclasses import dataclass
 from typing import Dict, Any, Optional, Tuple, List
@@ -36,7 +35,7 @@ from agent.utils.serde import (
     ATTRIBUTE_NAME_ERROR_ATTRS,
     ATTRIBUTE_NAME_ERROR_TYPE,
 )
-from agent.utils.utils import LOCAL, get_application_name
+from agent.utils.utils import LOCAL, get_application_name, get_query_for_logs
 
 logger = logging.getLogger(__name__)
 
@@ -199,7 +198,7 @@ class QueriesService:
                     )
                     cur.execute_async(execute_query, [operation_json, sql_query])
                     logger.info(
-                        f"Async query executed: {operation_id} {sql_query[:500]}, id: {cur.sfqid}"
+                        f"Async query executed: {operation_id} {get_query_for_logs(sql_query)}, id: {cur.sfqid}"
                     )
                     return None
 
