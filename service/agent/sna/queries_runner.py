@@ -3,6 +3,7 @@ from typing import Callable
 
 from agent.sna.sf_query import SnowflakeQuery
 from agent.utils.queue_async_processor import QueueAsyncProcessor
+from agent.utils.utils import get_query_for_logs
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +27,6 @@ class QueriesRunner(QueueAsyncProcessor[SnowflakeQuery]):
 
     def _handler_wrapper(self, query: SnowflakeQuery):
         logger.info(
-            f"Running operation: {query.operation_id}, query: {query.query[:500]}"
+            f"Running operation: {query.operation_id}, query: {get_query_for_logs(query.query)}"
         )
         self._queries_handler(query)
