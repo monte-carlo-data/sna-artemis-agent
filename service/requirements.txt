@@ -46,6 +46,8 @@ flask==3.0.3
     #   flask-sse
 flask-sse==1.0.0
     # via -r requirements.in
+greenlet==3.1.1
+    # via sqlalchemy
 gunicorn==23.0.0
     # via -r requirements.in
 idna==3.10
@@ -106,7 +108,7 @@ six==1.16.0
     # via
     #   flask-sse
     #   sseclient
-snowflake-connector-python==3.12.3
+snowflake-connector-python==3.13.1
     # via
     #   -c requirements-build.txt
     #   snowflake-sqlalchemy
