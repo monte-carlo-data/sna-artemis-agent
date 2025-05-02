@@ -106,7 +106,7 @@ six==1.16.0
     # via
     #   flask-sse
     #   sseclient
-snowflake-connector-python==3.13.1
+snowflake-connector-python==3.12.4
     # via
     #   -c /Users/jhewett/Projects/sna-artemis-agent/service/requirements-build.txt
     #   snowflake-sqlalchemy

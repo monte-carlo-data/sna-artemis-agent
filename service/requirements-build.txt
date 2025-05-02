@@ -42,7 +42,7 @@ pytz==2025.2
     # via snowflake-connector-python
 requests==2.32.3
     # via snowflake-connector-python
-snowflake-connector-python==3.13.1
+snowflake-connector-python==3.12.4
     # via -r requirements-build.in
 sortedcontainers==2.4.0
     # via snowflake-connector-python

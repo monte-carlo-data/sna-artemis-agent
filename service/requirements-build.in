@@ -1,2 +1,2 @@
 # dependencies that are built in a separate stage of the docker image
-snowflake-connector-python==3.13.1
+snowflake-connector-python==3.12.4
