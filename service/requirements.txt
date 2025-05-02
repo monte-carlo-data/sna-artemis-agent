@@ -10,7 +10,7 @@ asn1crypto==1.5.1
     #   snowflake-connector-python
 blinker==1.9.0
     # via flask
-certifi==2024.8.30
+certifi==2025.4.26
     # via
     #   -c requirements-build.txt
     #   requests
@@ -20,14 +20,14 @@ cffi==1.17.1
     #   -c requirements-build.txt
     #   cryptography
     #   snowflake-connector-python
-charset-normalizer==3.4.0
+charset-normalizer==3.4.2
     # via
     #   -c requirements-build.txt
     #   requests
     #   snowflake-connector-python
 click==8.1.7
     # via flask
-cryptography==43.0.3
+cryptography==44.0.1
     # via
     #   -c requirements-build.txt
     #   pyopenssl
@@ -36,7 +36,7 @@ dataclasses-json==0.6.7
     # via -r requirements.in
 decorator==5.1.1
     # via retry2
-filelock==3.16.1
+filelock==3.18.0
     # via
     #   -c requirements-build.txt
     #   snowflake-connector-python
@@ -67,13 +67,13 @@ marshmallow==3.23.1
     # via dataclasses-json
 mypy-extensions==1.0.0
     # via typing-inspect
-packaging==24.1
+packaging==25.0
     # via
     #   -c requirements-build.txt
     #   gunicorn
     #   marshmallow
     #   snowflake-connector-python
-platformdirs==4.3.6
+platformdirs==4.3.7
     # via
     #   -c requirements-build.txt
     #   snowflake-connector-python
@@ -81,15 +81,15 @@ pycparser==2.22
     # via
     #   -c requirements-build.txt
     #   cffi
-pyjwt==2.9.0
+pyjwt==2.10.1
     # via
     #   -c requirements-build.txt
     #   snowflake-connector-python
-pyopenssl==24.2.1
+pyopenssl==24.3.0
     # via
     #   -c requirements-build.txt
     #   snowflake-connector-python
-pytz==2024.2
+pytz==2025.2
     # via
     #   -c requirements-build.txt
     #   snowflake-connector-python
@@ -106,7 +106,7 @@ six==1.16.0
     # via
     #   flask-sse
     #   sseclient
-snowflake-connector-python==3.12.3
+snowflake-connector-python==3.13.1
     # via
     #   -c requirements-build.txt
     #   snowflake-sqlalchemy
@@ -124,7 +124,7 @@ tomlkit==0.13.2
     # via
     #   -c requirements-build.txt
     #   snowflake-connector-python
-typing-extensions==4.12.2
+typing-extensions==4.13.2
     # via
     #   -c requirements-build.txt
     #   snowflake-connector-python
@@ -132,7 +132,7 @@ typing-extensions==4.12.2
     #   typing-inspect
 typing-inspect==0.9.0
     # via dataclasses-json
-urllib3==2.2.3
+urllib3==2.4.0
     # via
     #   -c requirements-build.txt
     #   requests
