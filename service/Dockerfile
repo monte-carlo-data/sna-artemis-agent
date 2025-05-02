@@ -1,4 +1,4 @@
-FROM python:3.12-alpine3.21 AS builder
+FROM python:3.12-alpine3.20 AS builder
 ENV VIRTUAL_ENV=/opt/venv
 RUN python -m venv $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
@@ -7,15 +7,18 @@ ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 RUN apk add build-base gcc musl-dev python3-dev libffi-dev openssl-dev cargo pkgconfig
 
 COPY requirements-build.txt .
+# Upgrade pip inside the virtual environment VULN-510
+RUN pip install --no-cache-dir -U pip==25.0.0
 RUN pip install -r requirements-build.txt
 
-FROM python:3.12-alpine3.21 AS base
+FROM python:3.12-alpine3.20 AS base
 
 COPY --from=builder /opt/venv /opt/venv
 ENV VIRTUAL_ENV=/opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
 COPY requirements.txt .
+RUN pip install --no-cache-dir -U pip==25.0.0  # VULN-510
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY agent/ ./agent
@@ -27,6 +30,7 @@ RUN echo $code_version,$build_number > ./agent/utils/version
 FROM base AS tests
 
 COPY requirements-dev.txt .
+RUN pip install --no-cache-dir -U pip==25.0.0  # VULN-510
 RUN pip install --no-cache-dir -r requirements-dev.txt
 
 COPY tests/ ./tests
@@ -35,14 +39,10 @@ ARG pytest_params="tests"
 ARG CACHEBUST=1
 RUN python -m pytest $pytest_params
 
-FROM python:3.12-alpine3.21 AS final
+FROM python:3.12-alpine3.20 AS final
 
 # update openssl
 RUN apk update && apk add --no-cache openssl~3.3
-
-# VULN-557 - Upgrade sqlite-libs to 3.49.1
-RUN echo "http://dl-cdn.alpinelinux.org/alpine/edge/main" >> /etc/apk/repositories
-RUN apk add "sqlite-libs>=3.49.1"
 
 # upgrade global libraries to fix CVEs. Upgrade pip to fix VULN-510
 RUN pip install --no-cache-dir --upgrade pip==25.0.0 && \
