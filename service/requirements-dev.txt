@@ -4,7 +4,7 @@
 #
 #    pip-compile requirements-dev.in
 #
-black==24.3.0
+black==24.10.0
     # via -r requirements-dev.in
 build==1.2.2.post1
     # via pip-tools
@@ -43,18 +43,20 @@ platformdirs==4.3.6
     #   virtualenv
 pluggy==1.5.0
     # via pytest
-pre-commit==3.5.0
+pre-commit==4.0.1
     # via -r requirements-dev.in
 pyproject-hooks==1.2.0
     # via
     #   build
     #   pip-tools
-pyright==1.1.337
+pyright==1.1.386
     # via -r requirements-dev.in
 pytest==8.3.3
     # via -r requirements-dev.in
 pyyaml==6.0.2
     # via pre-commit
+typing-extensions==4.13.2
+    # via pyright
 virtualenv==20.27.0
     # via pre-commit
 wheel==0.44.0

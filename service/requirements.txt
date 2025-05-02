@@ -6,39 +6,39 @@
 #
 asn1crypto==1.5.1
     # via
-    #   -c requirements-build.txt
+    #   -c /Users/jhewett/Projects/sna-artemis-agent/service/requirements-build.txt
     #   snowflake-connector-python
 blinker==1.9.0
     # via flask
-certifi==2024.8.30
+certifi==2025.4.26
     # via
-    #   -c requirements-build.txt
+    #   -c /Users/jhewett/Projects/sna-artemis-agent/service/requirements-build.txt
     #   requests
     #   snowflake-connector-python
 cffi==1.17.1
     # via
-    #   -c requirements-build.txt
+    #   -c /Users/jhewett/Projects/sna-artemis-agent/service/requirements-build.txt
     #   cryptography
     #   snowflake-connector-python
-charset-normalizer==3.4.0
+charset-normalizer==3.4.2
     # via
-    #   -c requirements-build.txt
+    #   -c /Users/jhewett/Projects/sna-artemis-agent/service/requirements-build.txt
     #   requests
     #   snowflake-connector-python
 click==8.1.7
     # via flask
-cryptography==43.0.3
+cryptography==44.0.1
     # via
-    #   -c requirements-build.txt
+    #   -c /Users/jhewett/Projects/sna-artemis-agent/service/requirements-build.txt
     #   pyopenssl
     #   snowflake-connector-python
 dataclasses-json==0.6.7
     # via -r requirements.in
 decorator==5.1.1
     # via retry2
-filelock==3.16.1
+filelock==3.18.0
     # via
-    #   -c requirements-build.txt
+    #   -c /Users/jhewett/Projects/sna-artemis-agent/service/requirements-build.txt
     #   snowflake-connector-python
 flask==3.0.3
     # via
@@ -50,7 +50,7 @@ gunicorn==23.0.0
     # via -r requirements.in
 idna==3.10
     # via
-    #   -c requirements-build.txt
+    #   -c /Users/jhewett/Projects/sna-artemis-agent/service/requirements-build.txt
     #   requests
     #   snowflake-connector-python
 itsdangerous==2.2.0
@@ -67,37 +67,37 @@ marshmallow==3.23.1
     # via dataclasses-json
 mypy-extensions==1.0.0
     # via typing-inspect
-packaging==24.1
+packaging==25.0
     # via
-    #   -c requirements-build.txt
+    #   -c /Users/jhewett/Projects/sna-artemis-agent/service/requirements-build.txt
     #   gunicorn
     #   marshmallow
     #   snowflake-connector-python
-platformdirs==4.3.6
+platformdirs==4.3.7
     # via
-    #   -c requirements-build.txt
+    #   -c /Users/jhewett/Projects/sna-artemis-agent/service/requirements-build.txt
     #   snowflake-connector-python
 pycparser==2.22
     # via
-    #   -c requirements-build.txt
+    #   -c /Users/jhewett/Projects/sna-artemis-agent/service/requirements-build.txt
     #   cffi
-pyjwt==2.9.0
+pyjwt==2.10.1
     # via
-    #   -c requirements-build.txt
+    #   -c /Users/jhewett/Projects/sna-artemis-agent/service/requirements-build.txt
     #   snowflake-connector-python
-pyopenssl==24.2.1
+pyopenssl==24.3.0
     # via
-    #   -c requirements-build.txt
+    #   -c /Users/jhewett/Projects/sna-artemis-agent/service/requirements-build.txt
     #   snowflake-connector-python
-pytz==2024.2
+pytz==2025.2
     # via
-    #   -c requirements-build.txt
+    #   -c /Users/jhewett/Projects/sna-artemis-agent/service/requirements-build.txt
     #   snowflake-connector-python
 redis==5.1.1
     # via flask-sse
 requests==2.32.3
     # via
-    #   -c requirements-build.txt
+    #   -c /Users/jhewett/Projects/sna-artemis-agent/service/requirements-build.txt
     #   snowflake-connector-python
     #   sseclient
 retry2==0.9.5
@@ -106,15 +106,15 @@ six==1.16.0
     # via
     #   flask-sse
     #   sseclient
-snowflake-connector-python==3.12.3
+snowflake-connector-python==3.12.4
     # via
-    #   -c requirements-build.txt
+    #   -c /Users/jhewett/Projects/sna-artemis-agent/service/requirements-build.txt
     #   snowflake-sqlalchemy
 snowflake-sqlalchemy==1.6.1
     # via -r requirements.in
 sortedcontainers==2.4.0
     # via
-    #   -c requirements-build.txt
+    #   -c /Users/jhewett/Projects/sna-artemis-agent/service/requirements-build.txt
     #   snowflake-connector-python
 sqlalchemy==2.0.36
     # via snowflake-sqlalchemy
@@ -122,19 +122,19 @@ sseclient==0.0.27
     # via -r requirements.in
 tomlkit==0.13.2
     # via
-    #   -c requirements-build.txt
+    #   -c /Users/jhewett/Projects/sna-artemis-agent/service/requirements-build.txt
     #   snowflake-connector-python
-typing-extensions==4.12.2
+typing-extensions==4.13.2
     # via
-    #   -c requirements-build.txt
+    #   -c /Users/jhewett/Projects/sna-artemis-agent/service/requirements-build.txt
     #   snowflake-connector-python
     #   sqlalchemy
     #   typing-inspect
 typing-inspect==0.9.0
     # via dataclasses-json
-urllib3==2.2.3
+urllib3==2.4.0
     # via
-    #   -c requirements-build.txt
+    #   -c /Users/jhewett/Projects/sna-artemis-agent/service/requirements-build.txt
     #   requests
 werkzeug==3.1.3
     # via
