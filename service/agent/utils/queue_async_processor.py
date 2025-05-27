@@ -1,6 +1,6 @@
 import logging
 from threading import Condition, Thread
-from typing import Callable, List, TypeVar, Generic
+from typing import Callable, List, TypeVar, Generic, Any
 
 logger = logging.getLogger(__name__)
 
@@ -54,5 +54,11 @@ class QueueAsyncProcessor(Generic[T]):
                 to_execute = self._queue.copy()
                 self._queue.clear()
             for o in to_execute:
-                self._handler(o)
+                self._invoke_handler(o)
         logger.info(f"{thread_name} stopped")
+
+    def _invoke_handler(self, param: Any):
+        try:
+            self._handler(param)
+        except Exception as ex:
+            logger.exception(f"Failed to run operation: {ex}")
