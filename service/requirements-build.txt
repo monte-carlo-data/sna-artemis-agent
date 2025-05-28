@@ -6,6 +6,13 @@
 #
 asn1crypto==1.5.1
     # via snowflake-connector-python
+boto3==1.38.24
+    # via snowflake-connector-python
+botocore==1.38.24
+    # via
+    #   boto3
+    #   s3transfer
+    #   snowflake-connector-python
 certifi==2025.4.26
     # via
     #   requests
@@ -28,6 +35,10 @@ idna==3.10
     # via
     #   requests
     #   snowflake-connector-python
+jmespath==1.0.1
+    # via
+    #   boto3
+    #   botocore
 packaging==25.0
     # via snowflake-connector-python
 platformdirs==4.3.7
@@ -38,11 +49,17 @@ pyjwt==2.10.1
     # via snowflake-connector-python
 pyopenssl==24.3.0
     # via snowflake-connector-python
+python-dateutil==2.9.0.post0
+    # via botocore
 pytz==2025.2
     # via snowflake-connector-python
 requests==2.32.3
     # via snowflake-connector-python
-snowflake-connector-python==3.13.1
+s3transfer==0.13.0
+    # via boto3
+six==1.17.0
+    # via python-dateutil
+snowflake-connector-python==3.15.0
     # via -r requirements-build.in
 sortedcontainers==2.4.0
     # via snowflake-connector-python
@@ -51,4 +68,6 @@ tomlkit==0.13.2
 typing-extensions==4.13.2
     # via snowflake-connector-python
 urllib3==2.4.0
-    # via requests
+    # via
+    #   botocore
+    #   requests
