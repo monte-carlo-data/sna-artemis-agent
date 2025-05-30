@@ -44,7 +44,7 @@ if (schema_future_grants.getRowCount() > 0) {
     var schemas_to_grant = snowflake.createStatement({ sqlText:`select * from information_schema.SCHEMATA where SCHEMA_NAME <> 'INFORMATION_SCHEMA'`}).execute();
     var granted_schemas = "";
     while(schemas_to_grant.next()) {
-      table_schema = schemas_to_grant.getColumnValue("SCHEMA_NAME");
+      table_schema = '"' + schemas_to_grant.getColumnValue("SCHEMA_NAME") + '"';
 
       snowflake.createStatement({ sqlText:`GRANT REFERENCES ON ALL TABLES IN SCHEMA ${table_schema} TO ROLE identifier($mc_role_name)`}).execute();
       snowflake.createStatement({ sqlText:`GRANT REFERENCES ON ALL VIEWS IN SCHEMA ${table_schema} TO ROLE identifier($mc_role_name)`}).execute();
@@ -110,7 +110,7 @@ if (schema_future_grants.getRowCount() > 0) {
     var schemas_to_grant = snowflake.createStatement({ sqlText:`select SCHEMA_NAME from information_schema.SCHEMATA where SCHEMA_NAME <> 'INFORMATION_SCHEMA'`}).execute();
     var granted_schemas = "";
     while(schemas_to_grant.next()) {
-      table_schema = schemas_to_grant.getColumnValue("SCHEMA_NAME");
+      table_schema = '"' + schemas_to_grant.getColumnValue("SCHEMA_NAME") + '"';
       snowflake.createStatement({ sqlText:`GRANT SELECT ON FUTURE TABLES IN SCHEMA ${table_schema} TO ROLE identifier($mc_role_name)`}).execute();
       snowflake.createStatement({ sqlText:`GRANT SELECT ON FUTURE VIEWS IN SCHEMA ${table_schema} TO ROLE identifier($mc_role_name)`}).execute();
       snowflake.createStatement({ sqlText:`GRANT SELECT ON FUTURE EXTERNAL TABLES IN SCHEMA ${table_schema} TO ROLE identifier($mc_role_name)`}).execute();
