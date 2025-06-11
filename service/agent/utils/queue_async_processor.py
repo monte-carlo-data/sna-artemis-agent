@@ -10,7 +10,8 @@ T = TypeVar("T")
 class QueueAsyncProcessor(Generic[T]):
     """
     Base class used to process operations in a queue asynchronously.
-    Currently, it uses a single thread to process the operations.
+    It is configured with the handler that will be called for each operation in the queue,
+    and the number of threads used to execute them in parallel.
     """
 
     def __init__(self, name: str, handler: Callable[[T], None], thread_count: int):
@@ -51,14 +52,15 @@ class QueueAsyncProcessor(Generic[T]):
                     self._condition.wait()
                 if not self._running:
                     break
-                to_execute = self._queue.copy()
-                self._queue.clear()
-            for o in to_execute:
-                self._invoke_handler(o)
-        logger.info(f"{thread_name} stopped")
+                to_execute = self._queue.pop(0)
 
-    def _invoke_handler(self, param: Any):
+            self._invoke_handler(thread_name, to_execute)
+        logger.info(f"{thread_name}: stopped")
+
+    def _invoke_handler(self, thread_name: str, param: Any):
         try:
+            logger.info(f"{thread_name}: running operation")
             self._handler(param)
+            logger.info(f"{thread_name}: completed operation")
         except Exception as ex:
-            logger.exception(f"Failed to run operation: {ex}")
+            logger.exception(f"{thread_name}: Failed to run operation: {ex}")
