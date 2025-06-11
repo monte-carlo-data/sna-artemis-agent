@@ -48,6 +48,7 @@ class BackendClient:
                 "Content-Type": "application/json",
                 **get_mc_login_token(),
             },
+            timeout=60,
         )
         logger.info(
             f"Sent query results to backend, operation_id: {operation_id}, response: {response.status_code}"
