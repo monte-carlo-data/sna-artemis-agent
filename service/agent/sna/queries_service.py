@@ -180,7 +180,7 @@ class QueriesService:
         sql_query = query.query
         with self._connect(query.operation_attrs.job_type) as conn:
             with conn.cursor() as cur:
-                if self._direct_sync_queries:
+                if self._direct_sync_queries or self._use_sync_query(sql_query):
                     cur.execute(sql_query)
                     logger.info(
                         f"Sync query executed: {operation_id} {sql_query}, id: {cur.sfqid}"
@@ -201,6 +201,10 @@ class QueriesService:
                         f"Async query executed: {operation_id} {get_query_for_logs(sql_query)}, id: {cur.sfqid}"
                     )
                     return None
+
+    @staticmethod
+    def _use_sync_query(query: str) -> bool:
+        return "--mcd_query_use_application" in query
 
     @staticmethod
     def _get_error_message(msg: str) -> str:
