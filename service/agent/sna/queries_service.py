@@ -183,13 +183,15 @@ class QueriesService:
                 if self._direct_sync_queries or self._use_sync_query(sql_query):
                     cur.execute(sql_query)
                     logger.info(
-                        f"Sync query executed: {operation_id} {sql_query}, id: {cur.sfqid}"
+                        f"Sync query executed ({operation_id}): {get_query_for_logs(sql_query)}, id: {cur.sfqid}"
                     )
                     return self._result_for_cursor(cur)
                 elif self._helper_sync_queries:
                     cur.execute(QUERY_SET_STATEMENT_TIMEOUT.format(timeout=timeout))
                     cur.execute(QUERY_EXECUTE_QUERY_WITH_HELPER_SYNC, [sql_query])
-                    logger.info(f"Sync query executed: {operation_id} {sql_query}")
+                    logger.info(
+                        f"Sync query executed by helper ({operation_id}): {get_query_for_logs(sql_query)}"
+                    )
                     return self._result_for_cursor(cur)
                 else:
                     operation_json = query.operation_attrs.to_json()
