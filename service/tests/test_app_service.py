@@ -139,6 +139,7 @@ class AppServiceTests(TestCase):
                 "x-mcd-id": "local-token-id",
                 "x-mcd-token": "local-token-secret",
             },
+            timeout=60,
         )
         url = mock_requests_put.call_args[0][0]
         self.assertTrue(url.endswith("/api/v1/agent/operations/1234/result"))
