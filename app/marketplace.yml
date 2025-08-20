@@ -10,7 +10,6 @@ required_compute_pools:
         - HIGHMEM_X64_S
         - HIGHMEM_X64_M
         - HIGHMEM_X64_L
-        - HIGHMEM_X64_SL
 connections:
   - MONTE_CARLO:
      label: "Monte Carlo"
