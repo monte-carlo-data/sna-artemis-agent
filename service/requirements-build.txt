@@ -53,8 +53,10 @@ python-dateutil==2.9.0.post0
     # via botocore
 pytz==2025.2
     # via snowflake-connector-python
-requests==2.32.3
-    # via snowflake-connector-python
+requests==2.32.4
+    # via
+    #   -r requirements-build.in
+    #   snowflake-connector-python
 s3transfer==0.13.0
     # via boto3
 six==1.17.0
