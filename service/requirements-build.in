@@ -1,3 +1,4 @@
 # dependencies that are built in a separate stage of the docker image
 snowflake-connector-python==3.15.0
 requests>=2.32.4 # Upgraded in VULN-616
+urllib3==2.5.0 # Upgraded in VULN-621

@@ -69,7 +69,8 @@ tomlkit==0.13.2
     # via snowflake-connector-python
 typing-extensions==4.13.2
     # via snowflake-connector-python
-urllib3==2.4.0
+urllib3==2.5.0
     # via
+    #   -r requirements-build.in
     #   botocore
     #   requests
