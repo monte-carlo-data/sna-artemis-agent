@@ -58,4 +58,7 @@ USER mcdagent
 ENV VIRTUAL_ENV=/opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
+# VULN-621
+RUN rm -rf /var/lang/lib/python3.*/site-packages/urllib3-*.dist-info/
+
 CMD ["gunicorn", "agent.main:app", "--bind", "0.0.0.0:8000"]
