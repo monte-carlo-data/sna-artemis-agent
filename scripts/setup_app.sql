@@ -4,6 +4,9 @@
 -- The application is then granted access to the stored procedure and the database where it is defined.
 
 -- Configuration
+-- Name of the Snowflake Application for the agent, needs to be updated to reflect the name of the application
+-- in your account.
+set mcd_agent_app_name='MCD_AGENT';
 -- Role name to use to execute queries, can be changed to any other name
 set mcd_agent_role_name='MCD_AGENT_ROLE';
 -- Database name used to create the stored procedure, can be changed to any other name
@@ -17,6 +20,10 @@ CREATE ROLE IF NOT EXISTS identifier($mcd_agent_role_name);
 
 -- Grant the new role to ACCOUNTADMIN
 GRANT ROLE identifier($mcd_agent_role_name) TO ROLE ACCOUNTADMIN;
+
+-- Grant app_user application role
+set mcd_agent_app_role_user = $mcd_agent_app_name || '.app_stage_reader';
+GRANT APPLICATION ROLE identifier($mcd_agent_app_role_user) TO ROLE identifier($mcd_agent_role_name);
 
 -- Grant privileges to allow access to query history
 GRANT IMPORTED PRIVILEGES ON DATABASE "SNOWFLAKE" TO ROLE identifier($mcd_agent_role_name);
