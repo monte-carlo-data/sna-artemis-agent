@@ -109,6 +109,8 @@ BEGIN
 END;
 $$;
 
+GRANT USAGE ON PROCEDURE core.execute_query(string) TO APPLICATION ROLE app_admin;
+
 -- Public (admin-only) stored procedures intended to start/stop/restart the service
 CREATE OR REPLACE PROCEDURE app_public.suspend_service()
 RETURNS VARCHAR
