@@ -1,7 +1,7 @@
 import base64
 import dataclasses
 import json
-from datetime import datetime, date
+from datetime import datetime, date, time
 from decimal import Decimal
 from typing import Any, Dict, Union
 
@@ -10,6 +10,7 @@ ATTRIBUTE_NAME_DATA = "__data__"
 ATTRIBUTE_VALUE_TYPE_BYTES = "bytes"
 ATTRIBUTE_VALUE_TYPE_DATETIME = "datetime"
 ATTRIBUTE_VALUE_TYPE_DATE = "date"
+ATTRIBUTE_VALUE_TYPE_TIME = "time"
 ATTRIBUTE_VALUE_TYPE_DECIMAL = "decimal"
 ATTRIBUTE_NAME_TRACE_ID = "__mcd_trace_id__"
 ATTRIBUTE_NAME_RESULT = "__mcd_result__"
@@ -33,6 +34,11 @@ class AgentSerializer(json.JSONEncoder):
         elif isinstance(value, date):
             return {
                 ATTRIBUTE_NAME_TYPE: ATTRIBUTE_VALUE_TYPE_DATE,
+                ATTRIBUTE_NAME_DATA: value.isoformat(),
+            }
+        elif isinstance(value, time):
+            return {
+                ATTRIBUTE_NAME_TYPE: ATTRIBUTE_VALUE_TYPE_TIME,
                 ATTRIBUTE_NAME_DATA: value.isoformat(),
             }
         elif isinstance(value, Decimal):
