@@ -156,25 +156,25 @@ class StorageServiceTests(TestCase):
             },
         )
 
-    # @patch.object(SnaService, "_schedule_push_results")
-    # def test_generate_pre_signed_url(
-    #     self,
-    #     mock_push_results: Mock,
-    # ):
-    #     url = "https://test.com"
-    #     self._queries_service.run_query_and_fetch_all.return_value = [[url]], []
-    #
-    #     self._execute_storage_operation(_GENERATE_PRE_SIGNED_OPERATION)
-    #     expected_query = "CALL CORE.EXECUTE_QUERY(?)"
-    #     expected_query_param = (
-    #         "CALL GET_PRESIGNED_URL(@test.test_stage, 'mcd/test/test.json', 300.0)"
-    #     )
-    #     self._queries_service.run_query_and_fetch_all.assert_called_once_with(
-    #         expected_query, [expected_query_param]
-    #     )
-    #     mock_push_results.assert_called_once_with(
-    #         "1234", {ATTRIBUTE_NAME_RESULT: "https://test.com"}
-    #     )
+    @patch.object(SnaService, "_schedule_push_results")
+    def test_generate_pre_signed_url(
+        self,
+        mock_push_results: Mock,
+    ):
+        url = "https://test.com"
+        self._queries_service.run_query_and_fetch_all.return_value = [[url]], []
+
+        self._execute_storage_operation(_GENERATE_PRE_SIGNED_OPERATION)
+        expected_query = "CALL CORE.EXECUTE_QUERY(?)"
+        expected_query_param = (
+            "CALL GET_PRESIGNED_URL(@test.test_stage, 'mcd/test/test.json', 300.0)"
+        )
+        self._queries_service.run_query_and_fetch_all.assert_called_once_with(
+            expected_query, [expected_query_param]
+        )
+        mock_push_results.assert_called_once_with(
+            "1234", {ATTRIBUTE_NAME_RESULT: "https://test.com"}
+        )
 
     @patch.object(SnaService, "_schedule_push_results")
     def test_is_bucket_private(self, mock_push_results: Mock):
