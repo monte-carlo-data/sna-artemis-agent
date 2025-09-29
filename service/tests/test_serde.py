@@ -21,8 +21,9 @@ class SerdeTests(TestCase):
         self.assertTrue(isinstance(result.get(ATTRIBUTE_NAME_DATA), str))
 
     def test_time_json_serialization(self):
+        time_value = datetime.now().time()
         value = {
-            "time": datetime.now().time(),
+            "time": time_value,
         }
         str_value = json.dumps(
             {
@@ -36,4 +37,8 @@ class SerdeTests(TestCase):
         self.assertTrue(isinstance(json_value.get("result").get("time"), dict))
         self.assertEqual(
             json_value.get("result").get("time").get(ATTRIBUTE_NAME_TYPE), "time"
+        )
+        self.assertEqual(
+            json_value.get("result").get("time").get(ATTRIBUTE_NAME_DATA),
+            time_value.isoformat(),
         )
