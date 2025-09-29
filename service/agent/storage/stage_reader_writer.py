@@ -12,6 +12,7 @@ from agent.sna.config.config_manager import ConfigurationManager
 from agent.sna.config.config_keys import CONFIG_STAGE_NAME
 
 from agent.sna.queries_service import QueriesService
+from agent.sna.sf_queries import QUERY_EXECUTE_QUERY_WITH_HELPER_AND_FETCH
 from agent.storage.base_storage_client import BaseStorageClient
 from agent.utils.utils import LOCAL, get_application_name
 
@@ -171,11 +172,11 @@ class StageReaderWriter(BaseStorageClient):
         if self._local:
             data, _ = self._run_stage_query(pre_signed_url_query, "pre_signed_url", key)
         else:
-            # For some reason, when running in the SNA, we need to request the pre-signed url
-            # using a store procedure, the url we get directly using GET_PRESIGNED_URL doesn't work.
+            # For some reason, when running in the SNA, the pre-signed url returned directly
+            # using GET_PRESIGNED_URL doesn't work.
             # We're using EXECUTE_HELPER_QUERY to run it as the MC role, the same we use to run queries.
             data, _ = self._run_stage_query(
-                "CALL CORE.EXECUTE_HELPER_QUERY(?)",
+                QUERY_EXECUTE_QUERY_WITH_HELPER_AND_FETCH,
                 "pre_signed_url",
                 key,
                 [pre_signed_url_query],
