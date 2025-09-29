@@ -28,7 +28,7 @@ WITH RUN_QUERY AS PROCEDURE(query STRING)
     $$
     BEGIN
         CALL core.execute_helper_query(:query);
-        LET rs RESULTSET := (EXECUTE IMMEDIATE 'SELECT * FROM TABLE(RESULT_SCAN(?))' USING (SQLID));
+        LET rs RESULTSET := (SELECT * FROM TABLE(RESULT_SCAN(:SQLID)));
         RETURN TABLE(rs);
     END;
     $$
