@@ -171,10 +171,11 @@ class StageReaderWriter(BaseStorageClient):
         if self._local:
             data, _ = self._run_stage_query(pre_signed_url_query, "pre_signed_url", key)
         else:
-            # for some reason, when running in the SNA, we need to request the pre-signed url
+            # For some reason, when running in the SNA, we need to request the pre-signed url
             # using a store procedure, the url we get directly using GET_PRESIGNED_URL doesn't work.
+            # We're using EXECUTE_HELPER_QUERY to run it as the MC role, the same we use to run queries.
             data, _ = self._run_stage_query(
-                "CALL CORE.EXECUTE_QUERY(?)",
+                "CALL CORE.EXECUTE_HELPER_QUERY(?)",
                 "pre_signed_url",
                 key,
                 [pre_signed_url_query],
