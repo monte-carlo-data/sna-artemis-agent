@@ -1,5 +1,6 @@
 import contextlib
 import gzip
+import logging
 import os.path
 import tempfile
 from datetime import timedelta
@@ -17,6 +18,8 @@ from agent.utils.utils import LOCAL
 
 _DEFAULT_PREFIX = "mcd"
 _SNOWFLAKE_ERROR_FILE_NOT_FOUND = 253006
+
+logger = logging.getLogger(__name__)
 
 
 class StageReaderWriter(BaseStorageClient):
@@ -169,8 +172,18 @@ class StageReaderWriter(BaseStorageClient):
         )
 
         if self._local:
+            logger.info("Generating pre-signed URL for local execution")
             data, _ = self._run_stage_query(pre_signed_url_query, "pre_signed_url", key)
         else:
+            local_data, _ = self._run_stage_query(
+                pre_signed_url_query, "pre_signed_url", key
+            )
+            if local_data:
+                first_row = local_data[0]
+                if first_row:
+                    logger.info(f"Local pre-signed URL: {first_row[0]}")
+
+            logger.info("Generating pre-signed URL for Snowflake execution")
             # for some reason, when running in the SNA, we need to request the pre-signed url
             # using a store procedure, the url we get directly using GET_PRESIGNED_URL doesn't work.
             data, _ = self._run_stage_query(
