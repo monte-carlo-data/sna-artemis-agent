@@ -166,9 +166,7 @@ class StorageServiceTests(TestCase):
 
         self._execute_storage_operation(_GENERATE_PRE_SIGNED_OPERATION)
         expected_query = "CALL CORE.EXECUTE_HELPER_QUERY(?)"
-        expected_query_param = (
-            "CALL GET_PRESIGNED_URL(@test.test_stage, 'mcd/test/test.json', 300.0)"
-        )
+        expected_query_param = "CALL GET_PRESIGNED_URL(@MCD_AGENT.test.test_stage, 'mcd/test/test.json', 300.0)"
         self._queries_service.run_query_and_fetch_all.assert_called_once_with(
             expected_query, [expected_query_param]
         )

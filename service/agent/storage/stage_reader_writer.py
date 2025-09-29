@@ -13,7 +13,7 @@ from agent.sna.config.config_keys import CONFIG_STAGE_NAME
 
 from agent.sna.queries_service import QueriesService
 from agent.storage.base_storage_client import BaseStorageClient
-from agent.utils.utils import LOCAL
+from agent.utils.utils import LOCAL, get_application_name
 
 _DEFAULT_PREFIX = "mcd"
 _SNOWFLAKE_ERROR_FILE_NOT_FOUND = 253006
@@ -165,7 +165,7 @@ class StageReaderWriter(BaseStorageClient):
             full_key = full_key[1:]
         pre_signed_url_query = (
             f"CALL GET_PRESIGNED_URL("
-            f"@{self._stage_name}, '{full_key}', {expiration.total_seconds()})"
+            f"@{get_application_name()}.{self._stage_name}, '{full_key}', {expiration.total_seconds()})"
         )
 
         if self._local:
