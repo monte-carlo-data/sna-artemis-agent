@@ -15,6 +15,7 @@ from agent.sna.operations_runner import OperationsRunner
 from agent.sna.queries_runner import QueriesRunner
 from agent.sna.queries_service import QueriesService
 from agent.sna.results_publisher import ResultsPublisher
+from agent.sna.sf_queries import QUERY_EXECUTE_QUERY_WITH_HELPER_AND_FETCH
 from agent.sna.sna_service import SnaService
 from agent.sna.timer_service import TimerService
 from agent.storage.stage_reader_writer import StageReaderWriter
@@ -165,7 +166,7 @@ class StorageServiceTests(TestCase):
         self._queries_service.run_query_and_fetch_all.return_value = [[url]], []
 
         self._execute_storage_operation(_GENERATE_PRE_SIGNED_OPERATION)
-        expected_query = "CALL CORE.EXECUTE_HELPER_QUERY(?)"
+        expected_query = QUERY_EXECUTE_QUERY_WITH_HELPER_AND_FETCH
         expected_query_param = "CALL GET_PRESIGNED_URL(@MCD_AGENT.test.test_stage, 'mcd/test/test.json', 300.0)"
         self._queries_service.run_query_and_fetch_all.assert_called_once_with(
             expected_query, [expected_query_param]

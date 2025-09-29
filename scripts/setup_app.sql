@@ -22,8 +22,8 @@ CREATE ROLE IF NOT EXISTS identifier($mcd_agent_role_name);
 GRANT ROLE identifier($mcd_agent_role_name) TO ROLE ACCOUNTADMIN;
 
 -- Grant app_user application role
-set mcd_agent_app_role_user = $mcd_agent_app_name || '.app_stage_reader';
-GRANT APPLICATION ROLE identifier($mcd_agent_app_role_user) TO ROLE identifier($mcd_agent_role_name);
+set mcd_agent_app_role_stage_reader = $mcd_agent_app_name || '.app_stage_reader';
+GRANT APPLICATION ROLE identifier($mcd_agent_app_role_stage_reader) TO ROLE identifier($mcd_agent_role_name);
 
 -- Grant privileges to allow access to query history
 GRANT IMPORTED PRIVILEGES ON DATABASE "SNOWFLAKE" TO ROLE identifier($mcd_agent_role_name);
