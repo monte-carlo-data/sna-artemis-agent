@@ -4,7 +4,7 @@ RUN python -m venv $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
 # libraries required to build cryptography and other requirements
-RUN apk add build-base gcc musl-dev python3-dev libffi-dev openssl-dev cargo pkgconfig
+RUN apk add build-base gcc musl-dev python3-dev libffi-dev openssl-dev cargo pkgconfig git
 
 COPY requirements-build.txt .
 RUN pip install -r requirements-build.txt
