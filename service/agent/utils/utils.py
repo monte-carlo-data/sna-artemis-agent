@@ -1,9 +1,10 @@
 import logging
 import os
-import socket
 
-from urllib3.connection import HTTPConnection
-
+BACKEND_SERVICE_URL = os.getenv(
+    "BACKEND_SERVICE_URL",
+    "https://artemis.getmontecarlo.com:443",
+)
 _SNOWFLAKE_TOKEN_PATH = "/snowflake/session/token"
 
 logger = logging.getLogger(__name__)
