@@ -1,21 +1,21 @@
 from unittest import TestCase
 from unittest.mock import patch, create_autospec, Mock
 
+from apollo.egress.agent.backend.backend_client import BackendClient
+from apollo.egress.agent.config.config_manager import ConfigurationManager
+from apollo.egress.agent.config.local_config import LocalConfig
+from apollo.egress.agent.events.ack_sender import AckSender
+from apollo.egress.agent.events.base_receiver import BaseReceiver
+from apollo.egress.agent.events.events_client import EventsClient
+from apollo.egress.agent.events.heartbeat_checker import HeartbeatChecker
+from apollo.egress.agent.service.operations_runner import OperationsRunner, Operation
+from apollo.egress.agent.service.results_publisher import ResultsPublisher
+from apollo.egress.agent.service.timer_service import TimerService
 from requests import Response, HTTPError
 
-from agent.backend.backend_client import BackendClient
-from agent.events.ack_sender import AckSender
-from agent.events.base_receiver import BaseReceiver
-from agent.events.events_client import EventsClient
-from agent.events.heartbeat_checker import HeartbeatChecker
-from agent.sna.config.config_manager import ConfigurationManager
-from agent.sna.config.local_config import LocalConfig
 from agent.sna.metrics_service import MetricsService, SnowparkMetricsService
-from agent.sna.operations_runner import OperationsRunner, Operation
 from agent.sna.queries_runner import QueriesRunner
-from agent.sna.results_publisher import ResultsPublisher
 from agent.sna.sna_service import SnaService
-from agent.sna.timer_service import TimerService
 
 _REQUEST_METRICS_OPERATION = {
     "type": "push_metrics",

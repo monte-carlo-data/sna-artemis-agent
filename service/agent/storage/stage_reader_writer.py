@@ -6,17 +6,18 @@ from datetime import timedelta
 from typing import Optional, Tuple, Union, List, Dict, Iterator
 from uuid import uuid4
 
+from apollo.egress.agent.config.config_manager import ConfigurationManager
+from apollo.egress.agent.utils.utils import LOCAL
 from snowflake.connector import OperationalError
-
-from agent.sna.config.config_manager import ConfigurationManager
-from agent.sna.config.config_keys import CONFIG_STAGE_NAME
 
 from agent.sna.queries_service import QueriesService
 from agent.storage.base_storage_client import BaseStorageClient
-from agent.utils.utils import LOCAL
 
 _DEFAULT_PREFIX = "mcd"
 _SNOWFLAKE_ERROR_FILE_NOT_FOUND = 253006
+
+# name of the stage to use to store files
+_CONFIG_STAGE_NAME = "STAGE_NAME"
 
 
 class StageReaderWriter(BaseStorageClient):
@@ -31,8 +32,8 @@ class StageReaderWriter(BaseStorageClient):
         super().__init__(prefix=prefix)
         self._queries_service = queries_service
         self._stage_name = stage_name or os.getenv(
-            CONFIG_STAGE_NAME,
-            config_manager.get_str_value(CONFIG_STAGE_NAME, "CORE.DATA_STORE"),
+            _CONFIG_STAGE_NAME,
+            config_manager.get_str_value(_CONFIG_STAGE_NAME, "CORE.DATA_STORE"),
         )
         self._local = local
 

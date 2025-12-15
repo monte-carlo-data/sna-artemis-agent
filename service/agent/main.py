@@ -5,14 +5,14 @@ import signal
 import sys
 from typing import Any
 
+from apollo.egress.agent.config.config_manager import ConfigurationManager
+from apollo.egress.agent.config.local_config import LocalConfig
+from apollo.egress.agent.utils.utils import LOCAL, init_logging, enable_tcp_keep_alive
 from flask import Flask
 from flask import make_response
 from flask import request
 
-from agent.sna.config.config_manager import ConfigurationManager
 from agent.sna.config.db_config import DbConfig
-from agent.sna.config.local_config import LocalConfig
-from agent.utils.utils import enable_tcp_keep_alive, init_logging, LOCAL
 
 init_logging()
 logger = logging.getLogger(__name__)
@@ -153,11 +153,11 @@ def query_failed():
 
 @app.post("/api/v1/test/metrics")
 def fetch_metrics():
-    """
+    """ahora
     Intended to be used from the Streamlit application, this gets called through a
     Snowflake function.
     """
-    metrics = MetricsService.fetch_metrics()
+    metrics = service.fetch_metrics()
 
     output_rows = [[0, json.dumps(metrics)]]
     response = make_response({"data": output_rows})

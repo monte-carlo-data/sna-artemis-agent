@@ -1,7 +1,7 @@
 from typing import Optional
 from unittest import TestCase
 
-from agent.utils.queue_async_processor import QueueAsyncProcessor
+from apollo.egress.agent.utils.queue_async_processor import QueueAsyncProcessor
 
 
 class AsyncProcessorTets(TestCase):

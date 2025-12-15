@@ -3,23 +3,25 @@ from collections.abc import Callable
 from datetime import timedelta
 from typing import Dict, Any, Optional, Union
 
-from agent.sna.config.config_manager import ConfigurationManager
+from apollo.common.agent.constants import (
+    ATTRIBUTE_NAME_ERROR,
+    ATTRIBUTE_NAME_RESULT,
+    ATTRIBUTE_NAME_ERROR_TYPE,
+)
+from apollo.common.agent.serde import AgentSerializer
+from apollo.egress.agent.config.config_manager import ConfigurationManager
+from apollo.egress.agent.service.storage_service import BaseStorageService
+
 from agent.sna.queries_service import QueriesService
 from agent.storage.base_storage_client import BaseStorageClient
 from agent.storage.stage_reader_writer import StageReaderWriter
-from agent.utils.serde import (
-    AgentSerializer,
-    ATTRIBUTE_NAME_RESULT,
-    ATTRIBUTE_NAME_ERROR_TYPE,
-    ATTRIBUTE_NAME_ERROR,
-)
 
 logger = logging.getLogger(__name__)
 _ERROR_TYPE_NOTFOUND = "NotFound"
 _ERROR_TYPE_PERMISSIONS = "Permissions"
 
 
-class StorageService:
+class StorageService(BaseStorageService):
     """
     Storage service class, used to implement the storage operations received by
     the MC backend, by interacting with the storage client.

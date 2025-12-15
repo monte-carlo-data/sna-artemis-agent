@@ -4,29 +4,38 @@ from copy import deepcopy
 from unittest import TestCase
 from unittest.mock import create_autospec, patch, ANY, Mock
 
-from agent.events.ack_sender import AckSender
-from agent.events.base_receiver import BaseReceiver
-from agent.events.events_client import EventsClient
-from agent.events.heartbeat_checker import HeartbeatChecker
-from agent.sna.config.config_manager import ConfigurationManager
-from agent.sna.config.config_persistence import ConfigurationPersistence
-from agent.sna.operation_result import OperationAttributes, AgentOperationResult
-from agent.sna.operations_runner import OperationsRunner, Operation
-from agent.sna.queries_runner import QueriesRunner
-from agent.sna.queries_service import QueriesService
-from agent.sna.results_publisher import ResultsPublisher
-from agent.sna.sf_query import SnowflakeQuery
-from agent.sna.sna_service import SnaService
-from agent.sna.timer_service import TimerService
-from agent.storage.storage_service import StorageService
-from agent.utils.serde import (
+from apollo.egress.agent.events.ack_sender import AckSender
+from apollo.egress.agent.events.base_receiver import BaseReceiver
+from apollo.egress.agent.events.events_client import EventsClient
+from apollo.egress.agent.events.heartbeat_checker import HeartbeatChecker
+from apollo.egress.agent.config.config_manager import ConfigurationManager
+from apollo.egress.agent.config.config_persistence import ConfigurationPersistence
+from apollo.egress.agent.service.login_token_provider import (
+    LocalLoginTokenProvider,
+    LoginTokenProvider,
+)
+from apollo.egress.agent.service.operation_result import (
+    OperationAttributes,
+    AgentOperationResult,
+)
+from apollo.egress.agent.service.operations_runner import OperationsRunner, Operation
+from apollo.common.agent.constants import (
+    ATTRIBUTE_NAME_RESULT,
     ATTRIBUTE_NAME_ERROR,
     ATTRIBUTE_NAME_ERROR_ATTRS,
     ATTRIBUTE_NAME_ERROR_TYPE,
-    ATTRIBUTE_NAME_RESULT,
     ATTRIBUTE_NAME_TRACE_ID,
 )
-from agent.utils.utils import BACKEND_SERVICE_URL
+from apollo.egress.agent.service.timer_service import TimerService
+from apollo.egress.agent.utils.queue_async_processor import T
+from apollo.egress.agent.utils.utils import BACKEND_SERVICE_URL
+
+from agent.sna.queries_runner import QueriesRunner
+from agent.sna.queries_service import QueriesService
+from apollo.egress.agent.service.results_publisher import ResultsPublisher
+from agent.sna.sf_query import SnowflakeQuery
+from agent.sna.sna_service import SnaService
+from agent.storage.storage_service import StorageService
 
 _QUERY_OPERATION = {
     "operation_id": "1234",
@@ -71,6 +80,7 @@ class AppServiceTests(TestCase):
             queries_service=self._queries_service,
             config_manager=self._config_manager,
             logs_sender=self._logs_sender,
+            login_token_provider=LocalLoginTokenProvider(),
         )
 
     def test_service_start_stop(self):
@@ -90,16 +100,19 @@ class AppServiceTests(TestCase):
             receiver=create_autospec(BaseReceiver),
             heartbeat_checker=create_autospec(HeartbeatChecker),
         )
+        ops_runner = ImmediateOpsRunner(lambda op: None)
         service = SnaService(
             queries_runner=self._mock_queries_runner,
-            ops_runner=self._mock_ops_runner,
+            ops_runner=ops_runner,
             results_publisher=self._mock_results_publisher,
             events_client=events_client,
             ack_sender=self._ack_sender,
             queries_service=self._queries_service,
             config_manager=self._config_manager,
             logs_sender=self._logs_sender,
+            login_token_provider=LocalLoginTokenProvider(),
         )
+        ops_runner._ops_handler = service._execute_scheduled_operation
         service.start()
         events_client._event_received(_QUERY_OPERATION)
         operation_attrs = OperationAttributes(
@@ -183,9 +196,10 @@ class AppServiceTests(TestCase):
             heartbeat_checker=create_autospec(HeartbeatChecker),
         )
         storage = create_autospec(StorageService)
+        ops_runner = ImmediateOpsRunner(lambda op: None)
         service = SnaService(
             queries_runner=self._mock_queries_runner,
-            ops_runner=self._mock_ops_runner,
+            ops_runner=ops_runner,
             results_publisher=self._mock_results_publisher,
             events_client=events_client,
             ack_sender=self._ack_sender,
@@ -193,7 +207,10 @@ class AppServiceTests(TestCase):
             config_manager=self._config_manager,
             storage_service=storage,
             logs_sender=self._logs_sender,
+            login_token_provider=LocalLoginTokenProvider(),
+            enable_pre_signed_urls=True,
         )
+        ops_runner._ops_handler = service._execute_scheduled_operation
         service.start()
         query_operation = deepcopy(_QUERY_OPERATION)
         query_operation["operation"]["response_size_limit_bytes"] = 1
@@ -295,6 +312,7 @@ class AppServiceTests(TestCase):
             queries_service=self._queries_service,
             config_manager=self._config_manager,
             logs_sender=self._logs_sender,
+            login_token_provider=LocalLoginTokenProvider(),
         )
         service.start()
         events_client._event_received(_HEALTH_OPERATION)
@@ -342,3 +360,11 @@ class AppServiceTests(TestCase):
             )
             result = self._service.run_reachability_test()
             self.assertEqual({"error": "ping failed"}, result)
+
+
+class ImmediateOpsRunner(OperationsRunner):
+    def start(self):
+        pass  # skip starting thread
+
+    def schedule(self, o: Operation):
+        self._invoke_handler("immediate", o)

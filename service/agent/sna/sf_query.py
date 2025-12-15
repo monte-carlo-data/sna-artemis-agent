@@ -1,7 +1,7 @@
 from dataclasses import dataclass
-from typing import Optional, Dict, Any
+from typing import Optional
 
-from agent.sna.operation_result import OperationAttributes
+from apollo.egress.agent.service.operation_result import OperationAttributes
 
 
 @dataclass

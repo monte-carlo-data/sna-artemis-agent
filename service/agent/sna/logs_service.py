@@ -1,11 +1,13 @@
 from datetime import datetime, timezone
 from typing import List, Dict, Any, Tuple
 
+from apollo.egress.agent.service.logs_service import BaseLogsService
+from apollo.egress.agent.utils.utils import LOCAL
+
 from agent.sna.queries_service import QueriesService
-from agent.utils.utils import LOCAL
 
 
-class LogsService:
+class LogsService(BaseLogsService):
     def __init__(self, queries_service: QueriesService):
         self._queries_service = queries_service
 
