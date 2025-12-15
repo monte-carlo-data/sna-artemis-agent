@@ -4,7 +4,6 @@ from typing import Dict, Tuple, Optional, Any, List
 
 from apollo.common.agent.constants import ATTRIBUTE_NAME_RESULT, ATTRIBUTE_NAME_TRACE_ID
 from apollo.common.agent.serde import decode_dictionary
-from apollo.egress.agent.backend.backend_client import BackendClient
 from apollo.egress.agent.config.config_keys import (
     CONFIG_QUERIES_RUNNER_THREAD_COUNT,
     CONFIG_IS_REMOTE_UPGRADABLE,
@@ -47,6 +46,7 @@ from apollo.egress.agent.service.timer_service import TimerService
 from agent.sna.sna_login_token_provider import SNALoginTokenProvider
 from agent.storage.storage_service import StorageService
 from agent.utils.settings import VERSION, BUILD_NUMBER
+from agent.utils.utils import BACKEND_SERVICE_URL
 
 logger = logging.getLogger(__name__)
 
@@ -112,6 +112,7 @@ class SnaService(BaseEgressAgentService):
                 LocalLoginTokenProvider() if LOCAL else SNALoginTokenProvider()
             )
         super().__init__(
+            backend_service_url=BACKEND_SERVICE_URL,
             platform="SNA",
             service_name="SNA",
             additional_env_vars=_SNOWFLAKE_HEALTH_ENV_VARS,
