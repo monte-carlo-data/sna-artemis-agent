@@ -174,7 +174,10 @@ class SnaService(BaseEgressAgentService):
                 self._execute_snowflake_operation(operation_id, event)
             elif path.startswith("/api/v1/agent/execute/storage/"):
                 self._execute_storage_operation(operation_id, event)
-        raise Exception(f"Unsupported operation path: {path}")
+            else:
+                raise Exception(f"Unsupported operation path: {path}")
+        else:
+            raise Exception(f"{ATTR_NAME_PATH} is required")
 
     def _internal_execute_agent_operation(
         self, event: Dict[str, Any]
