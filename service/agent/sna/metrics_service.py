@@ -3,16 +3,17 @@ import socket
 from typing import List
 
 import requests
+from apollo.egress.agent.service.metrics_service import BaseMetricsService
+from apollo.egress.agent.utils.utils import LOCAL
 from requests import HTTPError
 
-from agent.utils.utils import LOCAL, get_application_name
+from agent.utils.utils import get_application_name
 
 logger = logging.getLogger(__name__)
 
 
-class MetricsService:
-    @staticmethod
-    def fetch_metrics() -> List[str]:
+class MetricsService(BaseMetricsService):
+    def fetch_metrics(self) -> List[str]:
         if LOCAL:
             return LocalMetricsService.fetch_metrics()
         return SnowparkMetricsService.fetch_metrics()

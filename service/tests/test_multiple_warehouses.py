@@ -1,29 +1,34 @@
 from contextlib import closing
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Any
 from unittest import TestCase
 from unittest.mock import create_autospec, patch, Mock, ANY, call
 
 from sqlalchemy import QueuePool
 
-from agent.events.ack_sender import AckSender
-from agent.events.base_receiver import BaseReceiver
-from agent.events.events_client import EventsClient
-from agent.events.heartbeat_checker import HeartbeatChecker
-from agent.sna.config.config_keys import CONFIG_USE_CONNECTION_POOL, CONFIG_JOB_TYPES
-from agent.sna.config.config_manager import ConfigurationManager
-from agent.sna.config.config_persistence import ConfigurationPersistence
-from agent.sna.operation_result import OperationAttributes
-from agent.sna.operations_runner import OperationsRunner
+from apollo.egress.agent.events.ack_sender import AckSender
+from apollo.egress.agent.events.base_receiver import BaseReceiver
+from apollo.egress.agent.events.events_client import EventsClient
+from apollo.egress.agent.events.heartbeat_checker import HeartbeatChecker
+from apollo.egress.agent.config.config_keys import (
+    CONFIG_USE_CONNECTION_POOL,
+    CONFIG_JOB_TYPES,
+)
+from apollo.egress.agent.config.config_manager import ConfigurationManager
+from apollo.egress.agent.config.config_persistence import ConfigurationPersistence
+from apollo.egress.agent.service.operation_result import OperationAttributes
+from apollo.egress.agent.service.operations_runner import OperationsRunner
 from agent.sna.queries_runner import QueriesRunner
 from agent.sna.queries_service import (
     QueriesService,
     JobTypesConfiguration,
     JobTypeConfiguration,
 )
-from agent.sna.results_publisher import ResultsPublisher
+from apollo.egress.agent.service.results_publisher import ResultsPublisher
 from agent.sna.sf_query import SnowflakeQuery
 from agent.sna.sna_service import SnaService
-from agent.sna.timer_service import TimerService
+from apollo.egress.agent.service.timer_service import TimerService
+
+from tests.test_app_service import ImmediateOpsRunner
 
 _QUERY_LOGS_JOB_TYPES_CONFIG = JobTypesConfiguration(
     job_types=[
@@ -58,7 +63,12 @@ class MultiWarehouseTests(TestCase):
         )
 
     @patch.object(QueriesService, "_create_connection_pool")
-    def test_query_logs_query_execution(self, mock_create_connection_pool: Mock):
+    @patch("agent.sna.queries_service.LOCAL")
+    def test_query_logs_query_execution(
+        self, mock_local: Mock, mock_create_connection_pool: Mock
+    ):
+        mock_local.return_value = True
+
         def get_config_value(key: str) -> Optional[str]:
             if key == CONFIG_USE_CONNECTION_POOL:
                 return "true"
@@ -84,9 +94,10 @@ class MultiWarehouseTests(TestCase):
         queries_service = QueriesService(
             config_manager=self._config_manager,
         )
+        ops_runner = ImmediateOpsRunner(lambda op: None)
         service = SnaService(
             queries_runner=self._mock_queries_runner,
-            ops_runner=self._mock_ops_runner,
+            ops_runner=ops_runner,
             results_publisher=self._mock_results_publisher,
             events_client=self._events_client,
             ack_sender=self._ack_sender,
@@ -94,6 +105,7 @@ class MultiWarehouseTests(TestCase):
             config_manager=self._config_manager,
             logs_sender=self._logs_sender,
         )
+        ops_runner._ops_handler = service._execute_scheduled_operation
         service.start()
 
         mock_create_connection_pool.assert_has_calls(

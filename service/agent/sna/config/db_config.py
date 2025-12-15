@@ -2,7 +2,8 @@ import logging
 import os
 from typing import Optional, Dict
 
-from agent.sna.config.config_persistence import ConfigurationPersistence
+from apollo.egress.agent.config.config_persistence import ConfigurationPersistence
+
 from agent.sna.sf_connection import create_connection
 from agent.sna.sf_queries import QUERY_LOAD_CONFIG, QUERY_UPDATE_CONFIG
 from agent.utils.utils import get_application_name
