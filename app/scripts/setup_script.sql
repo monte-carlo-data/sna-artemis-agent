@@ -1,9 +1,6 @@
 -- role used for read-only operations like getting logs, checking service status, etc.
 CREATE APPLICATION ROLE IF NOT EXISTS app_user;
 
--- role used for read-only operations on the stage, like generating pre-signed URLs
-CREATE APPLICATION ROLE IF NOT EXISTS app_stage_reader;
-
 -- role used for administrative operations like starting/stopping the service, configuring the
 -- external access integrations, etc.
 CREATE APPLICATION ROLE IF NOT EXISTS app_admin;
