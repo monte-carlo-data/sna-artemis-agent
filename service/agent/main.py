@@ -153,7 +153,7 @@ def query_failed():
 
 @app.post("/api/v1/test/metrics")
 def fetch_metrics():
-    """ahora
+    """
     Intended to be used from the Streamlit application, this gets called through a
     Snowflake function.
     """
