@@ -12,14 +12,14 @@ cfgv==3.5.0
     # via pre-commit
 click==8.3.1
     # via
-    #   -c /Users/mrostan/Developer/mc/sna-artemis-agent/service/requirements.txt
+    #   -c requirements.txt
     #   black
     #   pip-tools
 distlib==0.4.0
     # via virtualenv
 filelock==3.20.0
     # via
-    #   -c /Users/mrostan/Developer/mc/sna-artemis-agent/service/requirements.txt
+    #   -c requirements.txt
     #   virtualenv
 identify==2.6.15
     # via pre-commit
@@ -27,7 +27,7 @@ iniconfig==2.3.0
     # via pytest
 mypy-extensions==1.1.0
     # via
-    #   -c /Users/mrostan/Developer/mc/sna-artemis-agent/service/requirements.txt
+    #   -c requirements.txt
     #   black
 nodeenv==1.9.1
     # via
@@ -35,7 +35,7 @@ nodeenv==1.9.1
     #   pyright
 packaging==25.0
     # via
-    #   -c /Users/mrostan/Developer/mc/sna-artemis-agent/service/requirements.txt
+    #   -c requirements.txt
     #   black
     #   build
     #   pytest
@@ -45,7 +45,7 @@ pip-tools==7.4.1
     # via -r requirements-dev.in
 platformdirs==4.5.1
     # via
-    #   -c /Users/mrostan/Developer/mc/sna-artemis-agent/service/requirements.txt
+    #   -c requirements.txt
     #   black
     #   virtualenv
 pluggy==1.6.0

@@ -4,9 +4,9 @@
 #
 #    pip-compile requirements-build.in
 #
-agent-base @ git+https://github.com/monte-carlo-data/agent-base.git@dev
+agent-base @ git+https://github.com/monte-carlo-data/agent-base.git@v0.0.1
     # via agent-common
-agent-common @ git+https://github.com/monte-carlo-data/agent-common.git@dev
+agent-common @ git+https://github.com/monte-carlo-data/agent-common.git@v0.0.2
     # via -r requirements-build.in
 asn1crypto==1.5.1
     # via snowflake-connector-python
