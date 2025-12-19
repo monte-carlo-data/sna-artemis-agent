@@ -3,6 +3,14 @@ from contextlib import closing
 from dataclasses import dataclass
 from typing import Dict, Any, Optional, Tuple, List
 
+from apollo.common.agent.constants import (
+    ATTRIBUTE_NAME_ERROR,
+    ATTRIBUTE_NAME_ERROR_ATTRS,
+    ATTRIBUTE_NAME_ERROR_TYPE,
+    ATTRIBUTE_NAME_RESULT,
+)
+from apollo.egress.agent.config.config_manager import ConfigurationManager
+from apollo.egress.agent.utils.utils import LOCAL
 from dataclasses_json import DataClassJsonMixin
 from snowflake.connector import (
     DatabaseError,
@@ -13,15 +21,14 @@ from snowflake.connector.cursor import SnowflakeCursor
 from snowflake.sqlalchemy.snowdialect import SnowflakeDialect
 from sqlalchemy import QueuePool
 
-from agent.sna.config.config_manager import ConfigurationManager
-from agent.sna.config.config_keys import (
+from apollo.egress.agent.config.config_keys import (
     CONFIG_CONNECTION_POOL_SIZE,
     CONFIG_USE_CONNECTION_POOL,
     CONFIG_USE_SYNC_QUERIES,
     CONFIG_WAREHOUSE_NAME,
     CONFIG_JOB_TYPES,
 )
-from agent.sna.operation_result import OperationAttributes
+from apollo.egress.agent.service.operation_result import OperationAttributes
 from agent.sna.sf_connection import create_connection
 from agent.sna.sf_queries import (
     QUERY_EXECUTE_QUERY_WITH_HELPER,
@@ -29,13 +36,7 @@ from agent.sna.sf_queries import (
     QUERY_EXECUTE_QUERY_WITH_HELPER_SYNC,
 )
 from agent.sna.sf_query import SnowflakeQuery
-from agent.utils.serde import (
-    ATTRIBUTE_NAME_RESULT,
-    ATTRIBUTE_NAME_ERROR,
-    ATTRIBUTE_NAME_ERROR_ATTRS,
-    ATTRIBUTE_NAME_ERROR_TYPE,
-)
-from agent.utils.utils import LOCAL, get_application_name, get_query_for_logs
+from agent.utils.utils import get_application_name, get_query_for_logs
 
 logger = logging.getLogger(__name__)
 

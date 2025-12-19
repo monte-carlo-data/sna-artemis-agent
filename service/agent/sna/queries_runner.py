@@ -1,8 +1,9 @@
 import logging
 from typing import Callable
 
+from apollo.egress.agent.utils.queue_async_processor import QueueAsyncProcessor
+
 from agent.sna.sf_query import SnowflakeQuery
-from agent.utils.queue_async_processor import QueueAsyncProcessor
 from agent.utils.utils import get_query_for_logs
 
 logger = logging.getLogger(__name__)

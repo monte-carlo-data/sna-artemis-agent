@@ -1,7 +1,7 @@
 from unittest import TestCase
 from unittest.mock import patch, Mock
 
-from agent.events.ack_sender import AckSender
+from apollo.egress.agent.events.ack_sender import AckSender
 
 
 class AckSenderTests(TestCase):

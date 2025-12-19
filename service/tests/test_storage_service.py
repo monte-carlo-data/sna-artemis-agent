@@ -5,24 +5,21 @@ from typing import Optional, Dict, Any
 from unittest import TestCase
 from unittest.mock import create_autospec, patch, Mock, mock_open
 
-from agent.events.ack_sender import AckSender
-from agent.events.base_receiver import BaseReceiver
-from agent.events.events_client import EventsClient
-from agent.events.heartbeat_checker import HeartbeatChecker
-from agent.sna.config.config_manager import ConfigurationManager
-from agent.sna.config.local_config import LocalConfig
-from agent.sna.operations_runner import OperationsRunner
+from apollo.common.agent.constants import ATTRIBUTE_NAME_RESULT, ATTRIBUTE_NAME_ERROR
+from apollo.egress.agent.events.ack_sender import AckSender
+from apollo.egress.agent.events.base_receiver import BaseReceiver
+from apollo.egress.agent.events.events_client import EventsClient
+from apollo.egress.agent.events.heartbeat_checker import HeartbeatChecker
+from apollo.egress.agent.config.config_manager import ConfigurationManager
+from apollo.egress.agent.config.local_config import LocalConfig
+from apollo.egress.agent.service.operations_runner import OperationsRunner
 from agent.sna.queries_runner import QueriesRunner
 from agent.sna.queries_service import QueriesService
-from agent.sna.results_publisher import ResultsPublisher
+from apollo.egress.agent.service.results_publisher import ResultsPublisher
 from agent.sna.sna_service import SnaService
-from agent.sna.timer_service import TimerService
+from apollo.egress.agent.service.timer_service import TimerService
 from agent.storage.stage_reader_writer import StageReaderWriter
 from agent.storage.storage_service import StorageService
-from agent.utils.serde import (
-    ATTRIBUTE_NAME_RESULT,
-    ATTRIBUTE_NAME_ERROR,
-)
 
 _TEST_CONTENTS = "1234567890"
 _WRITE_OPERATION = {
