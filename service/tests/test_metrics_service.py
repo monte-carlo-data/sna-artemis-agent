@@ -31,7 +31,9 @@ class MetricsServiceTests(TestCase):
         self._mock_queries_runner = create_autospec(QueriesRunner)
         self._mock_ops_runner = create_autospec(OperationsRunner)
         self._mock_results_publisher = create_autospec(ResultsPublisher)
-        self._config_manager = ConfigurationManager(persistence=LocalConfig())
+        self._config_manager = ConfigurationManager(
+            persistence=LocalConfig(prefix="SNA")
+        )
         self._service = SnaService(
             queries_runner=self._mock_queries_runner,
             ops_runner=self._mock_ops_runner,

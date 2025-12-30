@@ -38,7 +38,9 @@ and as UDF functions (as callbacks for query completion and failure).
 app = Flask(__name__)
 service = SnaService(
     config_manager=ConfigurationManager(
-        persistence=DbConfig() if USE_DB_CONFIG_PERSISTENCE else LocalConfig()
+        persistence=(
+            DbConfig() if USE_DB_CONFIG_PERSISTENCE else LocalConfig(prefix="SNA")
+        )
     )
 )
 
