@@ -66,7 +66,9 @@ class StorageServiceTests(TestCase):
             heartbeat_checker=create_autospec(HeartbeatChecker),
         )
         self._queries_service = create_autospec(QueriesService)
-        self._config_manager = ConfigurationManager(persistence=LocalConfig())
+        self._config_manager = ConfigurationManager(
+            persistence=LocalConfig(prefix="SNA")
+        )
         self._storage_client = StageReaderWriter(
             stage_name="test.test_stage",
             local=False,
