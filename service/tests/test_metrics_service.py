@@ -24,12 +24,11 @@ _REQUEST_METRICS_OPERATION = {
 
 class MetricsServiceTests(TestCase):
     def setUp(self):
-        self._events_client = EventsClient(
-            receiver=create_autospec(BaseReceiver),
-            heartbeat_checker=create_autospec(HeartbeatChecker),
-        )
+        self._events_client = create_autospec(EventsClient)
         self._mock_queries_runner = create_autospec(QueriesRunner)
-        self._mock_ops_runner = create_autospec(OperationsRunner)
+        self._mock_ops_runner = Mock()
+        self._mock_ops_runner.queue_depth.return_value = 0
+        self._mock_ops_runner.thread_count = 1
         self._mock_results_publisher = create_autospec(ResultsPublisher)
         self._config_manager = ConfigurationManager(
             persistence=LocalConfig(prefix="SNA")
@@ -85,10 +84,9 @@ class MetricsServiceTests(TestCase):
 
     @patch.object(MetricsService, "fetch_metrics")
     @patch.object(BackendClient, "execute_operation")
-    def test_metrics_requested_event(
-        self, mock_execute_operation: Mock, mock_fetch_metrics: Mock
-    ):
-        self._events_client._event_received(_REQUEST_METRICS_OPERATION)
+    def test_metrics_push(self, mock_execute_operation: Mock, mock_fetch_metrics: Mock):
+        # Trigger metrics push directly (simulates MetricsTimer triggering)
+        self._service._push_metrics()
         operation = Operation(
             operation_id="push_metrics",
             event={

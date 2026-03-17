@@ -17,7 +17,6 @@ from agent.sna.config.db_config import DbConfig
 init_logging()
 logger = logging.getLogger(__name__)
 
-from agent.sna.metrics_service import MetricsService
 from agent.sna.sna_service import SnaService
 
 SERVICE_HOST = os.getenv("SERVER_HOST", "0.0.0.0")
