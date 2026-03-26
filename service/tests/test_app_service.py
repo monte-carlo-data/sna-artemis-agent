@@ -62,7 +62,9 @@ class AppServiceTests(TestCase):
     def setUp(self):
         self._mock_events_client = create_autospec(EventsClient)
         self._mock_queries_runner = create_autospec(QueriesRunner)
-        self._mock_ops_runner = create_autospec(OperationsRunner)
+        self._mock_ops_runner = Mock()
+        self._mock_ops_runner.queue_depth.return_value = 0
+        self._mock_ops_runner.thread_count = 1
         self._mock_results_publisher = create_autospec(ResultsPublisher)
         self._ack_sender = create_autospec(AckSender)
         self._queries_service = create_autospec(QueriesService)
@@ -84,6 +86,7 @@ class AppServiceTests(TestCase):
         )
 
     def test_service_start_stop(self):
+        self._service._sse_enabled = True  # Enable SSE for this test
         self._service.start()
         self._mock_queries_runner.start.assert_called_once()
         self._mock_results_publisher.start.assert_called_once()
@@ -96,10 +99,7 @@ class AppServiceTests(TestCase):
 
     @patch("requests.put")
     def test_query_execution(self, mock_requests_put: Mock):
-        events_client = EventsClient(
-            receiver=create_autospec(BaseReceiver),
-            heartbeat_checker=create_autospec(HeartbeatChecker),
-        )
+        events_client = create_autospec(EventsClient)
         ops_runner = ImmediateOpsRunner(lambda op: None)
         service = SnaService(
             queries_runner=self._mock_queries_runner,
@@ -114,7 +114,12 @@ class AppServiceTests(TestCase):
         )
         ops_runner._ops_handler = service._execute_scheduled_operation
         service.start()
-        events_client._event_received(_QUERY_OPERATION)
+        # Simulate pull model - call _handle_polled_operation directly
+        service._handle_polled_operation(
+            _QUERY_OPERATION["path"],
+            _QUERY_OPERATION["operation_id"],
+            _QUERY_OPERATION,
+        )
         operation_attrs = OperationAttributes(
             operation_id="1234",
             trace_id="5432",
@@ -191,10 +196,12 @@ class AppServiceTests(TestCase):
 
     @patch("requests.put")
     def test_query_execution_pre_signed_url(self, mock_requests_put: Mock):
-        events_client = EventsClient(
-            receiver=create_autospec(BaseReceiver),
-            heartbeat_checker=create_autospec(HeartbeatChecker),
-        )
+        # Configure mock to return a proper response without piggybacked operation
+        mock_response = Mock()
+        mock_response.json.return_value = {"operation_id": "1234"}
+        mock_requests_put.return_value = mock_response
+
+        events_client = create_autospec(EventsClient)
         storage = create_autospec(StorageService)
         ops_runner = ImmediateOpsRunner(lambda op: None)
         service = SnaService(
@@ -214,7 +221,12 @@ class AppServiceTests(TestCase):
         service.start()
         query_operation = deepcopy(_QUERY_OPERATION)
         query_operation["operation"]["response_size_limit_bytes"] = 1
-        events_client._event_received(query_operation)
+        # Simulate pull model - call _handle_polled_operation directly
+        service._handle_polled_operation(
+            query_operation["path"],
+            query_operation["operation_id"],
+            query_operation,
+        )
         operation_attrs = OperationAttributes(
             operation_id="1234",
             trace_id="5432",
@@ -295,10 +307,7 @@ class AppServiceTests(TestCase):
         storage.generate_presigned_url.assert_called_once_with("responses/5432", 3600)
 
     def test_health_operation(self):
-        events_client = EventsClient(
-            receiver=create_autospec(BaseReceiver),
-            heartbeat_checker=create_autospec(HeartbeatChecker),
-        )
+        events_client = create_autospec(EventsClient)
         self._config_persistence.get_all_values.return_value = {
             "setting_1": "value_1",
             "setting_2": "value_2",
@@ -315,7 +324,12 @@ class AppServiceTests(TestCase):
             login_token_provider=LocalLoginTokenProvider(),
         )
         service.start()
-        events_client._event_received(_HEALTH_OPERATION)
+        # Simulate pull model - call _handle_polled_operation directly
+        service._handle_polled_operation(
+            _HEALTH_OPERATION["path"],
+            _HEALTH_OPERATION["operation_id"],
+            _HEALTH_OPERATION,
+        )
         operation = Operation(
             operation_id="1234",
             event=_HEALTH_OPERATION,
