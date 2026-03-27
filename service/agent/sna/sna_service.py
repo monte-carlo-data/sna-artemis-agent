@@ -141,21 +141,18 @@ class SnaService(BaseEgressAgentService):
             OperationMapping(
                 path="/api/v1/snowflake/logs",
                 method=self._execute_get_logs,
-                schedule=True,
             )
         )
         self._operations_mapping.append(
             OperationMapping(
                 path="/api/v1/snowflake/metrics",
                 method=self._execute_get_metrics,
-                schedule=True,
             )
         )
         self._operations_mapping.append(
             OperationMapping(
                 path="/api/v1/upgrade",
                 method=self._execute_upgrade,
-                schedule=True,
             )
         )
 
