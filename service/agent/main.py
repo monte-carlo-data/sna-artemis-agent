@@ -1,9 +1,6 @@
 import json
 import logging
 import os
-import signal
-import sys
-from typing import Any
 
 from apollo.egress.agent.config.config_manager import ConfigurationManager
 from apollo.egress.agent.config.local_config import LocalConfig
@@ -42,16 +39,6 @@ service = SnaService(
         )
     )
 )
-
-
-def handler(signum: int, frame: Any):
-    print("Signal handler called with signal", signum)
-    service.stop()
-    print("Signal handler completed")
-    sys.exit(0)
-
-
-signal.signal(signal.SIGINT, handler)
 
 
 @app.get("/api/v1/test/healthcheck")
@@ -168,6 +155,7 @@ def fetch_metrics():
 
 enable_tcp_keep_alive()
 service.start()
+service.register_signal_handlers()
 
 if __name__ == "__main__":
     # only used for local development, when gunicorn is not used
