@@ -159,4 +159,5 @@ service.register_signal_handlers()
 
 if __name__ == "__main__":
     # only used for local development, when gunicorn is not used
+    service.register_signal_handlers()
     app.run(host=SERVICE_HOST, port=int(SERVICE_PORT))

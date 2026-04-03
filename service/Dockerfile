@@ -18,6 +18,7 @@ ENV PATH="/opt/venv/bin:$PATH"
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+COPY gunicorn.conf.py ./
 COPY agent/ ./agent
 
 ARG code_version="local"
@@ -52,13 +53,11 @@ RUN adduser --disabled-password mcdagent
 
 COPY --from=base --chown=mcdagent /opt/venv /opt/venv
 COPY --from=base --chown=mcdagent /agent /agent
+COPY --from=base --chown=mcdagent /gunicorn.conf.py /gunicorn.conf.py
 
 USER mcdagent
 
 ENV VIRTUAL_ENV=/opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-# VULN-621
-RUN rm -rf /var/lang/lib/python3.*/site-packages/urllib3-*.dist-info/
-
-CMD ["gunicorn", "agent.main:app", "--bind", "0.0.0.0:8000"]
+CMD ["gunicorn", "--config", "gunicorn.conf.py", "agent.main:app", "--bind", "0.0.0.0:8000"]
