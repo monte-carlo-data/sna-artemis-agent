@@ -156,6 +156,7 @@ class AppServiceTests(TestCase):
                 "Content-Type": "application/json",
                 "x-mcd-id": "local-token-id",
                 "x-mcd-token": "local-token-secret",
+                "x-mcd-agent-instance-id": ANY,
             },
             timeout=60,
         )
@@ -363,6 +364,7 @@ class AppServiceTests(TestCase):
                 headers={
                     "x-mcd-id": "local-token-id",
                     "x-mcd-token": "local-token-secret",
+                    "x-mcd-agent-instance-id": ANY,
                 },
             )
             self.assertEqual(health_response, result)
