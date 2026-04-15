@@ -99,6 +99,7 @@ class SnaService(BaseEgressAgentService):
         logs_sender: Optional[TimerService] = None,
         login_token_provider: Optional[LoginTokenProvider] = None,
         enable_pre_signed_urls: bool = False,
+        instance_id: Optional[str] = None,
     ):
         self._queries_service = queries_service or QueriesService(
             config_manager=config_manager
@@ -130,6 +131,7 @@ class SnaService(BaseEgressAgentService):
             ack_sender=ack_sender,
             logs_sender=logs_sender,
             enable_pre_signed_urls=enable_pre_signed_urls,
+            instance_id=instance_id,
         )
         self._queries_runner = queries_runner or QueriesRunner(
             handler=self._run_query,
