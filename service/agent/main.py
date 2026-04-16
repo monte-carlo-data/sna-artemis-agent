@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import uuid
 
 from apollo.egress.agent.config.config_manager import ConfigurationManager
 from apollo.egress.agent.config.local_config import LocalConfig
@@ -11,7 +12,8 @@ from flask import request
 
 from agent.sna.config.db_config import DbConfig
 
-init_logging()
+instance_id = str(uuid.uuid4())
+init_logging(instance_id=instance_id)
 logger = logging.getLogger(__name__)
 
 from agent.sna.sna_service import SnaService
@@ -37,7 +39,8 @@ service = SnaService(
         persistence=(
             DbConfig() if USE_DB_CONFIG_PERSISTENCE else LocalConfig(prefix="SNA")
         )
-    )
+    ),
+    instance_id=instance_id,
 )
 
 
