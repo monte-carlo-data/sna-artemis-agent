@@ -160,7 +160,13 @@ info "=== Deploy: version=${CODE_VERSION} repo=${DOCKER_HUB_REPO} ==="
 
 info "Replacing backend URLs..."
 
+# Derive the EU host from the US1 host by splicing `eu1.` after `artemis.`.
+# Prod: artemis.getmontecarlo.com:443 -> artemis.eu1.getmontecarlo.com:443
+# Dev:  artemis.dev.getmontecarlo.com:443 -> artemis.eu1.dev.getmontecarlo.com:443
+BACKEND_URL_HOST_EU="${BACKEND_URL_HOST/artemis./artemis.eu1.}"
+
 sed_inplace "s|artemis.getmontecarlo.com:443|${BACKEND_URL_HOST}|g" app/scripts/setup_procs.sql
+sed_inplace "s|artemis.eu1.getmontecarlo.com:443|${BACKEND_URL_HOST_EU}|g" app/scripts/setup_procs.sql
 grep "host_ports" app/scripts/setup_procs.sql
 
 sed_inplace "s|https://artemis.getmontecarlo.com:443|${BACKEND_URL_SCHEME}://${BACKEND_URL_HOST}|g" service/agent/utils/utils.py
