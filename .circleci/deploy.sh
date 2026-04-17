@@ -69,7 +69,9 @@ Optional arguments:
                                   into the app manifest and service spec
                                   (default: mcd_repo)
   --snowflake-app-name NAME       Snowflake native app / application name to
-                                  substitute into snowflake.yml
+                                  substitute into snowflake.yml. Repeatable —
+                                  pass the flag multiple times to publish the
+                                  same image as several apps in a single run.
                                   (default: mcd_agent)
   --skip-docker-hub-push          Skip pushing the built image to Docker Hub
                                   (useful for local deploys against a single
@@ -97,7 +99,7 @@ BACKEND_URL_SCHEME=""
 BACKEND_URL_HOST=""
 BUILD_NUMBER="local"
 SNOWFLAKE_REPO_NAME="mcd_repo"
-SNOWFLAKE_APP_NAME="mcd_agent"
+SNOWFLAKE_APP_NAMES=()
 SKIP_DOCKER_HUB_PUSH="false"
 INTERACTIVE="true"
 
@@ -112,7 +114,7 @@ while [[ $# -gt 0 ]]; do
     --snowflake-private-key-path) SNOWFLAKE_PRIVATE_KEY_PATH="$2"; shift 2 ;;
     --snowflake-repo-url)         SNOWFLAKE_REPO_URL="$2";         shift 2 ;;
     --snowflake-repo-name)        SNOWFLAKE_REPO_NAME="$2";        shift 2 ;;
-    --snowflake-app-name)         SNOWFLAKE_APP_NAME="$2";         shift 2 ;;
+    --snowflake-app-name)         SNOWFLAKE_APP_NAMES+=("$2");     shift 2 ;;
     --backend-url-scheme)         BACKEND_URL_SCHEME="$2";         shift 2 ;;
     --backend-url-host)           BACKEND_URL_HOST="$2";           shift 2 ;;
     --build-number)               BUILD_NUMBER="$2";               shift 2 ;;
@@ -139,6 +141,9 @@ missing=()
 if [[ ${#missing[@]} -gt 0 ]]; then
   die "Missing required arguments: ${missing[*]}"
 fi
+
+# Default to a single `mcd_agent` deploy if --snowflake-app-name was not given.
+[[ ${#SNOWFLAKE_APP_NAMES[@]} -eq 0 ]] && SNOWFLAKE_APP_NAMES=("mcd_agent")
 
 [[ -f "$SNOWFLAKE_PRIVATE_KEY_PATH" ]] || die "Private key file not found: $SNOWFLAKE_PRIVATE_KEY_PATH"
 
@@ -214,15 +219,6 @@ sed_inplace "s|:latest|:${CODE_VERSION}|g" service/mcd_agent_spec.yaml
 sed_inplace "s|/mcd_repo/|/${SNOWFLAKE_REPO_NAME}/|g" service/mcd_agent_spec.yaml
 grep "image:" service/mcd_agent_spec.yaml
 
-# Rewrite the native_app / application / package names in snowflake.yml.
-# Two sed passes so repeated local runs are idempotent:
-#   - `$` anchor catches the plain `name: mcd_agent` on native_app and application.
-#   - explicit `_pkg` suffix catches the package line only.
-# Both patterns stop matching after the first run completes.
-sed_inplace "s|name: mcd_agent$|name: ${SNOWFLAKE_APP_NAME}|g" snowflake.yml
-sed_inplace "s|name: mcd_agent_pkg|name: ${SNOWFLAKE_APP_NAME}_pkg|g" snowflake.yml
-grep "name:" snowflake.yml
-
 # ── 3. Test Snowflake connection + registry login ────────────────────────────
 
 info "Testing Snowflake connection..."
@@ -283,12 +279,30 @@ if prompt_gate "Push mcd_agent:${CODE_VERSION} to Snowflake image registry"; the
   success "Pushed to Snowflake image registry"
 fi
 
-# ── 8. Publish Snowflake native app ─────────────────────────────────────────
+# ── 8. Publish Snowflake native app(s) ──────────────────────────────────────
 
-if prompt_gate "Publish Snowflake native app (snow app run)"; then
-  info "Publishing Snowflake native app..."
-  snow app run "${SNOW_CONN_FLAGS[@]}"
-  success "Snowflake native app published"
+if prompt_gate "Publish Snowflake native app(s): ${SNOWFLAKE_APP_NAMES[*]} (snow app run)"; then
+  # Save the source snowflake.yml so each iteration starts from a clean state
+  # (the per-app sed substitutions below would otherwise compound on subsequent
+  # iterations).
+  SNOWFLAKE_YML_BACKUP=$(mktemp)
+  cp snowflake.yml "$SNOWFLAKE_YML_BACKUP"
+
+  for app_name in "${SNOWFLAKE_APP_NAMES[@]}"; do
+    cp "$SNOWFLAKE_YML_BACKUP" snowflake.yml
+    # Two sed passes:
+    #   - `$` anchor catches the plain `name: mcd_agent` on native_app and application.
+    #   - explicit `_pkg` suffix catches the package line only.
+    sed_inplace "s|name: mcd_agent$|name: ${app_name}|g" snowflake.yml
+    sed_inplace "s|name: mcd_agent_pkg|name: ${app_name}_pkg|g" snowflake.yml
+    grep "name:" snowflake.yml
+
+    info "Publishing Snowflake native app '${app_name}'..."
+    snow app run "${SNOW_CONN_FLAGS[@]}"
+    success "Snowflake native app '${app_name}' published"
+  done
+
+  rm -f "$SNOWFLAKE_YML_BACKUP"
 fi
 
 echo ""
