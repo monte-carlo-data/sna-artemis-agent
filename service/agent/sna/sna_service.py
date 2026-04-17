@@ -124,6 +124,7 @@ class SnaService(BaseEgressAgentService):
                 "Failed to resolve backend URL from mcd_id; aborting service startup."
             )
             raise
+        logger.info(f"Using backend service URL: {backend_service_url}")
         super().__init__(
             backend_service_url=backend_service_url,
             platform="SNA",

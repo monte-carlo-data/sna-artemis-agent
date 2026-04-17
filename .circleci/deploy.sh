@@ -65,6 +65,17 @@ Required arguments:
 
 Optional arguments:
   --build-number NUM              Build number for version file (default: local)
+  --snowflake-repo-name NAME      Snowflake image repository name to substitute
+                                  into the app manifest and service spec
+                                  (default: mcd_repo)
+  --snowflake-app-name NAME       Snowflake native app / application name to
+                                  substitute into snowflake.yml. Repeatable —
+                                  pass the flag multiple times to publish the
+                                  same image as several apps in a single run.
+                                  (default: mcd_agent)
+  --skip-docker-hub-push          Skip pushing the built image to Docker Hub
+                                  (useful for local deploys against a single
+                                  Snowflake image registry)
   --non-interactive               Disable interactive prompts (for CI)
   --help                          Show this help message
 
@@ -87,6 +98,9 @@ SNOWFLAKE_REPO_URL=""
 BACKEND_URL_SCHEME=""
 BACKEND_URL_HOST=""
 BUILD_NUMBER="local"
+SNOWFLAKE_REPO_NAME="mcd_repo"
+SNOWFLAKE_APP_NAMES=()
+SKIP_DOCKER_HUB_PUSH="false"
 INTERACTIVE="true"
 
 while [[ $# -gt 0 ]]; do
@@ -99,9 +113,12 @@ while [[ $# -gt 0 ]]; do
     --snowflake-warehouse)        SNOWFLAKE_WAREHOUSE="$2";        shift 2 ;;
     --snowflake-private-key-path) SNOWFLAKE_PRIVATE_KEY_PATH="$2"; shift 2 ;;
     --snowflake-repo-url)         SNOWFLAKE_REPO_URL="$2";         shift 2 ;;
+    --snowflake-repo-name)        SNOWFLAKE_REPO_NAME="$2";        shift 2 ;;
+    --snowflake-app-name)         SNOWFLAKE_APP_NAMES+=("$2");     shift 2 ;;
     --backend-url-scheme)         BACKEND_URL_SCHEME="$2";         shift 2 ;;
     --backend-url-host)           BACKEND_URL_HOST="$2";           shift 2 ;;
     --build-number)               BUILD_NUMBER="$2";               shift 2 ;;
+    --skip-docker-hub-push)       SKIP_DOCKER_HUB_PUSH="true";     shift ;;
     --non-interactive)            INTERACTIVE="false";             shift ;;
     --help)                       usage ;;
     *) die "Unknown argument: $1" ;;
@@ -124,6 +141,9 @@ missing=()
 if [[ ${#missing[@]} -gt 0 ]]; then
   die "Missing required arguments: ${missing[*]}"
 fi
+
+# Default to a single `mcd_agent` deploy if --snowflake-app-name was not given.
+[[ ${#SNOWFLAKE_APP_NAMES[@]} -eq 0 ]] && SNOWFLAKE_APP_NAMES=("mcd_agent")
 
 [[ -f "$SNOWFLAKE_PRIVATE_KEY_PATH" ]] || die "Private key file not found: $SNOWFLAKE_PRIVATE_KEY_PATH"
 
@@ -160,27 +180,31 @@ info "=== Deploy: version=${CODE_VERSION} repo=${DOCKER_HUB_REPO} ==="
 
 info "Replacing backend URLs..."
 
-# Derive the EU host from the US1 host by splicing `eu1.` after `artemis.`.
-# Prod: artemis.getmontecarlo.com:443 -> artemis.eu1.getmontecarlo.com:443
-# Dev:  artemis.dev.getmontecarlo.com:443 -> artemis.eu1.dev.getmontecarlo.com:443
-BACKEND_URL_HOST_EU="${BACKEND_URL_HOST/artemis./artemis.eu1.}"
+# Derive a wildcard host that covers EU and any future regional instances
+# (ap1, etc.) by splicing `*.` after `artemis.`. Snowflake's network rules
+# accept `*` as a single-subdomain wildcard in host_ports.
+# Prod: artemis.getmontecarlo.com:443 -> artemis.*.getmontecarlo.com:443
+# Dev:  artemis.dev.getmontecarlo.com:443 -> artemis.*.dev.getmontecarlo.com:443
+BACKEND_URL_HOST_WILDCARD="${BACKEND_URL_HOST/artemis./artemis.*.}"
 
 sed_inplace "s|artemis.getmontecarlo.com:443|${BACKEND_URL_HOST}|g" app/scripts/setup_procs.sql
-sed_inplace "s|artemis.eu1.getmontecarlo.com:443|${BACKEND_URL_HOST_EU}|g" app/scripts/setup_procs.sql
+# `*` is a BRE metachar so it must be escaped to match the literal wildcard.
+sed_inplace "s|artemis\\.\\*\\.getmontecarlo\\.com:443|${BACKEND_URL_HOST_WILDCARD}|g" app/scripts/setup_procs.sql
 grep "host_ports" app/scripts/setup_procs.sql
 
 sed_inplace "s|https://artemis.getmontecarlo.com:443|${BACKEND_URL_SCHEME}://${BACKEND_URL_HOST}|g" service/agent/utils/utils.py
 grep -n "BACKEND_SERVICE_URL" service/agent/utils/utils.py
 
-# Assert both US and EU hosts are present after substitution — fail the deploy
-# if anything is missing, so we never ship an image with one half of the
-# tenant routing unresolved.
+# Assert both US and wildcard hosts are present after substitution — fail the
+# deploy if anything is missing, so we never ship an image with one half of
+# the tenant routing unresolved. Uses `-F` for fixed-string matching so the
+# wildcard host's literal `*` isn't interpreted as a regex metachar.
 assert_contains() {
   local needle="$1" file="$2"
-  grep -q -- "$needle" "$file" || die "expected '${needle}' in ${file} after substitution"
+  grep -qF -- "$needle" "$file" || die "expected '${needle}' in ${file} after substitution"
 }
 assert_contains "${BACKEND_URL_HOST}" app/scripts/setup_procs.sql
-assert_contains "${BACKEND_URL_HOST_EU}" app/scripts/setup_procs.sql
+assert_contains "${BACKEND_URL_HOST_WILDCARD}" app/scripts/setup_procs.sql
 assert_contains "${BACKEND_URL_HOST}" service/agent/utils/utils.py
 
 # ── 2. Replace image tag references ─────────────────────────────────────────
@@ -188,9 +212,11 @@ assert_contains "${BACKEND_URL_HOST}" service/agent/utils/utils.py
 info "Replacing image tags (:latest -> :${CODE_VERSION})..."
 
 sed_inplace "s|:latest|:${CODE_VERSION}|g" app/manifest.yml
+sed_inplace "s|/mcd_repo/|/${SNOWFLAKE_REPO_NAME}/|g" app/manifest.yml
 grep -A2 "images:" app/manifest.yml
 
 sed_inplace "s|:latest|:${CODE_VERSION}|g" service/mcd_agent_spec.yaml
+sed_inplace "s|/mcd_repo/|/${SNOWFLAKE_REPO_NAME}/|g" service/mcd_agent_spec.yaml
 grep "image:" service/mcd_agent_spec.yaml
 
 # ── 3. Test Snowflake connection + registry login ────────────────────────────
@@ -233,7 +259,9 @@ fi
 
 # ── 6. Push to Docker Hub ───────────────────────────────────────────────────
 
-if prompt_gate "Push ${DOCKER_HUB_IMAGE}:${CODE_VERSION} to Docker Hub"; then
+if [[ "$SKIP_DOCKER_HUB_PUSH" == "true" ]]; then
+  info "Skipping Docker Hub push (--skip-docker-hub-push)"
+elif prompt_gate "Push ${DOCKER_HUB_IMAGE}:${CODE_VERSION} to Docker Hub"; then
   info "Pushing to Docker Hub..."
   docker push "${DOCKER_HUB_IMAGE}:latest"
   docker push "${DOCKER_HUB_IMAGE}:${CODE_VERSION}"
@@ -251,12 +279,30 @@ if prompt_gate "Push mcd_agent:${CODE_VERSION} to Snowflake image registry"; the
   success "Pushed to Snowflake image registry"
 fi
 
-# ── 8. Publish Snowflake native app ─────────────────────────────────────────
+# ── 8. Publish Snowflake native app(s) ──────────────────────────────────────
 
-if prompt_gate "Publish Snowflake native app (snow app run)"; then
-  info "Publishing Snowflake native app..."
-  snow app run "${SNOW_CONN_FLAGS[@]}"
-  success "Snowflake native app published"
+if prompt_gate "Publish Snowflake native app(s): ${SNOWFLAKE_APP_NAMES[*]} (snow app run)"; then
+  # Save the source snowflake.yml so each iteration starts from a clean state
+  # (the per-app sed substitutions below would otherwise compound on subsequent
+  # iterations).
+  SNOWFLAKE_YML_BACKUP=$(mktemp)
+  cp snowflake.yml "$SNOWFLAKE_YML_BACKUP"
+
+  for app_name in "${SNOWFLAKE_APP_NAMES[@]}"; do
+    cp "$SNOWFLAKE_YML_BACKUP" snowflake.yml
+    # Two sed passes:
+    #   - `$` anchor catches the plain `name: mcd_agent` on native_app and application.
+    #   - explicit `_pkg` suffix catches the package line only.
+    sed_inplace "s|name: mcd_agent$|name: ${app_name}|g" snowflake.yml
+    sed_inplace "s|name: mcd_agent_pkg|name: ${app_name}_pkg|g" snowflake.yml
+    grep "name:" snowflake.yml
+
+    info "Publishing Snowflake native app '${app_name}'..."
+    snow app run "${SNOW_CONN_FLAGS[@]}"
+    success "Snowflake native app '${app_name}' published"
+  done
+
+  rm -f "$SNOWFLAKE_YML_BACKUP"
 fi
 
 echo ""
