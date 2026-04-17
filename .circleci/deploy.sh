@@ -172,6 +172,17 @@ grep "host_ports" app/scripts/setup_procs.sql
 sed_inplace "s|https://artemis.getmontecarlo.com:443|${BACKEND_URL_SCHEME}://${BACKEND_URL_HOST}|g" service/agent/utils/utils.py
 grep -n "BACKEND_SERVICE_URL" service/agent/utils/utils.py
 
+# Assert both US and EU hosts are present after substitution — fail the deploy
+# if anything is missing, so we never ship an image with one half of the
+# tenant routing unresolved.
+assert_contains() {
+  local needle="$1" file="$2"
+  grep -q -- "$needle" "$file" || die "expected '${needle}' in ${file} after substitution"
+}
+assert_contains "${BACKEND_URL_HOST}" app/scripts/setup_procs.sql
+assert_contains "${BACKEND_URL_HOST_EU}" app/scripts/setup_procs.sql
+assert_contains "${BACKEND_URL_HOST}" service/agent/utils/utils.py
+
 # ── 2. Replace image tag references ─────────────────────────────────────────
 
 info "Replacing image tags (:latest -> :${CODE_VERSION})..."
