@@ -95,7 +95,9 @@ jobs:
               --snowflake-private-key-path "$SNOWFLAKE_PRIVATE_KEY_PATH" \
               --snowflake-repo-url "$SNOWFLAKE_REPO_URL" \
               --backend-url-scheme "$BACKEND_URL_SCHEME" \
-              --backend-url-host "$BACKEND_URL_HOST"
+              --backend-url-host "$BACKEND_URL_HOST" \
+              --snowflake-app-name mcd_agent \
+              --snowflake-app-name mcd_agent_eu
 
 workflows:
   version: 2
