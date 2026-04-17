@@ -65,6 +65,15 @@ Required arguments:
 
 Optional arguments:
   --build-number NUM              Build number for version file (default: local)
+  --snowflake-repo-name NAME      Snowflake image repository name to substitute
+                                  into the app manifest and service spec
+                                  (default: mcd_repo)
+  --snowflake-app-name NAME       Snowflake native app / application name to
+                                  substitute into snowflake.yml
+                                  (default: mcd_agent)
+  --skip-docker-hub-push          Skip pushing the built image to Docker Hub
+                                  (useful for local deploys against a single
+                                  Snowflake image registry)
   --non-interactive               Disable interactive prompts (for CI)
   --help                          Show this help message
 
@@ -87,6 +96,9 @@ SNOWFLAKE_REPO_URL=""
 BACKEND_URL_SCHEME=""
 BACKEND_URL_HOST=""
 BUILD_NUMBER="local"
+SNOWFLAKE_REPO_NAME="mcd_repo"
+SNOWFLAKE_APP_NAME="mcd_agent"
+SKIP_DOCKER_HUB_PUSH="false"
 INTERACTIVE="true"
 
 while [[ $# -gt 0 ]]; do
@@ -99,9 +111,12 @@ while [[ $# -gt 0 ]]; do
     --snowflake-warehouse)        SNOWFLAKE_WAREHOUSE="$2";        shift 2 ;;
     --snowflake-private-key-path) SNOWFLAKE_PRIVATE_KEY_PATH="$2"; shift 2 ;;
     --snowflake-repo-url)         SNOWFLAKE_REPO_URL="$2";         shift 2 ;;
+    --snowflake-repo-name)        SNOWFLAKE_REPO_NAME="$2";        shift 2 ;;
+    --snowflake-app-name)         SNOWFLAKE_APP_NAME="$2";         shift 2 ;;
     --backend-url-scheme)         BACKEND_URL_SCHEME="$2";         shift 2 ;;
     --backend-url-host)           BACKEND_URL_HOST="$2";           shift 2 ;;
     --build-number)               BUILD_NUMBER="$2";               shift 2 ;;
+    --skip-docker-hub-push)       SKIP_DOCKER_HUB_PUSH="true";     shift ;;
     --non-interactive)            INTERACTIVE="false";             shift ;;
     --help)                       usage ;;
     *) die "Unknown argument: $1" ;;
@@ -188,10 +203,21 @@ assert_contains "${BACKEND_URL_HOST}" service/agent/utils/utils.py
 info "Replacing image tags (:latest -> :${CODE_VERSION})..."
 
 sed_inplace "s|:latest|:${CODE_VERSION}|g" app/manifest.yml
+sed_inplace "s|/mcd_repo/|/${SNOWFLAKE_REPO_NAME}/|g" app/manifest.yml
 grep -A2 "images:" app/manifest.yml
 
 sed_inplace "s|:latest|:${CODE_VERSION}|g" service/mcd_agent_spec.yaml
+sed_inplace "s|/mcd_repo/|/${SNOWFLAKE_REPO_NAME}/|g" service/mcd_agent_spec.yaml
 grep "image:" service/mcd_agent_spec.yaml
+
+# Rewrite the native_app / application / package names in snowflake.yml.
+# Two sed passes so repeated local runs are idempotent:
+#   - `$` anchor catches the plain `name: mcd_agent` on native_app and application.
+#   - explicit `_pkg` suffix catches the package line only.
+# Both patterns stop matching after the first run completes.
+sed_inplace "s|name: mcd_agent$|name: ${SNOWFLAKE_APP_NAME}|g" snowflake.yml
+sed_inplace "s|name: mcd_agent_pkg|name: ${SNOWFLAKE_APP_NAME}_pkg|g" snowflake.yml
+grep "name:" snowflake.yml
 
 # ── 3. Test Snowflake connection + registry login ────────────────────────────
 
@@ -233,7 +259,9 @@ fi
 
 # ── 6. Push to Docker Hub ───────────────────────────────────────────────────
 
-if prompt_gate "Push ${DOCKER_HUB_IMAGE}:${CODE_VERSION} to Docker Hub"; then
+if [[ "$SKIP_DOCKER_HUB_PUSH" == "true" ]]; then
+  info "Skipping Docker Hub push (--skip-docker-hub-push)"
+elif prompt_gate "Push ${DOCKER_HUB_IMAGE}:${CODE_VERSION} to Docker Hub"; then
   info "Pushing to Docker Hub..."
   docker push "${DOCKER_HUB_IMAGE}:latest"
   docker push "${DOCKER_HUB_IMAGE}:${CODE_VERSION}"
