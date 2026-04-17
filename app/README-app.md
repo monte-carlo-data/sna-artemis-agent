@@ -18,7 +18,11 @@ As part of the setup process, the agent will create a warehouse to run queries o
 ### Privileges to objects
 
 The application will request access to:
-- Monte Carlo backend services at `https://artemis.getmontecarlo.com`.
+- Monte Carlo backend services. Two endpoints are listed so a single distribution can serve both regions:
+  - `https://artemis.getmontecarlo.com` — US instance.
+  - `https://artemis.eu1.getmontecarlo.com` — EU instance.
+
+  Grant access only to the endpoint that matches your Monte Carlo account. Granting both is harmless — the agent picks the right one at runtime based on the account the token belongs to.
 - Stored Procedure deployed as part of the setup process in the helper database, see steps [here](#setup-code).
 
 Additionally, for each monitored database, you'll need to execute [this script](https://raw.githubusercontent.com/monte-carlo-data/sna-artemis-agent/refs/heads/main/scripts/permissions.sql), which grants the following privileges to the role `MCD_AGENT_ROLE`:
