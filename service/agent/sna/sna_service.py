@@ -30,6 +30,7 @@ from apollo.egress.agent.service.login_token_provider import (
     LocalLoginTokenProvider,
     LoginTokenProvider,
 )
+from apollo.egress.agent.utils.utils import X_MCD_ID
 from apollo.egress.agent.service.operation_result import OperationAttributes
 from apollo.egress.agent.service.operations_runner import OperationsRunner
 from apollo.egress.agent.service.results_publisher import ResultsPublisher
@@ -45,6 +46,7 @@ from apollo.egress.agent.service.timer_service import TimerService
 
 from agent.sna.sna_login_token_provider import SNALoginTokenProvider
 from agent.storage.storage_service import StorageService
+from agent.utils.backend_url import resolve_backend_url
 from agent.utils.settings import VERSION, BUILD_NUMBER
 from agent.utils.utils import BACKEND_SERVICE_URL
 
@@ -112,8 +114,18 @@ class SnaService(BaseEgressAgentService):
             login_token_provider = (
                 LocalLoginTokenProvider() if LOCAL else SNALoginTokenProvider()
             )
+        try:
+            backend_service_url = resolve_backend_url(
+                login_token_provider.get_token().get(X_MCD_ID, ""),
+                BACKEND_SERVICE_URL,
+            )
+        except ValueError:
+            logger.exception(
+                "Failed to resolve backend URL from mcd_id; aborting service startup."
+            )
+            raise
         super().__init__(
-            backend_service_url=BACKEND_SERVICE_URL,
+            backend_service_url=backend_service_url,
             platform="SNA",
             service_name="SNA",
             additional_env_vars=_SNOWFLAKE_HEALTH_ENV_VARS,
