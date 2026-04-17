@@ -175,27 +175,31 @@ info "=== Deploy: version=${CODE_VERSION} repo=${DOCKER_HUB_REPO} ==="
 
 info "Replacing backend URLs..."
 
-# Derive the EU host from the US1 host by splicing `eu1.` after `artemis.`.
-# Prod: artemis.getmontecarlo.com:443 -> artemis.eu1.getmontecarlo.com:443
-# Dev:  artemis.dev.getmontecarlo.com:443 -> artemis.eu1.dev.getmontecarlo.com:443
-BACKEND_URL_HOST_EU="${BACKEND_URL_HOST/artemis./artemis.eu1.}"
+# Derive a wildcard host that covers EU and any future regional instances
+# (ap1, etc.) by splicing `*.` after `artemis.`. Snowflake's network rules
+# accept `*` as a single-subdomain wildcard in host_ports.
+# Prod: artemis.getmontecarlo.com:443 -> artemis.*.getmontecarlo.com:443
+# Dev:  artemis.dev.getmontecarlo.com:443 -> artemis.*.dev.getmontecarlo.com:443
+BACKEND_URL_HOST_WILDCARD="${BACKEND_URL_HOST/artemis./artemis.*.}"
 
 sed_inplace "s|artemis.getmontecarlo.com:443|${BACKEND_URL_HOST}|g" app/scripts/setup_procs.sql
-sed_inplace "s|artemis.eu1.getmontecarlo.com:443|${BACKEND_URL_HOST_EU}|g" app/scripts/setup_procs.sql
+# `*` is a BRE metachar so it must be escaped to match the literal wildcard.
+sed_inplace "s|artemis\\.\\*\\.getmontecarlo\\.com:443|${BACKEND_URL_HOST_WILDCARD}|g" app/scripts/setup_procs.sql
 grep "host_ports" app/scripts/setup_procs.sql
 
 sed_inplace "s|https://artemis.getmontecarlo.com:443|${BACKEND_URL_SCHEME}://${BACKEND_URL_HOST}|g" service/agent/utils/utils.py
 grep -n "BACKEND_SERVICE_URL" service/agent/utils/utils.py
 
-# Assert both US and EU hosts are present after substitution — fail the deploy
-# if anything is missing, so we never ship an image with one half of the
-# tenant routing unresolved.
+# Assert both US and wildcard hosts are present after substitution — fail the
+# deploy if anything is missing, so we never ship an image with one half of
+# the tenant routing unresolved. Uses `-F` for fixed-string matching so the
+# wildcard host's literal `*` isn't interpreted as a regex metachar.
 assert_contains() {
   local needle="$1" file="$2"
-  grep -q -- "$needle" "$file" || die "expected '${needle}' in ${file} after substitution"
+  grep -qF -- "$needle" "$file" || die "expected '${needle}' in ${file} after substitution"
 }
 assert_contains "${BACKEND_URL_HOST}" app/scripts/setup_procs.sql
-assert_contains "${BACKEND_URL_HOST_EU}" app/scripts/setup_procs.sql
+assert_contains "${BACKEND_URL_HOST_WILDCARD}" app/scripts/setup_procs.sql
 assert_contains "${BACKEND_URL_HOST}" service/agent/utils/utils.py
 
 # ── 2. Replace image tag references ─────────────────────────────────────────
