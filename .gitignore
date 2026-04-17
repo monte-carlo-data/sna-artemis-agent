@@ -157,3 +157,4 @@ cython_debug/
 .idea/
 *.DS_Store
 /output/
+/.work/
