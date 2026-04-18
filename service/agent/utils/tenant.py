@@ -5,7 +5,6 @@ import logging
 logger = logging.getLogger(__name__)
 
 TENANT_US1 = "us1"
-TENANT_EU1 = "eu1"
 DEFAULT_TENANT = TENANT_US1
 
 
