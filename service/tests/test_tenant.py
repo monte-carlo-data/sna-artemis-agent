@@ -3,7 +3,6 @@ from unittest import TestCase
 
 from agent.utils.tenant import (
     DEFAULT_TENANT,
-    TENANT_EU1,
     TENANT_US1,
     parse_tenant_from_id,
 )
@@ -26,7 +25,7 @@ class ParseTenantFromIdTests(TestCase):
 
     def test_valid_eu1(self):
         mcd_id = f"some-id+{_encode('v1+eu1')}"
-        self.assertEqual(TENANT_EU1, parse_tenant_from_id(mcd_id))
+        self.assertEqual("eu1", parse_tenant_from_id(mcd_id))
 
     def test_invalid_base64_returns_default(self):
         mcd_id = "some-id+not-valid-base64!!!"
