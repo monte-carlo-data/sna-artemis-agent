@@ -120,8 +120,13 @@ class SnaService(BaseEgressAgentService):
                 BACKEND_SERVICE_URL,
             )
         except ValueError:
+            # Either the token couldn't be read / parsed (SNALoginTokenProvider
+            # raises ValueError when the secret file is missing or malformed)
+            # or the tenant encoded in the mcd_id is not a valid identifier.
+            # Either way the service can't start safely — let SPCS restart
+            # the container.
             logger.exception(
-                "Failed to resolve backend URL from mcd_id; aborting service startup."
+                "Aborting service startup: unable to determine the backend URL."
             )
             raise
         logger.info(f"Using backend service URL: {backend_service_url}")

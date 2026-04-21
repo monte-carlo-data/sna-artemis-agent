@@ -21,11 +21,16 @@ def parse_tenant_from_id(mcd_id: str) -> str:
         return DEFAULT_TENANT
 
     try:
-        encoded_tenant = mcd_id.split("+")[1]
+        # `split("+", 1)` to take everything after the first `+`. The base64
+        # standard alphabet includes `+` as a character, so a longer tenant
+        # could produce an encoded payload that contains one — splitting
+        # without a maxsplit would slice the encoded value in half and break
+        # decoding.
+        encoded_tenant = mcd_id.split("+", 1)[1]
         decoded = base64.b64decode(encoded_tenant).decode("utf-8")
         if "+" not in decoded:
             return decoded
-        return decoded.split("+")[1]
+        return decoded.split("+", 1)[1]
     except (IndexError, binascii.Error, UnicodeDecodeError):
         logger.exception("Failed to decode base64 tenant value")
         return DEFAULT_TENANT

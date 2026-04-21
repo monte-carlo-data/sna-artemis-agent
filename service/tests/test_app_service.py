@@ -1,6 +1,8 @@
+import base64
 import gzip
 import json
 from copy import deepcopy
+from typing import Dict
 from unittest import TestCase
 from unittest.mock import create_autospec, patch, ANY, Mock
 
@@ -28,7 +30,7 @@ from apollo.common.agent.constants import (
 )
 from apollo.egress.agent.service.timer_service import TimerService
 from apollo.egress.agent.utils.queue_async_processor import T
-from apollo.egress.agent.utils.utils import BACKEND_SERVICE_URL
+from apollo.egress.agent.utils.utils import BACKEND_SERVICE_URL, X_MCD_ID, X_MCD_TOKEN
 
 from agent.sna.queries_runner import QueriesRunner
 from agent.sna.queries_service import QueriesService
@@ -376,6 +378,68 @@ class AppServiceTests(TestCase):
             )
             result = self._service.run_reachability_test()
             self.assertEqual({"error": "ping failed"}, result)
+
+
+def _mcd_id_for_tenant(tenant: str) -> str:
+    """Build a realistic mcd_id whose base64 payload decodes to ``v1+<tenant>``."""
+    encoded = base64.b64encode(f"v1+{tenant}".encode("utf-8")).decode("utf-8")
+    return f"test-id+{encoded}"
+
+
+class _StubLoginTokenProvider(LoginTokenProvider):
+    """Test double that returns a fixed mcd_id/mcd_token without touching the filesystem."""
+
+    def __init__(self, mcd_id: str, mcd_token: str = "test-token-secret"):
+        self._mcd_id = mcd_id
+        self._mcd_token = mcd_token
+
+    def get_token(self) -> Dict[str, str]:
+        return {X_MCD_ID: self._mcd_id, X_MCD_TOKEN: self._mcd_token}
+
+
+class BackendUrlResolutionWiringTests(TestCase):
+    """Covers the glue in ``SnaService.__init__`` that reads the token, calls
+    the resolver, and routes the resulting URL into ``BaseEgressAgentService``.
+
+    The helpers (``parse_tenant_from_id``, ``resolve_backend_url``) are tested
+    in their own modules; these tests pin down the single point that decides
+    which backend this agent talks to.
+    """
+
+    def _build_service(self, login_token_provider: LoginTokenProvider) -> SnaService:
+        config_persistence = create_autospec(ConfigurationPersistence)
+        return SnaService(
+            queries_runner=create_autospec(QueriesRunner),
+            ops_runner=Mock(queue_depth=Mock(return_value=0), thread_count=1),
+            results_publisher=create_autospec(ResultsPublisher),
+            events_client=create_autospec(EventsClient),
+            ack_sender=create_autospec(AckSender),
+            queries_service=create_autospec(QueriesService),
+            config_manager=ConfigurationManager(persistence=config_persistence),
+            logs_sender=create_autospec(TimerService),
+            login_token_provider=login_token_provider,
+        )
+
+    def test_service_uses_eu_url_for_eu_tenant(self):
+        service = self._build_service(
+            _StubLoginTokenProvider(_mcd_id_for_tenant("eu1")),
+        )
+        expected = BACKEND_SERVICE_URL.replace("artemis.", "artemis.eu1.", 1)
+        self.assertEqual(expected, service._backend_service_url)
+
+    def test_service_uses_fallback_url_for_us1_tenant(self):
+        service = self._build_service(
+            _StubLoginTokenProvider(_mcd_id_for_tenant("us1")),
+        )
+        self.assertEqual(BACKEND_SERVICE_URL, service._backend_service_url)
+
+    def test_service_aborts_on_invalid_tenant(self):
+        # "bad/tenant" has a `/` which is rejected by the tenant-format check
+        # in resolve_backend_url, so SnaService construction must raise.
+        with self.assertRaises(ValueError):
+            self._build_service(
+                _StubLoginTokenProvider(_mcd_id_for_tenant("bad/tenant")),
+            )
 
 
 class ImmediateOpsRunner(OperationsRunner):

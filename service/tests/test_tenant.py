@@ -41,3 +41,18 @@ class ParseTenantFromIdTests(TestCase):
     def test_non_utf8_decoded_returns_default(self):
         mcd_id = f"some-id+{base64.b64encode(bytes([0xFF, 0xFE, 0xFD])).decode()}"
         self.assertEqual(DEFAULT_TENANT, parse_tenant_from_id(mcd_id))
+
+    def test_encoded_payload_with_literal_plus_is_handled(self):
+        # Base64 standard alphabet includes `+`, so a byte sequence in the
+        # encoded payload can produce one (e.g. the bytes `>>>` encode to
+        # `Pj4+`). A naive `split("+")` would slice the encoded value in
+        # half and silently fall back to the default tenant — which is
+        # exactly the silent-routing failure this module is designed to
+        # prevent (regression guard for
+        # https://github.com/monte-carlo-data/sna-artemis-agent/pull/59).
+        payload = b"v1+>>>"
+        encoded = base64.b64encode(payload).decode("utf-8")
+        # Sanity check: the encoded form genuinely contains `+`.
+        self.assertIn("+", encoded)
+        mcd_id = f"some-id+{encoded}"
+        self.assertEqual(">>>", parse_tenant_from_id(mcd_id))
