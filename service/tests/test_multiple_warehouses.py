@@ -15,6 +15,7 @@ from apollo.egress.agent.config.config_keys import (
 )
 from apollo.egress.agent.config.config_manager import ConfigurationManager
 from apollo.egress.agent.config.config_persistence import ConfigurationPersistence
+from apollo.egress.agent.service.login_token_provider import LocalLoginTokenProvider
 from apollo.egress.agent.service.operation_result import OperationAttributes
 from apollo.egress.agent.service.operations_runner import OperationsRunner
 from agent.sna.queries_runner import QueriesRunner
@@ -104,6 +105,7 @@ class MultiWarehouseTests(TestCase):
             queries_service=queries_service,
             config_manager=self._config_manager,
             logs_sender=self._logs_sender,
+            login_token_provider=LocalLoginTokenProvider(),
         )
         ops_runner._ops_handler = service._execute_scheduled_operation
         service.start()

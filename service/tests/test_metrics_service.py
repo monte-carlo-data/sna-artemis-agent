@@ -5,6 +5,7 @@ from apollo.egress.agent.backend.backend_client import BackendClient
 from apollo.egress.agent.config.config_manager import ConfigurationManager
 from apollo.egress.agent.config.local_config import LocalConfig
 from apollo.egress.agent.events.ack_sender import AckSender
+from apollo.egress.agent.service.login_token_provider import LocalLoginTokenProvider
 from apollo.egress.agent.events.base_receiver import BaseReceiver
 from apollo.egress.agent.events.events_client import EventsClient
 from apollo.egress.agent.events.heartbeat_checker import HeartbeatChecker
@@ -41,6 +42,7 @@ class MetricsServiceTests(TestCase):
             config_manager=self._config_manager,
             ack_sender=create_autospec(AckSender),
             logs_sender=create_autospec(TimerService),
+            login_token_provider=LocalLoginTokenProvider(),
         )
         self._service.start()
 
