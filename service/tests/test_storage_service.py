@@ -12,6 +12,7 @@ from apollo.egress.agent.events.events_client import EventsClient
 from apollo.egress.agent.events.heartbeat_checker import HeartbeatChecker
 from apollo.egress.agent.config.config_manager import ConfigurationManager
 from apollo.egress.agent.config.local_config import LocalConfig
+from apollo.egress.agent.service.login_token_provider import LocalLoginTokenProvider
 from apollo.egress.agent.service.operations_runner import OperationsRunner
 from agent.sna.queries_runner import QueriesRunner
 from agent.sna.queries_service import QueriesService
@@ -92,6 +93,7 @@ class StorageServiceTests(TestCase):
             queries_service=self._queries_service,
             config_manager=self._config_manager,
             logs_sender=self._logs_sender,
+            login_token_provider=LocalLoginTokenProvider(),
         )
         self._service.start()
 

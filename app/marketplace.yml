@@ -17,3 +17,4 @@ connections:
      required: true
      endpoints:
        - "artemis.getmontecarlo.com"
+       - "artemis.*.getmontecarlo.com"
