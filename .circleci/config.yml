@@ -75,6 +75,15 @@ jobs:
         type: string
       code_version:
         type: string
+      # Extra flags passed verbatim to deploy.sh. Used by deploy-dev to
+      # publish a second `mcd_agent_eu` app alongside `mcd_agent` so EU
+      # tenant routing can be tested end-to-end on dev. Prod leaves this
+      # empty so only the `mcd_agent` app/package is published — avoids
+      # confusing extra `mcd_agent_pkg_eu` packages in the prod release
+      # flow.
+      extra_deploy_args:
+        type: string
+        default: ""
     steps:
       - checkout
       - docker/check:
@@ -96,8 +105,7 @@ jobs:
               --snowflake-repo-url "$SNOWFLAKE_REPO_URL" \
               --backend-url-scheme "$BACKEND_URL_SCHEME" \
               --backend-url-host "$BACKEND_URL_HOST" \
-              --snowflake-app-name mcd_agent \
-              --snowflake-app-name mcd_agent_eu
+              << parameters.extra_deploy_args >>
 
 workflows:
   version: 2
@@ -115,6 +123,10 @@ workflows:
           name: deploy-dev
           docker_hub_repository: prerelease-sna-agent
           code_version: ${VERSION}
+          # Publish both apps on dev so EU tenant routing can be tested in
+          # parallel with the default US app. Prod deliberately publishes
+          # only `mcd_agent`.
+          extra_deploy_args: "--snowflake-app-name mcd_agent --snowflake-app-name mcd_agent_eu"
           pre-steps:
             - checkout
             - generate-version-number-dev
