@@ -368,6 +368,7 @@ class AppServiceTests(TestCase):
                     "x-mcd-token": "local-token-secret",
                     "x-mcd-agent-instance-id": ANY,
                 },
+                timeout=None,
             )
             self.assertEqual(health_response, result)
 
