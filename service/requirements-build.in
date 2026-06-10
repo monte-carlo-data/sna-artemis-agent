@@ -1,5 +1,6 @@
 # dependencies that are built in a separate stage of the docker image
-agent-common @ git+https://github.com/monte-carlo-data/agent-common.git@v0.2.3
+# TEMP (dev validation): pinned to the agent-common feature branch; flip to the released tag after agent-common PR #22 merges.
+agent-common @ git+https://github.com/monte-carlo-data/agent-common.git@cfritz/agent-common-ack-removal
 
 snowflake-connector-python==4.4.0 # Bumped from 3.15.0; lifts pyOpenSSL<26 cap (matches apollo-agent)
 requests>=2.32.4 # Upgraded in VULN-616

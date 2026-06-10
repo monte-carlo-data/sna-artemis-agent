@@ -9,7 +9,6 @@ from apollo.egress.agent.config.config_keys import (
     CONFIG_IS_REMOTE_UPGRADABLE,
 )
 from apollo.egress.agent.config.config_manager import ConfigurationManager
-from apollo.egress.agent.events.ack_sender import AckSender
 from apollo.egress.agent.events.events_client import EventsClient
 from apollo.egress.agent.service.base_egress_service import (
     BaseEgressAgentService,
@@ -103,7 +102,6 @@ class SnaService(BaseEgressAgentService):
         results_publisher: Optional[ResultsPublisher] = None,
         events_client: Optional[EventsClient] = None,
         storage_service: Optional[StorageService] = None,
-        ack_sender: Optional[AckSender] = None,
         queries_service: Optional[QueriesService] = None,
         logs_service: Optional[BaseLogsService] = None,
         logs_sender: Optional[TimerService] = None,
@@ -153,7 +151,6 @@ class SnaService(BaseEgressAgentService):
             ops_runner=ops_runner,
             results_publisher=results_publisher,
             events_client=events_client,
-            ack_sender=ack_sender,
             logs_sender=logs_sender,
             enable_pre_signed_urls=enable_pre_signed_urls,
             instance_id=instance_id,

@@ -6,7 +6,8 @@
 #
 agent-base @ git+https://github.com/monte-carlo-data/agent-base.git@v0.0.2
     # via agent-common
-agent-common @ git+https://github.com/monte-carlo-data/agent-common.git@v0.2.3
+# TEMP (dev validation): pinned to the agent-common feature branch; flip to the released tag after agent-common PR #22 merges.
+agent-common @ git+https://github.com/monte-carlo-data/agent-common.git@cfritz/agent-common-ack-removal
     # via -r requirements-build.in
 asn1crypto==1.5.1
     # via snowflake-connector-python

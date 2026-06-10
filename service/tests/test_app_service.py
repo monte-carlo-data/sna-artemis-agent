@@ -6,7 +6,6 @@ from typing import Dict
 from unittest import TestCase
 from unittest.mock import create_autospec, patch, ANY, Mock
 
-from apollo.egress.agent.events.ack_sender import AckSender
 from apollo.egress.agent.events.base_receiver import BaseReceiver
 from apollo.egress.agent.events.events_client import EventsClient
 from apollo.egress.agent.events.heartbeat_checker import HeartbeatChecker
@@ -62,13 +61,19 @@ _HEALTH_OPERATION = {
 
 class AppServiceTests(TestCase):
     def setUp(self):
+        # Stub the operations poller so its background thread doesn't run during unit tests —
+        # it would poll the backend over HTTP and trip backpressure checks on mocked runners.
+        poller_patcher = patch(
+            "apollo.egress.agent.service.base_egress_service.OperationsPoller"
+        )
+        poller_patcher.start()
+        self.addCleanup(poller_patcher.stop)
         self._mock_events_client = create_autospec(EventsClient)
         self._mock_queries_runner = create_autospec(QueriesRunner)
         self._mock_ops_runner = Mock()
         self._mock_ops_runner.queue_depth.return_value = 0
         self._mock_ops_runner.thread_count = 1
         self._mock_results_publisher = create_autospec(ResultsPublisher)
-        self._ack_sender = create_autospec(AckSender)
         self._queries_service = create_autospec(QueriesService)
         self._config_persistence = create_autospec(ConfigurationPersistence)
         self._config_manager = ConfigurationManager(
@@ -80,7 +85,6 @@ class AppServiceTests(TestCase):
             ops_runner=self._mock_ops_runner,
             results_publisher=self._mock_results_publisher,
             events_client=self._mock_events_client,
-            ack_sender=self._ack_sender,
             queries_service=self._queries_service,
             config_manager=self._config_manager,
             logs_sender=self._logs_sender,
@@ -108,7 +112,6 @@ class AppServiceTests(TestCase):
             ops_runner=ops_runner,
             results_publisher=self._mock_results_publisher,
             events_client=events_client,
-            ack_sender=self._ack_sender,
             queries_service=self._queries_service,
             config_manager=self._config_manager,
             logs_sender=self._logs_sender,
@@ -212,7 +215,6 @@ class AppServiceTests(TestCase):
             ops_runner=ops_runner,
             results_publisher=self._mock_results_publisher,
             events_client=events_client,
-            ack_sender=self._ack_sender,
             queries_service=self._queries_service,
             config_manager=self._config_manager,
             storage_service=storage,
@@ -320,7 +322,6 @@ class AppServiceTests(TestCase):
             ops_runner=self._mock_ops_runner,
             results_publisher=self._mock_results_publisher,
             events_client=events_client,
-            ack_sender=self._ack_sender,
             queries_service=self._queries_service,
             config_manager=self._config_manager,
             logs_sender=self._logs_sender,
@@ -414,7 +415,6 @@ class BackendUrlResolutionWiringTests(TestCase):
             ops_runner=Mock(queue_depth=Mock(return_value=0), thread_count=1),
             results_publisher=create_autospec(ResultsPublisher),
             events_client=create_autospec(EventsClient),
-            ack_sender=create_autospec(AckSender),
             queries_service=create_autospec(QueriesService),
             config_manager=ConfigurationManager(persistence=config_persistence),
             logs_sender=create_autospec(TimerService),
