@@ -4,7 +4,6 @@ from unittest.mock import patch, create_autospec, Mock
 from apollo.egress.agent.backend.backend_client import BackendClient
 from apollo.egress.agent.config.config_manager import ConfigurationManager
 from apollo.egress.agent.config.local_config import LocalConfig
-from apollo.egress.agent.events.ack_sender import AckSender
 from apollo.egress.agent.service.login_token_provider import LocalLoginTokenProvider
 from apollo.egress.agent.events.base_receiver import BaseReceiver
 from apollo.egress.agent.events.events_client import EventsClient
@@ -25,6 +24,13 @@ _REQUEST_METRICS_OPERATION = {
 
 class MetricsServiceTests(TestCase):
     def setUp(self):
+        # Stub the operations poller so its background thread doesn't run during unit tests —
+        # it would poll the backend over HTTP and trip backpressure checks on mocked runners.
+        poller_patcher = patch(
+            "apollo.egress.agent.service.base_egress_service.OperationsPoller"
+        )
+        poller_patcher.start()
+        self.addCleanup(poller_patcher.stop)
         self._events_client = create_autospec(EventsClient)
         self._mock_queries_runner = create_autospec(QueriesRunner)
         self._mock_ops_runner = Mock()
@@ -40,7 +46,6 @@ class MetricsServiceTests(TestCase):
             results_publisher=self._mock_results_publisher,
             events_client=self._events_client,
             config_manager=self._config_manager,
-            ack_sender=create_autospec(AckSender),
             logs_sender=create_autospec(TimerService),
             login_token_provider=LocalLoginTokenProvider(),
         )
