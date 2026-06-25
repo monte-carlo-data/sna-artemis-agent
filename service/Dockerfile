@@ -1,4 +1,4 @@
-FROM python:3.12-alpine3.21 AS builder
+FROM python:3.13-alpine3.21 AS builder
 ENV VIRTUAL_ENV=/opt/venv
 RUN python -m venv $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
@@ -12,7 +12,7 @@ RUN pip install -r requirements-build.txt
 # VULN: CVE-2025-47273 (setuptools), CVE-2026-24049 (wheel) — patch venv build tooling
 RUN pip install --no-cache-dir --upgrade "setuptools>=78.1.1" "wheel>=0.46.2"
 
-FROM python:3.12-alpine3.21 AS base
+FROM python:3.13-alpine3.21 AS base
 
 COPY --from=builder /opt/venv /opt/venv
 ENV VIRTUAL_ENV=/opt/venv
@@ -39,7 +39,7 @@ ARG pytest_params="tests"
 ARG CACHEBUST=1
 RUN python -m pytest $pytest_params
 
-FROM python:3.12-alpine3.21 AS final
+FROM python:3.13-alpine3.21 AS final
 
 # update openssl
 RUN apk update && apk add --no-cache openssl~3.3
