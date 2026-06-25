@@ -25,17 +25,25 @@ from apollo.egress.agent.service.base_egress_service import (
     OperationMapping,
     ATTR_NAME_PARAMETERS,
 )
+from apollo.egress.agent.service.in_process_logs_service import (
+    setup_in_process_log_shipping,
+)
 from apollo.egress.agent.service.login_token_provider import (
     LocalLoginTokenProvider,
     LoginTokenProvider,
 )
+from apollo.egress.agent.service.logs_service import BaseLogsService
 from apollo.egress.agent.utils.utils import X_MCD_ID
 from apollo.egress.agent.service.operation_result import OperationAttributes
 from apollo.egress.agent.service.operations_runner import OperationsRunner
 from apollo.egress.agent.service.results_publisher import ResultsPublisher
 from apollo.egress.agent.utils.utils import LOCAL
 
-from agent.sna.logs_service import LogsService
+from agent.sna.config.config_keys import (
+    CONFIG_IN_PROCESS_LOGS_ENABLED,
+    CONFIG_IN_PROCESS_LOGS_LEVEL,
+    resolve_log_level,
+)
 from agent.sna.metrics_service import MetricsService
 from agent.sna.queries_runner import QueriesRunner
 from agent.sna.queries_service import QueriesService
@@ -95,7 +103,7 @@ class SnaService(BaseEgressAgentService):
         events_client: Optional[EventsClient] = None,
         storage_service: Optional[StorageService] = None,
         queries_service: Optional[QueriesService] = None,
-        logs_service: Optional[LogsService] = None,
+        logs_service: Optional[BaseLogsService] = None,
         logs_sender: Optional[TimerService] = None,
         login_token_provider: Optional[LoginTokenProvider] = None,
         enable_pre_signed_urls: bool = False,
@@ -128,6 +136,7 @@ class SnaService(BaseEgressAgentService):
             )
             raise
         logger.info(f"Using backend service URL: {backend_service_url}")
+        logs_service = logs_service or self._build_logs_service(config_manager)
         super().__init__(
             backend_service_url=backend_service_url,
             platform="SNA",
@@ -135,10 +144,8 @@ class SnaService(BaseEgressAgentService):
             additional_env_vars=_SNOWFLAKE_HEALTH_ENV_VARS,
             config_manager=config_manager,
             login_token_provider=login_token_provider,
-            logs_service=logs_service
-            or LogsService(
-                queries_service=self._queries_service,
-            ),
+            skip_logs=logs_service is None,
+            logs_service=logs_service,
             metrics_service=MetricsService(),
             storage_service=self._sna_storage,
             ops_runner=ops_runner,
@@ -203,6 +210,37 @@ class SnaService(BaseEgressAgentService):
 
     def _get_build_number(self) -> str:
         return BUILD_NUMBER
+
+    @staticmethod
+    def _build_logs_service(
+        config_manager: ConfigurationManager,
+    ) -> Optional[BaseLogsService]:
+        """Activate in-process log shipping when the config gate is on.
+
+        Default is True (existing deployments transparently switch from
+        the prior SQL-based log path to in-process buffer drain on the
+        next restart). Operators can opt out by writing
+        IN_PROCESS_LOGS_ENABLED=false to CONFIG.APP_CONFIG and restarting
+        the agent — the app_public.service_logs(int) stored procedure
+        remains as a customer side channel via SYSTEM$GET_SERVICE_LOGS.
+        """
+        if not config_manager.get_bool_value(CONFIG_IN_PROCESS_LOGS_ENABLED, True):
+            return None
+        level_str = config_manager.get_str_value(CONFIG_IN_PROCESS_LOGS_LEVEL, "INFO")
+        try:
+            level = resolve_log_level(level_str)
+        except ValueError as ex:
+            # A misconfigured level (typo, or a rejected DEBUG) must not crash-loop
+            # the whole agent over a logs-verbosity knob. Fall back to INFO — a safe
+            # level that preserves the "never ship DEBUG content" guarantee — and
+            # warn loudly so the misconfiguration is visible in shipped logs.
+            logger.warning(
+                "Invalid %s — falling back to INFO: %s",
+                CONFIG_IN_PROCESS_LOGS_LEVEL,
+                ex,
+            )
+            level = logging.INFO
+        return setup_in_process_log_shipping(level=level)
 
     def fetch_metrics(self) -> List[str]:
         return self._metrics_service.fetch_metrics()
