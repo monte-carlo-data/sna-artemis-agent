@@ -6,7 +6,6 @@ from unittest import TestCase
 from unittest.mock import create_autospec, patch, Mock, mock_open
 
 from apollo.common.agent.constants import ATTRIBUTE_NAME_RESULT, ATTRIBUTE_NAME_ERROR
-from apollo.egress.agent.events.ack_sender import AckSender
 from apollo.egress.agent.events.base_receiver import BaseReceiver
 from apollo.egress.agent.events.events_client import EventsClient
 from apollo.egress.agent.events.heartbeat_checker import HeartbeatChecker
@@ -59,6 +58,13 @@ _IS_BUCKET_PRIVATE_OPERATION = {
 
 class StorageServiceTests(TestCase):
     def setUp(self):
+        # Stub the operations poller so its background thread doesn't run during unit tests —
+        # it would poll the backend over HTTP and trip backpressure checks on mocked runners.
+        poller_patcher = patch(
+            "apollo.egress.agent.service.base_egress_service.OperationsPoller"
+        )
+        poller_patcher.start()
+        self.addCleanup(poller_patcher.stop)
         self._mock_queries_runner = create_autospec(QueriesRunner)
         self._mock_ops_runner = create_autospec(OperationsRunner)
         self._mock_results_publisher = create_autospec(ResultsPublisher)
@@ -81,7 +87,6 @@ class StorageServiceTests(TestCase):
             queries_service=self._queries_service,
             config_manager=self._config_manager,
         )
-        self._ack_sender = create_autospec(AckSender)
         self._logs_sender = create_autospec(TimerService)
         self._service = SnaService(
             queries_runner=self._mock_queries_runner,
@@ -89,7 +94,6 @@ class StorageServiceTests(TestCase):
             results_publisher=self._mock_results_publisher,
             events_client=self._events_client,
             storage_service=self._storage_service,
-            ack_sender=self._ack_sender,
             queries_service=self._queries_service,
             config_manager=self._config_manager,
             logs_sender=self._logs_sender,

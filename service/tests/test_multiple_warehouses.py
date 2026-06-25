@@ -5,7 +5,6 @@ from unittest.mock import create_autospec, patch, Mock, ANY, call
 
 from sqlalchemy import QueuePool
 
-from apollo.egress.agent.events.ack_sender import AckSender
 from apollo.egress.agent.events.base_receiver import BaseReceiver
 from apollo.egress.agent.events.events_client import EventsClient
 from apollo.egress.agent.events.heartbeat_checker import HeartbeatChecker
@@ -49,10 +48,16 @@ _QUERY_LOGS_JOB_TYPES_CONFIG = JobTypesConfiguration(
 
 class MultiWarehouseTests(TestCase):
     def setUp(self):
+        # Stub the operations poller so its background thread doesn't run during unit tests —
+        # it would poll the backend over HTTP and trip backpressure checks on mocked runners.
+        poller_patcher = patch(
+            "apollo.egress.agent.service.base_egress_service.OperationsPoller"
+        )
+        poller_patcher.start()
+        self.addCleanup(poller_patcher.stop)
         self._mock_queries_runner = create_autospec(QueriesRunner)
         self._mock_ops_runner = create_autospec(OperationsRunner)
         self._mock_results_publisher = create_autospec(ResultsPublisher)
-        self._ack_sender = create_autospec(AckSender)
         self._logs_sender = create_autospec(TimerService)
         self._config_persistence = create_autospec(ConfigurationPersistence)
         self._config_manager = ConfigurationManager(
@@ -101,7 +106,6 @@ class MultiWarehouseTests(TestCase):
             ops_runner=ops_runner,
             results_publisher=self._mock_results_publisher,
             events_client=self._events_client,
-            ack_sender=self._ack_sender,
             queries_service=queries_service,
             config_manager=self._config_manager,
             logs_sender=self._logs_sender,

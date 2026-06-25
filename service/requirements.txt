@@ -25,11 +25,10 @@ certifi==2025.11.12
     #   -c requirements-build.txt
     #   requests
     #   snowflake-connector-python
-cffi==1.17.1
+cffi==2.0.0
     # via
     #   -c requirements-build.txt
     #   cryptography
-    #   snowflake-connector-python
 charset-normalizer==3.4.4
     # via
     #   -c requirements-build.txt
@@ -37,7 +36,7 @@ charset-normalizer==3.4.4
     #   snowflake-connector-python
 click==8.3.1
     # via flask
-cryptography==46.0.0
+cryptography==46.0.5
     # via
     #   -c requirements-build.txt
     #   pyopenssl
@@ -60,7 +59,9 @@ flask==3.0.3
     #   flask-sse
 flask-sse==1.0.0
     # via -r requirements.in
-gunicorn==23.0.0
+greenlet==3.5.1
+    # via sqlalchemy
+gunicorn==26.0.0
     # via -r requirements.in
 idna==3.11
     # via
@@ -104,11 +105,11 @@ pycparser==2.23
     # via
     #   -c requirements-build.txt
     #   cffi
-pyjwt==2.10.1
+pyjwt==2.13.0
     # via
     #   -c requirements-build.txt
     #   snowflake-connector-python
-pyopenssl==25.3.0
+pyopenssl==26.2.0
     # via
     #   -c requirements-build.txt
     #   snowflake-connector-python
@@ -141,11 +142,11 @@ six==1.17.0
     #   flask-sse
     #   python-dateutil
     #   sseclient
-snowflake-connector-python==3.15.0
+snowflake-connector-python==4.4.0
     # via
     #   -c requirements-build.txt
     #   snowflake-sqlalchemy
-snowflake-sqlalchemy==1.6.1
+snowflake-sqlalchemy==1.10.0
     # via -r requirements.in
 sortedcontainers==2.4.0
     # via
@@ -172,7 +173,7 @@ typing-inspect==0.9.0
     # via
     #   -c requirements-build.txt
     #   dataclasses-json
-urllib3==2.6.3
+urllib3==2.7.0
     # via
     #   -c requirements-build.txt
     #   botocore
