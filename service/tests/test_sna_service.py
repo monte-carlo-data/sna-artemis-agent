@@ -56,14 +56,24 @@ class BuildLogsServiceTests(TestCase):
         self.assertIsNone(result)
         mock_setup.assert_not_called()
 
-    def test_invalid_log_level_raises(self):
-        # DEBUG is rejected by the allowlist — would surface third-party-library
-        # content (request bodies, tokens) in shipped logs.
+    def test_invalid_log_level_falls_back_to_info(self):
+        # A misconfigured level must not crash-loop the agent. Both a rejected
+        # DEBUG (security control) and a plain typo fall back to INFO — a safe
+        # level that still never ships DEBUG content — with a loud warning.
         self._config_manager.get_bool_value.side_effect = lambda key, default: default
-        self._config_manager.get_str_value.return_value = "DEBUG"
 
-        with patch("agent.sna.sna_service.setup_in_process_log_shipping"):
-            with self.assertRaises(ValueError) as ctx:
-                SnaService._build_logs_service(self._config_manager)
+        for bad_level in ("DEBUG", "INFOO"):
+            with self.subTest(level=bad_level):
+                self._config_manager.get_str_value.return_value = bad_level
+                with patch(
+                    "agent.sna.sna_service.setup_in_process_log_shipping",
+                ) as mock_setup:
+                    with self.assertLogs(
+                        "agent.sna.sna_service", level=logging.WARNING
+                    ) as logs:
+                        SnaService._build_logs_service(self._config_manager)
 
-        self.assertIn("DEBUG", str(ctx.exception))
+                mock_setup.assert_called_once_with(level=logging.INFO)
+                self.assertTrue(
+                    any("falling back to INFO" in line for line in logs.output)
+                )
