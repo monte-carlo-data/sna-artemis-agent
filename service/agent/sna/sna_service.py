@@ -227,7 +227,20 @@ class SnaService(BaseEgressAgentService):
         if not config_manager.get_bool_value(CONFIG_IN_PROCESS_LOGS_ENABLED, True):
             return None
         level_str = config_manager.get_str_value(CONFIG_IN_PROCESS_LOGS_LEVEL, "INFO")
-        return setup_in_process_log_shipping(level=resolve_log_level(level_str))
+        try:
+            level = resolve_log_level(level_str)
+        except ValueError as ex:
+            # A misconfigured level (typo, or a rejected DEBUG) must not crash-loop
+            # the whole agent over a logs-verbosity knob. Fall back to INFO — a safe
+            # level that preserves the "never ship DEBUG content" guarantee — and
+            # warn loudly so the misconfiguration is visible in shipped logs.
+            logger.warning(
+                "Invalid %s — falling back to INFO: %s",
+                CONFIG_IN_PROCESS_LOGS_LEVEL,
+                ex,
+            )
+            level = logging.INFO
+        return setup_in_process_log_shipping(level=level)
 
     def fetch_metrics(self) -> List[str]:
         return self._metrics_service.fetch_metrics()
