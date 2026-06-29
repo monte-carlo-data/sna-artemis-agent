@@ -29,7 +29,7 @@ charset-normalizer==3.4.4
     # via
     #   requests
     #   snowflake-connector-python
-cryptography==46.0.5
+cryptography==48.0.1
     # via
     #   -r requirements-build.in
     #   pyopenssl

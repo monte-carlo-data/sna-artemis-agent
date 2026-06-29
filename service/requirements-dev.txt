@@ -39,9 +39,10 @@ packaging==25.0
     #   black
     #   build
     #   pytest
+    #   wheel
 pathspec==0.12.1
     # via black
-pip-tools==7.4.1
+pip-tools==7.5.3
     # via -r requirements-dev.in
 platformdirs==4.5.1
     # via
@@ -64,7 +65,7 @@ pyyaml==6.0.3
     # via pre-commit
 virtualenv==20.35.4
     # via pre-commit
-wheel==0.45.1
+wheel==0.47.0
     # via pip-tools
 
 # The following packages are considered to be unsafe in a requirements file:
