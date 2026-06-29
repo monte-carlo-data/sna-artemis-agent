@@ -1,6 +1,6 @@
 -c requirements.txt
 pytest==8.3.3
-pip-tools==7.4.1
+pip-tools==7.5.3
 black==24.10.0
 pre-commit==4.0.1
 pyright==1.1.337

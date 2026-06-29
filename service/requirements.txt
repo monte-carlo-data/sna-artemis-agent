@@ -36,7 +36,7 @@ charset-normalizer==3.4.4
     #   snowflake-connector-python
 click==8.3.1
     # via flask
-cryptography==46.0.5
+cryptography==48.0.1
     # via
     #   -c requirements-build.txt
     #   pyopenssl
