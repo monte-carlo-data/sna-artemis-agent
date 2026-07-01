@@ -233,13 +233,28 @@ success "Snowflake registry login OK"
 
 info "Building Docker image..."
 
-DOCKER_BUILDKIT=1 docker build \
+# SBOM + SLSA provenance attestations (attached on the Docker Hub push, step 6)
+# require the docker-container buildx driver — the default docker driver can't
+# emit the OCI image index that carries attestation manifests. Create the
+# builder once here; both the --load build below and the --push in step 6 reuse
+# it. Tolerate a pre-existing builder from an earlier run on the same host.
+docker buildx create --use --name sna-builder --driver docker-container 2>/dev/null \
+  || docker buildx use sna-builder
+docker buildx inspect --bootstrap
+
+# Pass 1 of 2: --load a plain single-manifest image into the local daemon. This
+# copy is used for the version check (step 5) and the Snowflake SPCS push
+# (step 7) — SPCS / `snow app run` require a single-platform manifest and reject
+# the OCI image index that attestations produce. Attestations are added only on
+# the Docker Hub push (step 6), the image Docker Scout scans.
+docker buildx build \
   --platform linux/amd64 \
   --build-arg "code_version=${CODE_VERSION}" \
   --build-arg "build_number=${BUILD_NUMBER}" \
   -t "${DOCKER_HUB_IMAGE}:latest" \
   -t "${DOCKER_HUB_IMAGE}:${CODE_VERSION}" \
   -f service/Dockerfile \
+  --load \
   service/
 
 success "Docker build complete"
@@ -257,15 +272,31 @@ else
   die "Version mismatch! Expected '${EXPECTED_VERSION}', got '${IMAGE_VERSION}'"
 fi
 
-# ── 6. Push to Docker Hub ───────────────────────────────────────────────────
+# ── 6. Push to Docker Hub (with SBOM + SLSA provenance attestations) ─────────
 
 if [[ "$SKIP_DOCKER_HUB_PUSH" == "true" ]]; then
   info "Skipping Docker Hub push (--skip-docker-hub-push)"
 elif prompt_gate "Push ${DOCKER_HUB_IMAGE}:${CODE_VERSION} to Docker Hub"; then
-  info "Pushing to Docker Hub..."
-  docker push "${DOCKER_HUB_IMAGE}:latest"
-  docker push "${DOCKER_HUB_IMAGE}:${CODE_VERSION}"
-  success "Pushed to Docker Hub"
+  info "Pushing to Docker Hub with SBOM + SLSA provenance attestations..."
+  # Pass 2 of 2: re-run the build straight to Docker Hub with attestations
+  # attached — the image Docker Scout reads to clear its "missing supply chain
+  # attestation(s)" warning. --load and --push are mutually exclusive when
+  # attestations are involved, so this is a separate pass from step 4; the
+  # BuildKit cache makes it only SBOM/provenance-generation work, not a rebuild.
+  # provenance=mode=max is safe here: the only build args are public version
+  # metadata (code_version, build_number) and there are no --secret mounts.
+  docker buildx build \
+    --platform linux/amd64 \
+    --build-arg "code_version=${CODE_VERSION}" \
+    --build-arg "build_number=${BUILD_NUMBER}" \
+    -t "${DOCKER_HUB_IMAGE}:latest" \
+    -t "${DOCKER_HUB_IMAGE}:${CODE_VERSION}" \
+    -f service/Dockerfile \
+    --sbom=true \
+    --provenance=mode=max \
+    --push \
+    service/
+  success "Pushed to Docker Hub with attestations"
 fi
 
 # ── 7. Tag and push to Snowflake image registry ─────────────────────────────
