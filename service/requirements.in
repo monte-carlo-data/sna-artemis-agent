@@ -7,4 +7,4 @@ jinja2==3.1.6  # VULN-492 - Tried upgrading to flask 3.1.0 but it was still usin
 retry2==0.9.5
 snowflake-sqlalchemy==1.10.0  # Bumped from 1.6.1 to allow snowflake-connector-python 4.x
 sseclient==0.0.27
-werkzeug==3.1.3
+werkzeug==3.1.6  # VULN: CVE-2026-27199 / CVE-2026-21860 / CVE-2025-66221 (fix 3.1.6)
