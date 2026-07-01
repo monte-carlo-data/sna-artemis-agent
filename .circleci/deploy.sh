@@ -233,13 +233,22 @@ success "Snowflake registry login OK"
 
 info "Building Docker image..."
 
-DOCKER_BUILDKIT=1 docker build \
+# Attestations need the docker-container driver (the default driver can't emit
+# the OCI index that carries them). Create once; reused by both builds below.
+docker buildx create --use --name sna-builder --driver docker-container 2>/dev/null \
+  || docker buildx use sna-builder
+docker buildx inspect --bootstrap
+
+# Pass 1: --load a single-manifest image into the daemon for the version check
+# (step 5) and the Snowflake push (step 7) — SPCS rejects the attestation index.
+docker buildx build \
   --platform linux/amd64 \
   --build-arg "code_version=${CODE_VERSION}" \
   --build-arg "build_number=${BUILD_NUMBER}" \
   -t "${DOCKER_HUB_IMAGE}:latest" \
   -t "${DOCKER_HUB_IMAGE}:${CODE_VERSION}" \
   -f service/Dockerfile \
+  --load \
   service/
 
 success "Docker build complete"
@@ -257,15 +266,28 @@ else
   die "Version mismatch! Expected '${EXPECTED_VERSION}', got '${IMAGE_VERSION}'"
 fi
 
-# ── 6. Push to Docker Hub ───────────────────────────────────────────────────
+# ── 6. Push to Docker Hub (with SBOM + SLSA provenance attestations) ─────────
 
 if [[ "$SKIP_DOCKER_HUB_PUSH" == "true" ]]; then
   info "Skipping Docker Hub push (--skip-docker-hub-push)"
 elif prompt_gate "Push ${DOCKER_HUB_IMAGE}:${CODE_VERSION} to Docker Hub"; then
-  info "Pushing to Docker Hub..."
-  docker push "${DOCKER_HUB_IMAGE}:latest"
-  docker push "${DOCKER_HUB_IMAGE}:${CODE_VERSION}"
-  success "Pushed to Docker Hub"
+  info "Pushing to Docker Hub with SBOM + SLSA provenance attestations..."
+  # Pass 2: push to Docker Hub with attestations (the image Scout scans).
+  # Separate pass because --load and --push can't be combined with attestations;
+  # the build cache makes it cheap. mode=max is safe — build args are public
+  # version metadata, no --secret mounts.
+  docker buildx build \
+    --platform linux/amd64 \
+    --build-arg "code_version=${CODE_VERSION}" \
+    --build-arg "build_number=${BUILD_NUMBER}" \
+    -t "${DOCKER_HUB_IMAGE}:latest" \
+    -t "${DOCKER_HUB_IMAGE}:${CODE_VERSION}" \
+    -f service/Dockerfile \
+    --sbom=true \
+    --provenance=mode=max \
+    --push \
+    service/
+  success "Pushed to Docker Hub with attestations"
 fi
 
 # ── 7. Tag and push to Snowflake image registry ─────────────────────────────
