@@ -9,8 +9,9 @@ RUN apk add build-base gcc musl-dev python3-dev libffi-dev openssl-dev cargo pkg
 COPY requirements-build.txt .
 RUN pip install -r requirements-build.txt
 
-# VULN: CVE-2025-47273 (setuptools), CVE-2026-24049 (wheel) — patch venv build tooling
-RUN pip install --no-cache-dir --upgrade "setuptools>=78.1.1" "wheel>=0.47.0"
+# VULN: CVE-2025-47273 (setuptools), CVE-2026-24049 (wheel) — patch venv build tooling.
+# setuptools>=81.0.0 also vendors patched wheel 0.46.3 under setuptools/_vendor/.
+RUN pip install --no-cache-dir --upgrade "setuptools>=81.0.0" "wheel>=0.47.0"
 
 FROM python:3.13-alpine3.21 AS base
 
@@ -50,11 +51,6 @@ RUN apk add --no-cache --upgrade "musl>=1.2.5-r11" "musl-utils>=1.2.5-r11"
 # VULN-557 - Upgrade sqlite-libs to 3.49.1
 RUN echo "http://dl-cdn.alpinelinux.org/alpine/edge/main" >> /etc/apk/repositories
 RUN apk add "sqlite-libs>=3.49.1"
-
-# upgrade global libraries to fix CVEs. Upgrade pip to fix VULN-510
-# setuptools: CVE-2025-47273 (fix 78.1.1); wheel: CVE-2026-24049 (fix 0.46.2)
-RUN pip install --no-cache-dir --upgrade pip==25.0.0 && \
-    pip install --no-cache-dir --upgrade setuptools==78.1.1 wheel==0.47.0
 
 RUN adduser --disabled-password mcdagent
 
