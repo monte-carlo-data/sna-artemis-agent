@@ -34,8 +34,10 @@ charset-normalizer==3.4.4
     #   -c requirements-build.txt
     #   requests
     #   snowflake-connector-python
-click==8.3.1
-    # via flask
+click==8.4.2
+    # via
+    #   -r requirements.in
+    #   flask
 cryptography==48.0.1
     # via
     #   -c requirements-build.txt
