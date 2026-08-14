@@ -54,15 +54,27 @@ RUN apk add --no-cache --upgrade "musl>=1.2.5-r11" "musl-utils>=1.2.5-r11"
 RUN echo "http://dl-cdn.alpinelinux.org/alpine/edge/main" >> /etc/apk/repositories
 RUN apk add "sqlite-libs>=3.49.1"
 
-# VULN: upgrade the base image's global pip (build-time tooling, unused at runtime) —
-# CVE-2026-8643 / CVE-2026-6357 / CVE-2026-3219 / CVE-2026-1703 (fix 26.1.2).
-RUN pip install --no-cache-dir --upgrade "pip>=26.1.2"
-
 RUN adduser --disabled-password mcdagent
 
 COPY --from=base --chown=mcdagent /opt/venv /opt/venv
 COPY --from=base --chown=mcdagent /agent /agent
 COPY --from=base --chown=mcdagent /gunicorn.conf.py /gunicorn.conf.py
+
+# VULN: drop pip from the runtime image entirely. Nothing installs packages at
+# runtime (gunicorn serves the app out of the venv), and pip's bundled
+# third-party tree is what scanners flag:
+#   pip/_vendor/msgpack 1.1.2 — CVE-2026-57585 / GHSA-6v7p-g79w-8964, no pip
+#     release vendors the patched 1.2.1 yet (26.2.1 is the latest).
+#   pip/_vendor/setuptools 70.3.0 — CVE-2025-47273, same situation.
+# Removing pip also retires the earlier global-pip upgrade that only existed to
+# close pip's own CVEs (CVE-2026-8643 / CVE-2026-6357 / CVE-2026-3219 /
+# CVE-2026-1703). The builder/base/tests stages keep pip and are unchanged.
+#
+# pip uninstalls itself, so there are no interpreter paths to keep in sync with
+# the Python version — and if a future base image ships pip differently, this
+# fails the build instead of silently leaving pip in place.
+RUN /opt/venv/bin/python -m pip uninstall -y pip \
+ && /usr/local/bin/python -m pip uninstall -y pip
 
 USER mcdagent
 
