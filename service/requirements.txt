@@ -38,7 +38,7 @@ click==8.4.2
     # via
     #   -r requirements.in
     #   flask
-cryptography==48.0.1
+cryptography==50.0.0
     # via
     #   -c requirements-build.txt
     #   pyopenssl
@@ -111,7 +111,7 @@ pyjwt==2.13.0
     # via
     #   -c requirements-build.txt
     #   snowflake-connector-python
-pyopenssl==26.2.0
+pyopenssl==26.4.0
     # via
     #   -c requirements-build.txt
     #   snowflake-connector-python
