@@ -1,10 +1,10 @@
 # dependencies that are built in a separate stage of the docker image
-agent-common @ git+https://github.com/monte-carlo-data/agent-common.git@v0.2.7
+agent-common @ git+https://github.com/monte-carlo-data/agent-common.git@v0.2.8
 
 snowflake-connector-python==4.4.0 # Bumped from 3.15.0; lifts pyOpenSSL<26 cap (matches apollo-agent)
 requests>=2.32.4 # Upgraded in VULN-616
 urllib3>=2.7.0 # Upgraded for agent-common compatibility; CVE-2026-44431 / CVE-2026-44432
 # Security floors for transitive deps pulled by snowflake-connector-python (see #collection-agent-vuln-scans)
-cryptography>=48.0.1 # CVE-2026-26007 / GHSA-537c-gmf6-5ccf
+cryptography>=50.0.0 # CVE-2026-26007 / GHSA-537c-gmf6-5ccf / CVE-2026-69247 / CVE-2026-69249
 pyjwt>=2.13.0 # CVE-2026-32597 / CVE-2026-48526 / CVE-2025-45768
-pyopenssl>=26.0.0 # CVE-2026-27459
+pyopenssl>=26.4.0 # CVE-2026-27459; >=26.4.0 lifts the cryptography<49 cap
