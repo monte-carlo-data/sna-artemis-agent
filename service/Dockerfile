@@ -60,19 +60,10 @@ COPY --from=base --chown=mcdagent /opt/venv /opt/venv
 COPY --from=base --chown=mcdagent /agent /agent
 COPY --from=base --chown=mcdagent /gunicorn.conf.py /gunicorn.conf.py
 
-# VULN: drop pip from the runtime image entirely. Nothing installs packages at
-# runtime (gunicorn serves the app out of the venv), and pip's bundled
-# third-party tree is what scanners flag:
-#   pip/_vendor/msgpack 1.1.2 — CVE-2026-57585 / GHSA-6v7p-g79w-8964, no pip
-#     release vendors the patched 1.2.1 yet (26.2.1 is the latest).
-#   pip/_vendor/setuptools 70.3.0 — CVE-2025-47273, same situation.
-# Removing pip also retires the earlier global-pip upgrade that only existed to
-# close pip's own CVEs (CVE-2026-8643 / CVE-2026-6357 / CVE-2026-3219 /
-# CVE-2026-1703). The builder/base/tests stages keep pip and are unchanged.
-#
-# pip uninstalls itself, so there are no interpreter paths to keep in sync with
-# the Python version — and if a future base image ships pip differently, this
-# fails the build instead of silently leaving pip in place.
+# VULN: no pip at runtime — pip's vendored msgpack/setuptools are flagged
+# (CVE-2026-57585 / GHSA-6v7p-g79w-8964 / CVE-2025-47273) and the latest pip
+# still bundles them. Nothing installs packages at runtime; builder/base/tests
+# keep pip. Uninstalling via pip itself avoids version-specific venv paths.
 RUN /opt/venv/bin/python -m pip uninstall -y pip \
  && /usr/local/bin/python -m pip uninstall -y pip
 
