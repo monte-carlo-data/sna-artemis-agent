@@ -1,14 +1,21 @@
 import json
+import logging
 import os
 from json import JSONDecodeError
-from typing import Dict
+from typing import Any, Dict, Optional
 
-from apollo.egress.agent.service.login_token_provider import LoginTokenProvider
+from apollo.egress.agent.service.login_token_provider import (
+    ATTR_NAME_TOKEN_FILE_PATH,
+    AUTH_METHOD_TOKEN_FILE,
+    LoginTokenProvider,
+)
 from apollo.egress.agent.utils.utils import X_MCD_ID, X_MCD_TOKEN
 
 _SECRET_STRING_PATH = "/usr/local/creds/secret_string"
 _MCD_ID_ATTR = "mcd_id"
 _MCD_TOKEN_ATTR = "mcd_token"
+
+logger = logging.getLogger(__name__)
 
 
 class SNALoginTokenProvider(LoginTokenProvider):
@@ -25,13 +32,47 @@ class SNALoginTokenProvider(LoginTokenProvider):
     agent fall back to the US1 default URL, so an EU install whose secret
     wasn't readable at startup would cheerfully talk to the wrong backend.
     Failing loudly (via :class:`ValueError`) lets SPCS restart the
-    container once the secret is provisioned.
+    container once the secret is provisioned. The reporting accessors are the
+    one exception: they answer with ``None`` instead of raising, because they
+    exist to diagnose the very failure that makes the token unreadable.
     """
+
+    authentication_method: str = AUTH_METHOD_TOKEN_FILE
 
     def __init__(self, file_path: str = _SECRET_STRING_PATH):
         self._file_path = file_path
 
+    def get_credential_id(self) -> Optional[str]:
+        """Report the configured ``mcd_id``, for diagnostics only.
+
+        Unlike :meth:`get_token` this never raises: it is called on the startup
+        path and while authentication is already failing, so a token that can't
+        be read is reported as ``None`` rather than taking the caller down.
+        Catches everything, not just the ``ValueError`` :meth:`_read_token`
+        raises — an unreadable secret file surfaces as ``PermissionError``, and
+        that is one of the failures this exists to diagnose.
+        """
+        try:
+            return self._read_token()[_MCD_ID_ATTR]
+        except Exception as ex:
+            logger.warning(f"Failed to resolve the credential id: {ex}")
+            return None
+
+    def get_credential_info(self) -> Dict[str, Any]:
+        return {
+            **super().get_credential_info(),
+            ATTR_NAME_TOKEN_FILE_PATH: self._file_path,
+        }
+
     def get_token(self) -> Dict[str, str]:
+        key_json = self._read_token()
+        return {
+            X_MCD_ID: key_json[_MCD_ID_ATTR],
+            X_MCD_TOKEN: key_json[_MCD_TOKEN_ATTR],
+        }
+
+    def _read_token(self) -> Dict[str, Any]:
+        """Parse the token file, raising ``ValueError`` when it can't be used."""
         if not os.path.exists(self._file_path):
             raise ValueError(
                 f"Monte Carlo token file not found at {self._file_path}. "
@@ -46,13 +87,18 @@ class SNALoginTokenProvider(LoginTokenProvider):
             raise ValueError(
                 f"Failed to parse Monte Carlo token JSON at " f"{self._file_path}: {e}"
             ) from e
+        if not isinstance(key_json, dict):
+            # JSON that parses but isn't an object would otherwise reach the
+            # membership test below as a TypeError/AttributeError, escaping the
+            # ValueError that callers (and sna_service's startup guard) expect.
+            raise ValueError(
+                f"Monte Carlo token at {self._file_path} is not a JSON object; "
+                f"found: {type(key_json).__name__}"
+            )
         if _MCD_ID_ATTR not in key_json or _MCD_TOKEN_ATTR not in key_json:
             raise ValueError(
                 f"Monte Carlo token at {self._file_path} is missing required "
                 f"keys ({_MCD_ID_ATTR!r}, {_MCD_TOKEN_ATTR!r}); "
                 f"found: {sorted(key_json.keys())}"
             )
-        return {
-            X_MCD_ID: key_json[_MCD_ID_ATTR],
-            X_MCD_TOKEN: key_json[_MCD_TOKEN_ATTR],
-        }
+        return key_json

@@ -6,7 +6,7 @@
 #
 agent-base @ git+https://github.com/monte-carlo-data/agent-base.git@v0.0.6
     # via agent-common
-agent-common @ git+https://github.com/monte-carlo-data/agent-common.git@v0.2.8
+agent-common @ git+https://github.com/monte-carlo-data/agent-common.git@v0.2.9
     # via -r requirements-build.in
 asn1crypto==1.5.1
     # via snowflake-connector-python

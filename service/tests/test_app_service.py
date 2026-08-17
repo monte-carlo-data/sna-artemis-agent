@@ -379,7 +379,18 @@ class AppServiceTests(TestCase):
                 "ping failed"
             )
             result = self._service.run_reachability_test()
-            self.assertEqual({"error": "ping failed"}, result)
+            # A failed reachability test also reports which credential was sent:
+            # auth failures are rejected at the backend gateway, so this output
+            # is the only place they can be diagnosed from.
+            self.assertEqual(
+                {
+                    "error": "ping failed",
+                    "authentication_key_id": "local-token-id",
+                    "authentication_method": "local_env",
+                    "backend_url": "https://artemis.getmontecarlo.com:443",
+                },
+                result,
+            )
 
 
 def _mcd_id_for_tenant(tenant: str) -> str:
