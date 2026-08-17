@@ -2,6 +2,7 @@ import json
 import os
 import tempfile
 from unittest import TestCase
+from unittest.mock import patch
 
 from apollo.egress.agent.service.login_token_provider import (
     ATTR_NAME_AUTH_METHOD,
@@ -108,12 +109,10 @@ class SNALoginTokenProviderTests(TestCase):
         self.assertIsNone(provider.get_credential_id())
 
     def test_credential_id_is_none_when_file_is_unreadable(self):
+        # Patched rather than chmod'd: the test suite runs as root in the
+        # docker build stage, where permission bits are ignored.
         self._write_token(json.dumps({"mcd_id": "id-123", "mcd_token": "a-token"}))
-        os.chmod(self._token_path, 0)
         provider = SNALoginTokenProvider(self._token_path)
-        try:
+
+        with patch("builtins.open", side_effect=PermissionError("permission denied")):
             self.assertIsNone(provider.get_credential_id())
-        finally:
-            # Restored here rather than via addCleanup: tearDown removes the
-            # file before cleanups run.
-            os.chmod(self._token_path, 0o600)
