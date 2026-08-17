@@ -6,8 +6,7 @@
 #
 agent-base @ git+https://github.com/monte-carlo-data/agent-base.git@v0.0.6
     # via agent-common
-# TEMP (validation): pinned to the agent-common feature branch; flip to the released tag after agent-common PR #25 merges.
-agent-common @ git+https://github.com/monte-carlo-data/agent-common.git@mrostan/yet-2364-report-credential-id-in-reachability-result
+agent-common @ git+https://github.com/monte-carlo-data/agent-common.git@v0.2.9
     # via -r requirements-build.in
 asn1crypto==1.5.1
     # via snowflake-connector-python
