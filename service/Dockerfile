@@ -54,15 +54,18 @@ RUN apk add --no-cache --upgrade "musl>=1.2.5-r11" "musl-utils>=1.2.5-r11"
 RUN echo "http://dl-cdn.alpinelinux.org/alpine/edge/main" >> /etc/apk/repositories
 RUN apk add "sqlite-libs>=3.49.1"
 
-# VULN: upgrade the base image's global pip (build-time tooling, unused at runtime) —
-# CVE-2026-8643 / CVE-2026-6357 / CVE-2026-3219 / CVE-2026-1703 (fix 26.1.2).
-RUN pip install --no-cache-dir --upgrade "pip>=26.1.2"
-
 RUN adduser --disabled-password mcdagent
 
 COPY --from=base --chown=mcdagent /opt/venv /opt/venv
 COPY --from=base --chown=mcdagent /agent /agent
 COPY --from=base --chown=mcdagent /gunicorn.conf.py /gunicorn.conf.py
+
+# VULN: no pip at runtime — pip's vendored msgpack/setuptools are flagged
+# (CVE-2026-57585 / GHSA-6v7p-g79w-8964 / CVE-2025-47273) and the latest pip
+# still bundles them. Nothing installs packages at runtime; builder/base/tests
+# keep pip. Uninstalling via pip itself avoids version-specific venv paths.
+RUN /opt/venv/bin/python -m pip uninstall -y pip \
+ && /usr/local/bin/python -m pip uninstall -y pip
 
 USER mcdagent
 
