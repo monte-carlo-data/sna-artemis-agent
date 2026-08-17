@@ -89,3 +89,31 @@ class SNALoginTokenProviderTests(TestCase):
         provider = SNALoginTokenProvider(self._token_path)
 
         self.assertIsNone(provider.get_credential_id())
+
+    def test_non_object_json_raises_value_error(self):
+        # sna_service catches ValueError around get_token() to abort startup
+        # cleanly; JSON that parses but isn't an object must not escape as a
+        # TypeError/AttributeError traceback.
+        for payload in ("null", "[]", '"a-string"', "123"):
+            with self.subTest(payload=payload):
+                self._write_token(payload)
+                with self.assertRaises(ValueError) as ctx:
+                    SNALoginTokenProvider(self._token_path).get_token()
+                self.assertIn(self._token_path, str(ctx.exception))
+
+    def test_credential_id_is_none_for_non_object_json(self):
+        self._write_token("null")
+        provider = SNALoginTokenProvider(self._token_path)
+
+        self.assertIsNone(provider.get_credential_id())
+
+    def test_credential_id_is_none_when_file_is_unreadable(self):
+        self._write_token(json.dumps({"mcd_id": "id-123", "mcd_token": "a-token"}))
+        os.chmod(self._token_path, 0)
+        provider = SNALoginTokenProvider(self._token_path)
+        try:
+            self.assertIsNone(provider.get_credential_id())
+        finally:
+            # Restored here rather than via addCleanup: tearDown removes the
+            # file before cleanups run.
+            os.chmod(self._token_path, 0o600)
