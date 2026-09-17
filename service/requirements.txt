@@ -63,7 +63,7 @@ flask-sse==1.0.0
     # via -r requirements.in
 greenlet==3.5.1
     # via sqlalchemy
-gunicorn==26.0.0
+gunicorn==26.2.0
     # via -r requirements.in
 idna==3.11
     # via
@@ -96,7 +96,6 @@ mypy-extensions==1.1.0
 packaging==25.0
     # via
     #   -c requirements-build.txt
-    #   gunicorn
     #   marshmallow
     #   snowflake-connector-python
 platformdirs==4.5.1
@@ -144,11 +143,11 @@ six==1.17.0
     #   flask-sse
     #   python-dateutil
     #   sseclient
-snowflake-connector-python==4.4.0
+snowflake-connector-python==4.7.4
     # via
     #   -c requirements-build.txt
     #   snowflake-sqlalchemy
-snowflake-sqlalchemy==1.10.0
+snowflake-sqlalchemy==1.11.1
     # via -r requirements.in
 sortedcontainers==2.4.0
     # via

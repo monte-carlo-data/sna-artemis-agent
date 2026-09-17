@@ -3,9 +3,9 @@ click>=8.3.3  # transitive (flask); pinned for CVE-2026-7246
 dataclasses-json==0.6.7
 flask==3.0.3
 flask-sse==1.0.0
-gunicorn==26.0.0  # YET-1356 / VULN-1117: request-smuggling & header-framing hardening (AIKIDO-2026-10742); default sync worker, post_worker_init hook unaffected
+gunicorn==26.2.0  # YET-1356 / VULN-1117: successive request-smuggling & message-framing fixes (AIKIDO-2026-10742 / AIKIDO-2026-332632 / AIKIDO-2026-625366, fix 26.2.0); default sync worker, HTTP/2 never enabled, post_worker_init hook unaffected
 jinja2==3.1.6  # VULN-492 - Tried upgrading to flask 3.1.0 but it was still using jinja2 3.1.4
 retry2==0.9.5
-snowflake-sqlalchemy==1.10.0  # Bumped from 1.6.1 to allow snowflake-connector-python 4.x
+snowflake-sqlalchemy==1.11.1  # Bumped from 1.6.1 to allow snowflake-connector-python 4.x; VULN: CVE-2026-15736 - SQL injection & arbitrary file read (fix 1.11.0). Stay on 1.x, 2.0 requires connector 5.x
 sseclient==0.0.27
 werkzeug==3.1.6  # VULN: CVE-2026-27199 / CVE-2026-21860 / CVE-2025-66221 (fix 3.1.6)

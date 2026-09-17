@@ -65,8 +65,10 @@ pyyaml==6.0.3
     # via pre-commit
 virtualenv==20.35.4
     # via pre-commit
-wheel==0.47.0
-    # via pip-tools
+wheel==0.48.0
+    # via
+    #   -r requirements-dev.in
+    #   pip-tools
 
 # The following packages are considered to be unsafe in a requirements file:
 # pip

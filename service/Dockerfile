@@ -10,10 +10,17 @@ COPY requirements-build.txt .
 RUN pip install -r requirements-build.txt
 
 # VULN: patch venv build tooling.
-#   setuptools: CVE-2025-47273 — also >=81.0.0 vendors patched wheel 0.46.3 under setuptools/_vendor/.
-#   wheel:      CVE-2026-24049.
+#   setuptools: CVE-2025-47273.
+#   wheel:      CVE-2026-24049; >=0.48.0 for GHSA-vgq5-9859-3mmw (`wheel convert` path traversal, affecting 0.9.6-0.47.0).
 #   pip:        CVE-2026-8643 / CVE-2026-6357 / CVE-2026-3219 / CVE-2026-1703 (fix 26.1.2).
-RUN pip install --no-cache-dir --upgrade "pip>=26.1.2" "setuptools>=81.0.0" "wheel>=0.47.0"
+RUN pip install --no-cache-dir --upgrade "pip>=26.1.2" "setuptools>=81.0.0" "wheel>=0.48.0"
+
+# GHSA-vgq5-9859-3mmw: setuptools vendors its own wheel (0.46.3), inside the
+# affected range and unreachable by the upgrade above — setuptools pins what it
+# vendors. Nothing here builds wheels, so drop it; the code goes too, not just
+# the dist-info, or convert.py stays on disk with only its metadata hidden.
+RUN rm -rf $VIRTUAL_ENV/lib/python*/site-packages/setuptools/_vendor/wheel \
+           $VIRTUAL_ENV/lib/python*/site-packages/setuptools/_vendor/wheel-*.dist-info
 
 FROM python:3.13-alpine3.21 AS base
 
