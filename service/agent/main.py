@@ -10,6 +10,12 @@ from flask import Flask
 from flask import make_response
 from flask import request
 
+from agent.utils.utils import silence_arrow_import_warning
+
+# Has to run before the db_config import below, which is what first pulls in
+# snowflake.connector — the warning is logged while the connector is imported.
+silence_arrow_import_warning()
+
 from agent.sna.config.db_config import DbConfig
 
 instance_id = str(uuid.uuid4())
