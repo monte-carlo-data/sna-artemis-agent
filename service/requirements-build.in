@@ -2,9 +2,12 @@
 agent-common @ git+https://github.com/monte-carlo-data/agent-common.git@v0.2.9
 
 snowflake-connector-python==4.7.4 # Bumped from 3.15.0; lifts pyOpenSSL<26 cap (matches apollo-agent). VULN: CVE-2026-15925 / AIKIDO-2026-572073 - TLS hostname verification bypass (fix 4.7.1)
-requests>=2.32.4 # Upgraded in VULN-616
+requests>=2.33.0 # Upgraded in VULN-616; CVE-2026-25645 - insecure temporary file (fix 2.33.0)
 urllib3>=2.7.0 # Upgraded for agent-common compatibility; CVE-2026-44431 / CVE-2026-44432
-# Security floors for transitive deps pulled by snowflake-connector-python (see #collection-agent-vuln-scans)
+# Security floors for transitive deps, mostly pulled by snowflake-connector-python (see #collection-agent-vuln-scans)
 cryptography>=50.0.0 # CVE-2026-26007 / GHSA-537c-gmf6-5ccf / CVE-2026-69247 / CVE-2026-69249
 pyjwt>=2.13.0 # CVE-2026-32597 / CVE-2026-48526 / CVE-2025-45768
 pyopenssl>=26.4.0 # CVE-2026-27459; >=26.4.0 lifts the cryptography<49 cap
+filelock>=3.20.3 # CVE-2025-68146 (fix 3.20.1) / CVE-2026-22701 (fix 3.20.3); connector caps filelock<4
+idna>=3.15 # CVE-2026-45409 - regex complexity; also transitive via requests
+marshmallow>=3.26.2 # CVE-2025-68480 - resource amplification; transitive via dataclasses-json, which caps marshmallow<4
