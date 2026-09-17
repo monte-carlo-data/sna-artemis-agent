@@ -57,19 +57,15 @@ RUN apk update && apk add --no-cache openssl~3.3
 # VULN: CVE-2026-40200 - upgrade musl (and musl-utils, same source pkg) to patched 3.21 release
 RUN apk add --no-cache --upgrade "musl>=1.2.5-r11" "musl-utils>=1.2.5-r11"
 
-# VULN: CVE-2026-22184 / CVE-2026-27171 - upgrade zlib to the patched 3.21 release.
-# The base image still carries 1.3.1-r2; 3.21/main has 1.3.2-r0, so this stays
-# above the edge repo added below.
-RUN apk add --no-cache --upgrade "zlib>=1.3.2-r0"
-
-# VULN: CVE-2025-46394 / CVE-2024-58251 (busybox, fixed in r14) and CVE-2026-34743
-# (xz, fixed in 5.8.3-r0). busybox-binsh and ssl_client ship from the same source
-# package and apk won't move them unless named, like the musl pair above. Also
-# takes CVE-2025-60876 out of scope: alpine records no fix for it, but its
-# affected range ends at r13. Must stay above the edge repo too — with edge in
-# the list, a bare --upgrade pulls busybox 1.38.x and musl 1.2.6 instead.
-RUN apk add --no-cache --upgrade "busybox>=1.37.0-r14" "busybox-binsh>=1.37.0-r14" \
-                                 "ssl_client>=1.37.0-r14" "xz-libs>=5.8.3-r0"
+# VULN: patched 3.21/main builds for packages the base image ships stale.
+#   zlib:    CVE-2026-22184 / CVE-2026-27171 (fix 1.3.2-r0).
+#   busybox: CVE-2025-46394 / CVE-2024-58251 (fix r14). busybox-binsh and
+#            ssl_client come from the same source package, so they need naming.
+#   xz-libs: CVE-2026-34743 (fix 5.8.3-r0).
+# Stays above the edge repo below: with edge in the list a bare --upgrade pulls
+# busybox 1.38.x and musl 1.2.6 as well.
+RUN apk add --no-cache --upgrade "zlib>=1.3.2-r0" "xz-libs>=5.8.3-r0" \
+    "busybox>=1.37.0-r14" "busybox-binsh>=1.37.0-r14" "ssl_client>=1.37.0-r14"
 
 # VULN-557 - Upgrade sqlite-libs to 3.49.1
 RUN echo "http://dl-cdn.alpinelinux.org/alpine/edge/main" >> /etc/apk/repositories
