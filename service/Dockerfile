@@ -57,6 +57,11 @@ RUN apk update && apk add --no-cache openssl~3.3
 # VULN: CVE-2026-40200 - upgrade musl (and musl-utils, same source pkg) to patched 3.21 release
 RUN apk add --no-cache --upgrade "musl>=1.2.5-r11" "musl-utils>=1.2.5-r11"
 
+# VULN: CVE-2026-22184 / CVE-2026-27171 - upgrade zlib to the patched 3.21 release.
+# The base image still carries 1.3.1-r2; 3.21/main has 1.3.2-r0, so this stays
+# above the edge repo added below.
+RUN apk add --no-cache --upgrade "zlib>=1.3.2-r0"
+
 # VULN-557 - Upgrade sqlite-libs to 3.49.1
 RUN echo "http://dl-cdn.alpinelinux.org/alpine/edge/main" >> /etc/apk/repositories
 RUN apk add "sqlite-libs>=3.49.1"

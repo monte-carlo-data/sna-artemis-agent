@@ -38,18 +38,23 @@ dataclasses-json==0.6.7
     # via agent-base
 decorator==5.2.1
     # via retry2
-filelock==3.20.0
-    # via snowflake-connector-python
-idna==3.11
+filelock==3.32.7
     # via
+    #   -r requirements-build.in
+    #   snowflake-connector-python
+idna==3.19
+    # via
+    #   -r requirements-build.in
     #   requests
     #   snowflake-connector-python
 jmespath==1.0.1
     # via
     #   boto3
     #   botocore
-marshmallow==3.26.1
-    # via dataclasses-json
+marshmallow==3.26.2
+    # via
+    #   -r requirements-build.in
+    #   dataclasses-json
 mypy-extensions==1.1.0
     # via typing-inspect
 packaging==25.0
@@ -72,7 +77,7 @@ python-dateutil==2.9.0.post0
     # via botocore
 pytz==2025.2
     # via snowflake-connector-python
-requests==2.32.5
+requests==2.34.2
     # via
     #   -r requirements-build.in
     #   agent-base

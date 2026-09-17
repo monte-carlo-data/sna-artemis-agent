@@ -51,7 +51,7 @@ decorator==5.2.1
     # via
     #   -c requirements-build.txt
     #   retry2
-filelock==3.20.0
+filelock==3.32.7
     # via
     #   -c requirements-build.txt
     #   snowflake-connector-python
@@ -65,7 +65,7 @@ greenlet==3.5.1
     # via sqlalchemy
 gunicorn==26.2.0
     # via -r requirements.in
-idna==3.11
+idna==3.19
     # via
     #   -c requirements-build.txt
     #   requests
@@ -85,7 +85,7 @@ markupsafe==3.0.3
     # via
     #   jinja2
     #   werkzeug
-marshmallow==3.26.1
+marshmallow==3.26.2
     # via
     #   -c requirements-build.txt
     #   dataclasses-json
@@ -124,7 +124,7 @@ pytz==2025.2
     #   snowflake-connector-python
 redis==7.1.0
     # via flask-sse
-requests==2.32.5
+requests==2.34.2
     # via
     #   -c requirements-build.txt
     #   snowflake-connector-python
