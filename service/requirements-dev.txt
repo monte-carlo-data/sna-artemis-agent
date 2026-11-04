@@ -17,9 +17,10 @@ click==8.4.2
     #   pip-tools
 distlib==0.4.0
     # via virtualenv
-filelock==3.32.7
+filelock==4.2.8
     # via
     #   -c requirements.txt
+    #   python-discovery
     #   virtualenv
 identify==2.6.15
     # via pre-commit
@@ -39,6 +40,7 @@ packaging==25.0
     #   black
     #   build
     #   pytest
+    #   virtualenv
     #   wheel
 pathspec==0.12.1
     # via black
@@ -61,9 +63,11 @@ pyright==1.1.337
     # via -r requirements-dev.in
 pytest==8.3.3
     # via -r requirements-dev.in
+python-discovery==1.9.4
+    # via virtualenv
 pyyaml==6.0.3
     # via pre-commit
-virtualenv==20.35.4
+virtualenv==21.14.5
     # via pre-commit
 wheel==0.48.0
     # via
