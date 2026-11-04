@@ -19,8 +19,9 @@ botocore==1.35.99
     #   boto3
     #   s3transfer
     #   snowflake-connector-python
-certifi==2025.11.12
+certifi==2026.10.23
     # via
+    #   -r requirements-build.in
     #   requests
     #   snowflake-connector-python
 cffi==2.0.0
@@ -38,7 +39,7 @@ dataclasses-json==0.6.7
     # via agent-base
 decorator==5.2.1
     # via retry2
-filelock==3.32.7
+filelock==4.2.8
     # via
     #   -r requirements-build.in
     #   snowflake-connector-python
@@ -92,7 +93,7 @@ six==1.17.0
     # via
     #   python-dateutil
     #   sseclient
-snowflake-connector-python==4.7.4
+snowflake-connector-python==4.8.1
     # via -r requirements-build.in
 sortedcontainers==2.4.0
     # via snowflake-connector-python
