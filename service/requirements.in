@@ -8,4 +8,4 @@ jinja2==3.1.6  # VULN-492; flask only requires jinja2>=3.1.2, so this pin is wha
 retry2==0.9.5
 snowflake-sqlalchemy==1.11.1  # Bumped from 1.6.1 to allow snowflake-connector-python 4.x; VULN: CVE-2026-15736 - SQL injection & arbitrary file read (fix 1.11.0). Stay on 1.x, 2.0 requires connector 5.x
 sseclient==0.0.27
-werkzeug==3.1.6  # VULN: CVE-2026-27199 / CVE-2026-21860 / CVE-2025-66221 (fix 3.1.6)
+werkzeug==3.1.9  # VULN: CVE-2026-27199 / CVE-2026-21860 / CVE-2025-66221 (fix 3.1.6); CVE-2026-102598 (fix 3.1.9)
