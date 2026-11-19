@@ -55,6 +55,13 @@ FROM python:3.13-alpine3.23 AS final
 #   zlib: CVE-2026-4738 (fix 1.4-r0; the base still has 1.3.2-r1).
 RUN apk upgrade --no-cache && apk add --no-cache --upgrade "zlib>=1.4-r0"
 
+# VULN: sqlite-libs from edge — 3.23 ships 3.53.4-r0, flagged for CVE-2026-119373 /
+# -119374 / -119379 / -119586. Edge is passed per command, not added to
+# /etc/apk/repositories: a listed edge repo makes Trivy read the image as edge and
+# flag musl/libuuid against edge's fix versions. No --upgrade: it would pull edge musl too.
+RUN apk add --no-cache \
+    --repository https://dl-cdn.alpinelinux.org/alpine/edge/main "sqlite-libs>=3.54.1"
+
 RUN adduser --disabled-password mcdagent
 
 COPY --from=base --chown=mcdagent /opt/venv /opt/venv
