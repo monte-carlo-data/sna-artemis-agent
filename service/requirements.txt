@@ -63,7 +63,7 @@ flask-sse==1.0.0
     # via -r requirements.in
 greenlet==3.5.1
     # via sqlalchemy
-gunicorn==26.2.0
+gunicorn==27.0.1
     # via -r requirements.in
 idna==3.19
     # via
