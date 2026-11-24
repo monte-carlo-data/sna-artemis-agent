@@ -53,7 +53,9 @@ FROM python:3.13-alpine3.23 AS final
 
 # VULN: patched 3.23/main builds the base image ships stale.
 #   zlib: CVE-2026-4738 (fix 1.4-r0; the base still has 1.3.2-r1).
-RUN apk upgrade --no-cache && apk add --no-cache --upgrade "zlib>=1.4-r0"
+#   libssl3/libcrypto3: CVE-2026-107496 / -88823 / -95691 / -95692 (fix 3.5.9-r1).
+RUN apk upgrade --no-cache && apk add --no-cache --upgrade "zlib>=1.4-r0" \
+    "libssl3>=3.5.9-r1" "libcrypto3>=3.5.9-r1"
 
 # VULN: sqlite-libs from edge — 3.23 ships 3.53.4-r0, flagged for CVE-2026-119373 /
 # -119374 / -119379 / -119586. Edge is passed per command, not added to
