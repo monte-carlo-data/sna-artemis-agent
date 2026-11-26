@@ -62,8 +62,10 @@ packaging==25.0
     # via
     #   marshmallow
     #   snowflake-connector-python
-platformdirs==4.5.1
-    # via snowflake-connector-python
+platformdirs==4.14.8
+    # via
+    #   -r requirements-build.in
+    #   snowflake-connector-python
 pycparser==2.23
     # via cffi
 pyjwt==2.15.1
